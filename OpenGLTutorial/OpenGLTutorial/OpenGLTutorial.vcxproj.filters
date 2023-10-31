@@ -1,0 +1,83 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Resource Files\VertexShader">
+      <UniqueIdentifier>{5dd18f05-f31c-49ae-b27b-12d4ce3fd7ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\FragmentShader">
+      <UniqueIdentifier>{0008b966-79e4-4063-ac69-853f864e74db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\GeometryShader">
+      <UniqueIdentifier>{a291186d-a962-4ece-834c-05cfa7a4a17e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\models">
+      <UniqueIdentifier>{abab26fe-9c16-4a7e-a517-d1932b223d11}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\glad\src\glad.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="shader_m.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="skybox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="loadModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cube.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="cube.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="light_cube.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="light_cube.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="normalLine.gs">
+      <Filter>Resource Files\GeometryShader</Filter>
+    </None>
+    <None Include="normalLine.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="normalLine.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="normalMapping.gs">
+      <Filter>Resource Files\GeometryShader</Filter>
+    </None>
+    <None Include="skybox.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="skybox.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+  </ItemGroup>
+</Project>

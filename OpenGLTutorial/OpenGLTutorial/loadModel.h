@@ -119,9 +119,7 @@ public:
 		glBindVertexArray(0);
 	}
 
-private:
-
-	void localTransform(tinygltf::Node& node, glm::mat4 &matrix) {
+	void localTransform(tinygltf::Node& node, glm::mat4& matrix) {
 
 		glm::vec3 s(1.0f);
 		glm::vec3 t(0.0f);
@@ -132,13 +130,13 @@ private:
 				glm::vec4 t;
 				for (int j = 0; j < 4; j++) {
 					t[j] = node.matrix[(i * 4) + j];
-					std::cout << node.matrix[(i * 4)+(j)] << " ";
+					std::cout << node.matrix[(i * 4) + (j)] << " ";
 				}
 				std::cout << "\n";
 				matrix[i] = t;
 			}
 			std::cout << "\n";
-			//return;
+			return;
 		}
 		// M = T * R * S
 		if (!node.translation.empty()) {
@@ -163,6 +161,8 @@ private:
 			matrix = glm::scale(matrix, s);
 		}
 	}
+
+private:
 
 	unsigned int loadTexture(int indx) {
 

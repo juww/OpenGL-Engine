@@ -1,10 +1,7 @@
 #version 330 core
 out vec4 FragColor;
 
-struct Light {
-    vec3 position;
-    vec3 color;
-};
+#define N_LIGHTS 4
 
 in vec3 FragPos;
 in vec3 Normal;
@@ -13,7 +10,11 @@ in mat3 TBN;
   
 uniform vec3 viewPos;
 
-uniform Light light;
+uniform int light_n;
+uniform int lightID[N_LIGHTS];
+uniform vec3 lightDirection[N_LIGHTS];
+uniform vec3 lightPosition[N_LIGHTS];
+uniform vec3 lightColor[N_LIGHTS];
 
 uniform sampler2D albedoMap;
 uniform sampler2D normalMap;
@@ -22,6 +23,35 @@ uniform sampler2D ambientOcclusionMap;
 uniform float uMetallic;
 
 const float PI = 3.14159265359;
+
+// pointlight 
+float calculateAttenuation(int indx){
+    
+    if(lightID[indx] != 2) return 1.0;
+
+    float attenuation = 1.0;
+    float d = length(lightPosition[indx] - FragPos);   // distance position and vertex
+//  float Kc = max(light[indx].constant, 1.0);          // constant value, default = 1.0
+//  float Kl = max(light[indx].linear, 0.0);            // linear value
+//  float Kq = max(light[indx].light.quadratic, 0.0);   // quadratic value
+//  attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+    attenuation = 1.0 / (d * d);
+    return attenuation;
+}
+
+// spotlight or flashlight
+float calculateIntensity(int indx){
+    
+    if(lightID[indx] != 3) return 1.0;
+
+    vec3 lightDir = normalize(lightPosition[indx] - FragPos);
+    // float theta = dot(lightDir, normalize(-lightDirection[indx])); 
+    //float epsilon = light[indx].cutOff - light[indx].outerCutOff;
+    //float intensity = clamp((theta - light[indx].outerCutOff) / epsilon, 0.0, 1.0);
+    float intensity = 1.0;
+    return intensity;
+}
+
 vec3 getNormalFromMap() {
     vec3 tangentNormal = texture(normalMap, TexCoords).xyz * 2.0 - 1.0;
 
@@ -82,15 +112,19 @@ vec3 PBR(vec3 albedo, float metallic, float roughness, float ao){
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
     vec3 Lo = vec3(0.0);
-    for(int i = 0; i < 1; ++i) {
+    for(int i = 0; i < light_n; ++i) {
         
-        vec3 L = normalize(light.position - FragPos);
-        vec3 H = normalize(V + L);
-        float distance = length(light.position - FragPos);
-        float attenuation = 1.0 / (distance * distance);
-        vec3 radiance = light.color * attenuation;
+        vec3 L = normalize(lightPosition[i] - FragPos);
+        if(lightID[i] == 1){
+            L = normalize(-lightDirection[i]);
+        }
 
-        // Cook-Torrance BRDF        
+        vec3 H = normalize(V + L);
+        float attenuation = calculateAttenuation(i);
+        float intensity = calculateIntensity(i);
+        vec3 radiance = lightColor[i] * attenuation * intensity;
+
+        // Cook-Torrance BRDF
         float D = DistributionGGX(N, H, roughness);   
         float G = GeometrySmith(N, V, L, roughness);      
         vec3 F  = fresnelSchlick(max(dot(H, V), 0.0), F0);
@@ -113,9 +147,9 @@ vec3 PBR(vec3 albedo, float metallic, float roughness, float ao){
 
 void main() {
 
-    vec3 TangentLightPos = TBN * light.position;
-    vec3 TangentViewPos  = TBN * viewPos;
-    vec3 TangentFragPos  = TBN * FragPos;
+  // vec3 TangentLightPos = TBN * light.position;
+  // vec3 TangentViewPos  = TBN * viewPos;
+  // vec3 TangentFragPos  = TBN * FragPos;
 
     vec3 albedo     = pow(texture(albedoMap, TexCoords).rgb, vec3(2.2));
     //float metallic  = texture(metallicMap, TexCoords).r;

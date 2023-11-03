@@ -43,7 +43,33 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 // lighting
-glm::vec3 lightPos(1.0f, 0.0f, 0.0f);
+struct Lightnings {
+    int ID;
+
+    glm::vec3 direction;
+    glm::vec3 position;
+
+    float cutOff;
+    float outerCutOff;
+
+    float constant;
+    float linear;
+    float quadratic;
+
+    glm::vec3 color;
+
+    Lightnings(int id, glm::vec3 dir, glm::vec3 pos, float cutoff, float outer, float c, float l, float q, glm::vec3 col) {
+        ID = id;
+        direction = dir;
+        position = pos;
+        cutOff = cutoff;
+        outerCutOff = outer;
+        constant = c;
+        linear = l;
+        quadratic = q;
+        color = col;
+    }
+};
 
 int main()
 {
@@ -83,6 +109,9 @@ int main()
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
+    std::vector<Lightnings> lights;
+    lights.push_back({ 1,glm::vec3(-0.2f, -1.0f, -0.3f), glm::vec3(0.0f, 0.0f, 0.0f), 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f) });
+    lights.push_back({ 2,glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f) });
 
     // configure global opengl state
     // -----------------------------
@@ -215,8 +244,6 @@ int main()
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // light properties
-        glm::vec3 lightColor = {1.0f, 1.0f, 1.0f};
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
@@ -253,8 +280,14 @@ int main()
         glBindVertexArray(0);
         // load carafe
         carafeShader.use();
-        carafeShader.setVec3("light.position", lightPos);
-        carafeShader.setVec3("light.color", lightColor);
+        int light_n = lights.size();
+        carafeShader.setInt("light_n", light_n);
+        for (int i = 0; i < light_n; i++) {
+            carafeShader.setInt("lightID[" + std::to_string(i) + "]", lights[i].ID);
+            carafeShader.setVec3("lightDirection[" + std::to_string(i) + "]", lights[i].direction);
+            carafeShader.setVec3("lightPosition[" + std::to_string(i) + "]", lights[i].position);
+            carafeShader.setVec3("lightColor[" + std::to_string(i) + "]", lights[i].color);
+        }
 
         carafeShader.setVec3("viewPos", camera.Position);
         carafeShader.setMat4("projection", projection);
@@ -277,7 +310,7 @@ int main()
         lightCubeShader.setMat4("projection", projection);
         lightCubeShader.setMat4("view", view);
         model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPos);
+        model = glm::translate(model, { 1.0f, 0.0f, 0.0f });
         model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
         lightCubeShader.setMat4("model", model);
 

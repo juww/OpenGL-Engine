@@ -127,16 +127,13 @@ public:
 
 		if (node.matrix.size() != 0) {
 			for (int i = 0; i < 4; i++) {
-				glm::vec4 t;
+				glm::vec4 temp;
 				for (int j = 0; j < 4; j++) {
-					t[j] = node.matrix[(i * 4) + j];
-					std::cout << node.matrix[(i * 4) + (j)] << " ";
+					temp[j] = node.matrix[(j * 4) + i];
 				}
-				std::cout << "\n";
-				matrix[i] = t;
+				matrix[i] = temp;
 			}
-			std::cout << "\n";
-			return;
+			std::cout << glm::to_string(matrix) << std::endl;
 		}
 		// M = T * R * S
 		if (!node.translation.empty()) {
@@ -276,19 +273,16 @@ private:
 			printf("vbo %u\n", vbo);
 
 			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-			glBufferData(GL_ARRAY_BUFFER, bufferView.byteLength,
-				&buffer.data.at(0) + bufferView.byteOffset, GL_STATIC_DRAW);
-			printf("bufferView.byteLength = %d\n", bufferView.byteLength);
-			printf("bufferView.byteOffset = %d\n", bufferView.byteOffset);
+			unsigned int offsetofData = bufferView.byteOffset + accessor.byteOffset;
+			unsigned int lengthOfData = accessor.count * accessor.ByteStride(bufferView);
+			printf("start : %u\n", offsetofData);
+			printf("length : %u\n", lengthOfData);
+			glBufferData(GL_ARRAY_BUFFER, lengthOfData, &buffer.data.at(0) + offsetofData, GL_STATIC_DRAW);
 
 			printf("vaa -> %s: %d\n", vaa->first.c_str(), vaa->second);
-			printf("accessor.type ==== %d\n", accessor.type);
-			printf("accessor.componentType ==== %d\n", accessor.componentType);
-			printf("accessor.ByteStride(bufferView) ==== %d\n", accessor.ByteStride(bufferView));
-			printf("accessor.byteOffset ==== %d\n", accessor.byteOffset);
 			glEnableVertexAttribArray(vaa->second);
 			glVertexAttribPointer(vaa->second, accessor.type, accessor.componentType,
-				accessor.normalized ? GL_TRUE : GL_FALSE, accessor.ByteStride(bufferView), (void*)(0 + accessor.byteOffset));
+				accessor.normalized ? GL_TRUE : GL_FALSE, accessor.ByteStride(bufferView), (void*)(0));
 		}
 	}
 
@@ -337,14 +331,15 @@ private:
 			unsigned int ebo;
 			glGenBuffers(1, &ebo);
 			printf("generate buffer EBO ------------------------ %u\n", ebo);
+			unsigned int offsetofData = bufferView.byteOffset + accessor.byteOffset;
+			unsigned int lengthOfData = accessor.count * accessor.ByteStride(bufferView);
+			printf("bytestride == %d\n", accessor.ByteStride(bufferView));
+			printf("start : %u\n", offsetofData);
+			printf("length : %u\n", lengthOfData);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, bufferView.byteLength,
-				&buffer.data.at(0) + bufferView.byteOffset, GL_STATIC_DRAW);
-
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, lengthOfData, &buffer.data.at(0) + offsetofData, GL_STATIC_DRAW);
 			ebos[prim.indices] = ebo;
 			printf("ebos[%d] = %u\n", prim.indices, ebos[prim.indices]);
-			printf("bufferView.byteLength = %d\n", bufferView.byteLength);
-			printf("bufferView.byteOffset = %d\n", bufferView.byteOffset);
 
 			bindAttributeIndex(prim);
 			
@@ -352,7 +347,7 @@ private:
 		}
 	}
 
-	void bindNodes(int indx) {
+	void bindNodes(int indx, int parent = -1) {
 		if (indx < 0 || indx >= (int)model.nodes.size()) {
 			std::cout << "index node is out of bound\n";
 			std::cout << "indx: "<<indx<<"\n";
@@ -362,10 +357,13 @@ private:
 		printf("node[%d] name: %s\n", indx, node.name.c_str());
 
 		localTransform(node,matrices[indx]);
+		if (parent != -1) {
+			matrices[indx] = matrices[indx] * matrices[parent];
+		}
 		bindMesh(node.mesh);
 
 		for (int i = 0; i < node.children.size(); i++) {
-			bindNodes(node.children[i]);
+			bindNodes(node.children[i], indx);
 		}
 		//int skin{ -1 };
 		//int light{ -1 };    // light source index (KHR_lights_punctual)
@@ -428,7 +426,7 @@ private:
 			//	continue;
 			//}
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[prim.indices]);
-			glDrawElements(prim.mode, accessor.count, accessor.componentType, (void*)(0 + accessor.byteOffset));
+			glDrawElements(prim.mode, accessor.count, accessor.componentType, (void*)(0));
 		}
 		
 	}

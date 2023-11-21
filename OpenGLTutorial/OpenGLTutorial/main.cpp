@@ -22,6 +22,8 @@
 // #define TINYGLTF_NOEXCEPTION // optional. disable exception handling.
 #include "tinyGLTF/tiny_gltf.h"
 
+#define INPUTFILE  freopen("input.txt","r",stdin)
+#define OUTPUTFILE freopen("output.txt","w",stdout)
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -172,7 +174,7 @@ int main()
     Shader skyboxShader("skybox.vs", "skybox.fs");
     Shader carafeShader("cube.vs", "cube.fs", "normalMapping.gs");
 
-    const std::string& pathfile = "assets/models/map/scene.gltf";
+    const std::string& pathfile = "assets/models/grindstone/scene.gltf";
     loadModel carafe(pathfile.c_str());
 
     Skybox skybox;

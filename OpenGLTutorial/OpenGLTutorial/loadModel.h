@@ -74,7 +74,7 @@ public:
 	std::vector<glm::mat4> matrices;
 	std::map<int, unsigned int> ebos;
 	std::map<int, unsigned int> vbos;
-	unsigned int vao;
+	std::map<int, unsigned int> vaos;
 	std::vector<Materials> materials;
 
 	loadModel(const char* filename) {
@@ -109,14 +109,11 @@ public:
 
 	void DrawModel(Shader &shader) {
 
-		glBindVertexArray(vao);
-
 		int defaultScene = model.defaultScene < 0 ? 0 : model.defaultScene;
 		tinygltf::Scene& scene = model.scenes[defaultScene];
 		for (int node : scene.nodes) {
 			drawNodes(node, shader);
 		}
-		glBindVertexArray(0);
 	}
 
 	void localTransform(tinygltf::Node& node, glm::mat4& matrix) {
@@ -129,7 +126,7 @@ public:
 			for (int i = 0; i < 4; i++) {
 				glm::vec4 temp;
 				for (int j = 0; j < 4; j++) {
-					temp[j] = node.matrix[(j * 4) + i];
+					temp[j] = node.matrix[(i * 4) + j];
 				}
 				matrix[i] = temp;
 			}
@@ -272,17 +269,15 @@ private:
 			vbos[attr.second] = vbo;
 			printf("vbo %u\n", vbo);
 
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
 			unsigned int offsetofData = bufferView.byteOffset + accessor.byteOffset;
-			unsigned int lengthOfData = accessor.count * accessor.ByteStride(bufferView);
-			printf("start : %u\n", offsetofData);
-			printf("length : %u\n", lengthOfData);
-			glBufferData(GL_ARRAY_BUFFER, lengthOfData, &buffer.data.at(0) + offsetofData, GL_STATIC_DRAW);
+			unsigned int stride = accessor.ByteStride(bufferView);
+			unsigned int lengthOfData = accessor.count * stride;
 
-			printf("vaa -> %s: %d\n", vaa->first.c_str(), vaa->second);
-			glEnableVertexAttribArray(vaa->second);
+			glBindBuffer(GL_ARRAY_BUFFER, vbo);
+			glBufferData(GL_ARRAY_BUFFER, lengthOfData, &buffer.data.at(offsetofData), GL_STATIC_DRAW);
 			glVertexAttribPointer(vaa->second, accessor.type, accessor.componentType,
 				accessor.normalized ? GL_TRUE : GL_FALSE, accessor.ByteStride(bufferView), (void*)(0));
+			glEnableVertexAttribArray(vaa->second);
 		}
 	}
 
@@ -292,10 +287,16 @@ private:
 			std::cout << "indx: " << indx << "\n";
 			return;
 		}
+
 		tinygltf::Mesh& mesh = model.meshes[indx];
 		printf("---------------------------------\n");
 		printf("Mesh ke - %d\n", indx);
 		printf("mesh name: %s\n", mesh.name.c_str());
+
+		unsigned int vao;
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+		vaos[indx] = vao;
 
 		for (int i = 0; i < mesh.primitives.size(); i++) {
 			tinygltf::Primitive &prim = mesh.primitives[i];
@@ -322,29 +323,26 @@ private:
 			printf("prim.indices = %d\n", prim.indices);
 			printf("accessor.bufferView = %d\n", accessor.bufferView);
 			printf("bufferView.buffer = %d\n", bufferView.buffer);
-			
-			printf("buffer data size %d\n", buffer.data.size());
+
 			if (ebos[prim.indices]) {
 				std::cout << "already bind the mesh" << std::endl;
 				continue;
 			}
 			unsigned int ebo;
 			glGenBuffers(1, &ebo);
-			printf("generate buffer EBO ------------------------ %u\n", ebo);
 			unsigned int offsetofData = bufferView.byteOffset + accessor.byteOffset;
-			unsigned int lengthOfData = accessor.count * accessor.ByteStride(bufferView);
-			printf("bytestride == %d\n", accessor.ByteStride(bufferView));
-			printf("start : %u\n", offsetofData);
-			printf("length : %u\n", lengthOfData);
+			unsigned int stride = accessor.ByteStride(bufferView);
+			unsigned int lengthOfData = accessor.count * stride;
+
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, lengthOfData, &buffer.data.at(0) + offsetofData, GL_STATIC_DRAW);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, lengthOfData, &buffer.data.at(offsetofData), GL_STATIC_DRAW);
 			ebos[prim.indices] = ebo;
-			printf("ebos[%d] = %u\n", prim.indices, ebos[prim.indices]);
 
 			bindAttributeIndex(prim);
-			
 			bindMaterial(prim.material);
 		}
+
+		glBindVertexArray(0);
 	}
 
 	void bindNodes(int indx, int parent = -1) {
@@ -360,6 +358,7 @@ private:
 		if (parent != -1) {
 			matrices[indx] = matrices[indx] * matrices[parent];
 		}
+
 		bindMesh(node.mesh);
 
 		for (int i = 0; i < node.children.size(); i++) {
@@ -374,10 +373,6 @@ private:
 	bool loadScene() {
 		bool ret = false;
 
-		glGenVertexArrays(1, &vao);
-		glBindVertexArray(vao);
-		ret = (vao != 0);
-
 		matrices.resize(model.nodes.size(), glm::mat4(1.0));
 		materials.resize(model.materials.size(), Materials());
 
@@ -386,7 +381,6 @@ private:
 		for (int node : scene.nodes) {
 			bindNodes(node);
 		}
-		glBindVertexArray(0);
 
 		return ret;
 	}
@@ -396,6 +390,7 @@ private:
 			return;
 		}
 		tinygltf::Mesh& mesh = model.meshes[indx];
+		glBindVertexArray(vaos[indx]);
 
 		for (int i = 0; i < mesh.primitives.size(); i++) {
 			tinygltf::Primitive &prim = mesh.primitives[i];
@@ -418,17 +413,11 @@ private:
 			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, materials[prim.material].roughnessMap);
 
-			//std::map<int, unsigned int>::iterator temp = ebos.find(prim.indices);
-			//printf("prim index = %d\n", prim.indices);
-			// printf("ebos[%d] = %d\n", prim.indices, ebos[prim.indices]);
-			//if (temp == ebos.end()) {
-			//	std::cout << "asu" << std::endl;
-			//	continue;
-			//}
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[prim.indices]);
 			glDrawElements(prim.mode, accessor.count, accessor.componentType, (void*)(0));
 		}
 		
+		glBindVertexArray(0);
 	}
 
 	void drawNodes(int indx, Shader& shader) {
@@ -440,7 +429,7 @@ private:
 		//glm::mat4 mat(1.0f);
 		//mat = glm::translate(mat, { 0.0f, 0.0f, 5.0f });
 		//model = glm::rotate(model, (float)glfwGetTime(), { 1.0f,0.0f,0.0f });
-		//mat = glm::scale(mat, { 0.1f,0.1f,0.1f });
+		mat = glm::scale(mat, { 0.1f,0.1f,0.1f });
 		 //std::cout << glm::to_string(mat) << "\n";
 		shader.setMat4("model", mat);
 

@@ -130,7 +130,6 @@ public:
 				}
 				matrix[i] = temp;
 			}
-			std::cout << glm::to_string(matrix) << std::endl;
 		}
 		// M = T * R * S
 		if (!node.translation.empty()) {
@@ -154,6 +153,8 @@ public:
 			}
 			matrix = glm::scale(matrix, s);
 		}
+
+		std::cout << glm::to_string(matrix) << std::endl;
 	}
 
 private:
@@ -429,7 +430,7 @@ private:
 		//glm::mat4 mat(1.0f);
 		//mat = glm::translate(mat, { 0.0f, 0.0f, 5.0f });
 		//model = glm::rotate(model, (float)glfwGetTime(), { 1.0f,0.0f,0.0f });
-		mat = glm::scale(mat, { 0.1f,0.1f,0.1f });
+		//mat = glm::scale(mat, { 0.1f,0.1f,0.1f });
 		 //std::cout << glm::to_string(mat) << "\n";
 		shader.setMat4("model", mat);
 

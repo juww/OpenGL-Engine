@@ -1,0 +1,11 @@
+Model Information:
+* title:	Monster Skull Hight Poly
+* source:	https://sketchfab.com/3d-models/monster-skull-hight-poly-05746a785fc641c2b48e59975663cf93
+* author:	Prof.v7x (https://sketchfab.com/profesor_v7x)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Monster Skull Hight Poly" (https://sketchfab.com/3d-models/monster-skull-hight-poly-05746a785fc641c2b48e59975663cf93) by Prof.v7x (https://sketchfab.com/profesor_v7x) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

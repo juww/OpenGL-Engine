@@ -20,16 +20,18 @@ std::map<std::string, int> vertexAttributeArray({
 	{"NORMAL",1},
 	{"TEXCOORD_0",2},
 	{"TANGENT",3},
-	{"COLOR_0",4}
+	{"COLOR_0",4},
+	{"JOINTS_0",5},
+	{"WEIGHTS_0",6},
 });
 
-struct Materials {
+struct MaterialModel {
 	bool flag;
 	glm::vec4 baseColor;
 	unsigned int albedoMap, normalMap, roughnessMap, emissiveMap, occlusionMap;
 	float metallicFactor, roughnessFactor;
 
-	Materials() {
+	MaterialModel() {
 		flag = false;
 		baseColor = glm::vec4(0.0);
 		albedoMap = 0;
@@ -40,9 +42,19 @@ struct Materials {
 		metallicFactor = 0.0f;
 		roughnessFactor = 0.0f;
 	}
-	~Materials() {
+	~MaterialModel() {
 
 	}
+};
+
+std::vector<std::pair<int, int> > vp;
+std::string nameNode[1000];
+
+struct AnimationModel {
+	std::string name;
+	float duration;
+	std::vector<float> keyframe;
+	
 };
 
 GLenum glCheckError_(const char* file, int line)
@@ -68,14 +80,27 @@ GLenum glCheckError_(const char* file, int line)
 }
 #define glCheckError() glCheckError_(__FILE__, __LINE__) 
 
+float HexToFloat(unsigned char temp[]) {
+	uint32_t x = temp[3];
+	for (int i = 2; i >= 0; i--) x = (x << 8) | temp[i];
+	static_assert(sizeof(float) == sizeof(uint32_t), "Float and uint32_t size dont match. Check another int type");
+
+	float f{};
+	memcpy(&f, &x, sizeof(x));
+
+	return f;
+}
+
 class loadModel {
 public:
 	tinygltf::Model model;
 	std::vector<glm::mat4> matrices;
+	std::vector<glm::mat4> inverseMatrices;
+	std::vector<glm::mat4> globalTransform;
 	std::map<int, unsigned int> ebos;
 	std::map<int, unsigned int> vbos;
 	std::map<int, unsigned int> vaos;
-	std::vector<Materials> materials;
+	std::vector<MaterialModel> materials;
 
 	loadModel(const char* filename) {
 		bool ret = false;
@@ -105,12 +130,40 @@ public:
 		}
 		printf("Loaded glTF: %s\n", filename);
 		ret = loadScene();
+		ret = loadAnimation();
+
+		tinygltf::Skin& skin = model.skins[0];
+		for (int i = 0; i < (int)vp.size(); i++) {
+			int a = 0, b=0;
+			for (int j = 0; j < (int)skin.joints.size(); j++) {
+				int joint = skin.joints[j];
+				if (vp[i].first == joint) {
+					a = 1;
+				}
+				if (vp[i].second == joint) {
+					b = 1;
+				}
+			}
+			if (a+b == 2) {
+				printf("%d %d\n", vp[i].first, vp[i].second);
+			}
+		}
+
+		for (int j = 0; j < (int)skin.joints.size(); j++) {
+			int joint = skin.joints[j];
+			printf("%d -> %s\n", joint, nameNode[joint].c_str());
+		}
 	}
 
 	void DrawModel(Shader &shader) {
 
 		int defaultScene = model.defaultScene < 0 ? 0 : model.defaultScene;
 		tinygltf::Scene& scene = model.scenes[defaultScene];
+		for (int i = 0; i < (int)model.skins[0].joints.size(); i++) {
+			int joint = model.skins[0].joints[i];
+			globalTransform[i] = matrices[joint] * inverseMatrices[i];
+			shader.setMat4("boneTransform[" + std::to_string(i) + "]", globalTransform[i]);
+		}
 		for (int node : scene.nodes) {
 			drawNodes(node, shader);
 		}
@@ -276,16 +329,19 @@ private:
 
 			glBindBuffer(GL_ARRAY_BUFFER, vbo);
 			glBufferData(GL_ARRAY_BUFFER, lengthOfData, &buffer.data.at(offsetofData), GL_STATIC_DRAW);
-			glVertexAttribPointer(vaa->second, accessor.type, accessor.componentType,
-				accessor.normalized ? GL_TRUE : GL_FALSE, accessor.ByteStride(bufferView), (void*)(0));
+			if (vaa->first == "JOINTS_0") {
+				glVertexAttribIPointer(vaa->second, accessor.type, accessor.componentType,
+					accessor.ByteStride(bufferView), (void*)(0));
+			} else {
+				glVertexAttribPointer(vaa->second, accessor.type, accessor.componentType,
+					accessor.normalized ? GL_TRUE : GL_FALSE, accessor.ByteStride(bufferView), (void*)(0));
+			}
 			glEnableVertexAttribArray(vaa->second);
 		}
 	}
 
 	void bindMesh(int indx) {
 		if (indx < 0 || indx >= (int)model.meshes.size()){
-			std::cout << "index mesh is out of bound\n";
-			std::cout << "indx: " << indx << "\n";
 			return;
 		}
 
@@ -346,6 +402,70 @@ private:
 		glBindVertexArray(0);
 	}
 
+	void bindSkin(int indx) {
+
+		if (indx == -1) return;
+
+		tinygltf::Skin& skin = model.skins[indx];
+		printf("skin name ---- %s\n", skin.name.c_str());
+		if (skin.inverseBindMatrices < 0 || skin.inverseBindMatrices >= model.accessors.size()) {
+			printf("E| Skin Inverse Bind Matrices is not found!\n");
+			return;
+		}
+		tinygltf::Accessor& accessor = model.accessors[skin.inverseBindMatrices];
+		if (accessor.bufferView < 0 || accessor.bufferView >= model.bufferViews.size()) {
+			printf("E| Skin accessor bufferView is not found!\n");
+			return;
+		}
+		if (accessor.type != 36) {
+			printf("E| error Skin Type data!\nE| accessor.type = %d\n", accessor.type);
+			return;
+		}
+		tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+		if (bufferView.buffer < 0 || bufferView.buffer >= model.buffers.size()) {
+			printf("E| Skin buffer data is not found!\n");
+			return;
+		}
+		tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+		
+		unsigned int offsetofData = bufferView.byteOffset + accessor.byteOffset;
+		unsigned int stride = accessor.ByteStride(bufferView);
+		unsigned int lengthOfData = accessor.count * stride;
+
+		int cnt = 0, mi = 0;
+		unsigned char temp[4];
+		for (int i = offsetofData; i < offsetofData + lengthOfData; i++) {
+			//if (cnt > 128) break;
+			temp[cnt % 4] = buffer.data[i];
+			printf("%3d ", buffer.data[i]);
+			if (cnt % 4 == 3) {
+				float a = HexToFloat(temp);
+				inverseMatrices[cnt / 64][mi / 4][mi % 4] = a;
+				printf(" - %f #  ", a);
+				mi++;
+			}
+			if (cnt % 16 == 15) printf("\n");
+			if (cnt % 64 == 63) {
+				mi = 0;
+				printf("indx %d ============================\n", cnt/64);
+				std::cout << to_string(inverseMatrices[(cnt / 64)]) << "\n";
+			}
+			cnt++;
+		};
+
+		printf("skin accessor %s\n", accessor.name.c_str());
+		printf("bufferView = %d\n", accessor.bufferView);
+		printf("byteoffset = %d\n", accessor.byteOffset);
+		printf("componentType = %d\n", accessor.componentType);
+		printf("Type = %d\n", accessor.type);
+		printf("bytestride = %d\n", accessor.ByteStride(model.bufferViews[accessor.bufferView]));
+		printf("size count = %d\n", accessor.count);
+		//std::string name;
+		//int skeleton{ -1 };             // The index of the node used as a skeleton root
+		//std::vector<int> joints;      // Indices of skeleton nodes
+
+	}
+
 	void bindNodes(int indx, int parent = -1) {
 		if (indx < 0 || indx >= (int)model.nodes.size()) {
 			std::cout << "index node is out of bound\n";
@@ -357,15 +477,17 @@ private:
 
 		localTransform(node,matrices[indx]);
 		if (parent != -1) {
+			vp.push_back({ parent,indx });
 			matrices[indx] = matrices[indx] * matrices[parent];
 		}
-
+		nameNode[indx] = node.name;
 		bindMesh(node.mesh);
+		bindSkin(node.skin);
 
 		for (int i = 0; i < node.children.size(); i++) {
 			bindNodes(node.children[i], indx);
 		}
-		//int skin{ -1 };
+
 		//int light{ -1 };    // light source index (KHR_lights_punctual)
 		//int emitter{ -1 };  // audio emitter index (KHR_audio)
 		//std::vector<double> weights;  // The weights of the instantiated Morph Target
@@ -375,7 +497,9 @@ private:
 		bool ret = false;
 
 		matrices.resize(model.nodes.size(), glm::mat4(1.0));
-		materials.resize(model.materials.size(), Materials());
+		inverseMatrices.resize(model.nodes.size(), glm::mat4(1.0));
+		globalTransform.resize(model.nodes.size(), glm::mat4(1.0));
+		materials.resize(model.materials.size(), MaterialModel());
 
 		int defaultScene = model.defaultScene < 0 ? 0 : model.defaultScene;
 		tinygltf::Scene& scene = model.scenes[defaultScene];
@@ -420,17 +544,17 @@ private:
 		
 		glBindVertexArray(0);
 	}
-
+	
 	void drawNodes(int indx, Shader& shader) {
 		if (indx < 0 || indx >= (int)model.nodes.size()) {
 			return;
 		}
 		tinygltf::Node& node = model.nodes[indx];
-		glm::mat4 mat = matrices[indx];
-		//glm::mat4 mat(1.0f);
-		//mat = glm::translate(mat, { 0.0f, 0.0f, 5.0f });
+		//glm::mat4 mat = matrices[indx];
+		glm::mat4 mat(1.0f);
+		//mat = glm::translate(mat, { 0.0f, 5.0f, 0.0f });
 		//model = glm::rotate(model, (float)glfwGetTime(), { 1.0f,0.0f,0.0f });
-		//mat = glm::scale(mat, { 0.1f,0.1f,0.1f });
+		mat = glm::scale(mat, { 0.01f,0.01f,0.01f });
 		 //std::cout << glm::to_string(mat) << "\n";
 		shader.setMat4("model", mat);
 

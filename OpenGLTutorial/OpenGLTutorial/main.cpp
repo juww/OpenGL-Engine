@@ -78,7 +78,7 @@ int main()
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
@@ -174,7 +174,7 @@ int main()
     Shader skyboxShader("skybox.vs", "skybox.fs");
     Shader carafeShader("cube.vs", "cube.fs", "normalMapping.gs");
 
-    const std::string& pathfile = "assets/models/miyu/scene.gltf";
+    const std::string& pathfile = "assets/models/phoenix_bird/scene.gltf";
     loadModel carafe(pathfile.c_str());
 
     Skybox skybox;
@@ -212,6 +212,7 @@ int main()
     cubeShader.setInt("normalMap", 1);
     cubeShader.setInt("roughnessMap", 2);
     // cubeShader.setInt("ambientOcclusionMap", 3);
+    // cubeShader.setInt("metallicMap", 3);
     //cubeShader.setFloat("uMetallic", modelMesh.metallic);
 
     carafeShader.use();

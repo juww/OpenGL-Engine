@@ -12,6 +12,8 @@
 #include <string>
 #include <map>
 
+#include "animator.h"
+
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
 const unsigned int INF = 4294967294U;
@@ -80,7 +82,7 @@ GLenum glCheckError_(const char* file, int line)
 }
 #define glCheckError() glCheckError_(__FILE__, __LINE__) 
 
-float HexToFloat(unsigned char temp[]) {
+static float HexToFloat(unsigned char temp[]) {
 	uint32_t x = temp[3];
 	for (int i = 2; i >= 0; i--) x = (x << 8) | temp[i];
 	static_assert(sizeof(float) == sizeof(uint32_t), "Float and uint32_t size dont match. Check another int type");
@@ -101,6 +103,7 @@ public:
 	std::map<int, unsigned int> vbos;
 	std::map<int, unsigned int> vaos;
 	std::vector<MaterialModel> materials;
+	std::vector<Animator> animator;
 
 	loadModel(const char* filename) {
 		bool ret = false;
@@ -479,6 +482,7 @@ private:
 		if (parent != -1) {
 			vp.push_back({ parent,indx });
 			matrices[indx] = matrices[indx] * matrices[parent];
+			//inverseMatrices[indx] = glm::inverse(matrices[indx]);
 		}
 		nameNode[indx] = node.name;
 		bindMesh(node.mesh);
@@ -500,12 +504,119 @@ private:
 		inverseMatrices.resize(model.nodes.size(), glm::mat4(1.0));
 		globalTransform.resize(model.nodes.size(), glm::mat4(1.0));
 		materials.resize(model.materials.size(), MaterialModel());
+		animator.resize(model.animations.size());
 
 		int defaultScene = model.defaultScene < 0 ? 0 : model.defaultScene;
 		tinygltf::Scene& scene = model.scenes[defaultScene];
 		for (int node : scene.nodes) {
 			bindNodes(node);
 		}
+
+		return ret;
+	}
+
+
+	bool loadAnimation() {
+		bool ret = false;
+
+		int current_animation = 0;
+		for (tinygltf::Animation& animation : model.animations) {
+			printf("%d: %s\n", current_animation, animation.name.c_str());
+
+			int sampler_length = animation.samplers.size();
+			int channel_length = animation.channels.size();
+			for (tinygltf::AnimationChannel& channel: animation.channels) {
+
+				if (current_animation > 3) break;
+				int indxSampler = channel.sampler;
+				int targetNode = channel.target_node;
+
+				printf("target node animation: %d\n", targetNode);
+
+				std::string targetPath = channel.target_path;
+				if (indxSampler < 0 || indxSampler >= sampler_length) {
+					printf("E| animation index sampler is not found!\n");
+					printf("E| indxSampler: %d\n", indxSampler);
+					break;
+				}
+				tinygltf::AnimationSampler& sampler = animation.samplers[indxSampler];
+				tinygltf::Accessor& accessorInput = model.accessors[sampler.input];
+				tinygltf::BufferView& bufferViewInput = model.bufferViews[accessorInput.bufferView];
+				tinygltf::Buffer& bufferInput = model.buffers[bufferViewInput.buffer];
+
+				if (accessorInput.type != 65 || accessorInput.componentType != GL_FLOAT) {
+					printf("E| animation input is not correct!\n");
+					printf("E| accessor type: %d\n", accessorInput.type);
+					printf("E| accessor ComponentType: %d\n", accessorInput.componentType);
+					break;
+				}
+
+				unsigned int offsetofData = bufferViewInput.byteOffset + accessorInput.byteOffset;
+				unsigned int stride = accessorInput.ByteStride(bufferViewInput);
+				unsigned int lengthOfData = accessorInput.count * stride;
+
+				int cnt = 0, mi = 0;
+				unsigned char tempBuffer[4];
+				printf("timestamp:\n");
+				std::vector<float> inputData;
+				for (unsigned int i = offsetofData; i < offsetofData + lengthOfData; i++) {
+					tempBuffer[cnt % 4] = bufferInput.data[i];
+					if (cnt % 4 == 3) {
+						float timestamp = HexToFloat(tempBuffer);
+						printf("%.7f\n", timestamp);
+						inputData.push_back(timestamp);
+					}
+					cnt++;
+				}
+				printf("\n");
+				tinygltf::Accessor& accessorOutput = model.accessors[sampler.output];
+				tinygltf::BufferView& bufferViewOutput = model.bufferViews[accessorOutput.bufferView];
+				tinygltf::Buffer& bufferOutput = model.buffers[bufferViewOutput.buffer];
+
+				offsetofData = bufferViewOutput.byteOffset + accessorOutput.byteOffset;
+				stride = accessorOutput.ByteStride(bufferViewOutput);
+				lengthOfData = accessorOutput.count * stride;
+
+				std::cout << "stride " << stride << "\n";
+
+				cnt = 0; mi = 0;
+				int vtemp = 0;
+				printf("output %s:\n", channel.target_path.c_str());
+				std::vector<glm::vec4> outputData;
+				glm::vec4 tempTransform(0.0f);
+				for (unsigned int i = offsetofData; i < offsetofData + lengthOfData; i++) {
+					tempBuffer[cnt % 4] = bufferInput.data[i];
+					if (cnt % 4 == 3) {
+						float tempdata = HexToFloat(tempBuffer);
+						tempTransform[vtemp] = tempdata;
+						vtemp++;
+					}
+					if (cnt % stride == stride - 1) {
+						vtemp = 0;
+						outputData.push_back(tempTransform);
+					}
+					cnt++;
+				}
+				animator[current_animation].addKeyframe(inputData, outputData, targetNode,sampler.interpolation, targetPath);
+			}
+			
+			//std::vector<AnimationChannel> channels;
+			int sampler{ -1 };          // required
+			int target_node{ -1 };      // optional index of the node to target (alternative
+										// target should be provided by extension)
+			std::string target_path;	// required with standard values of ["translation",
+										// "rotation", "scale", "weights"]
+
+			//std::vector<AnimationSampler> samplers;
+			int input{ -1 };			// indx to accessor (?) time keyframe
+			int output{ -1 };			// indx to accessor (?) transform{translate,rotation, scale};
+
+			std::string interpolation;	// "LINEAR", "STEP","CUBICSPLINE" or user defined
+										// string. default "LINEAR"
+
+			current_animation++;
+		}
+
 
 		return ret;
 	}
@@ -531,12 +642,14 @@ private:
 				continue;
 			}
 
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, materials[prim.material].albedoMap);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, materials[prim.material].normalMap);
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, materials[prim.material].roughnessMap);
+			if (prim.material != -1) {
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, materials[prim.material].albedoMap);
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, materials[prim.material].normalMap);
+				glActiveTexture(GL_TEXTURE2);
+				glBindTexture(GL_TEXTURE_2D, materials[prim.material].roughnessMap);
+			}
 
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[prim.indices]);
 			glDrawElements(prim.mode, accessor.count, accessor.componentType, (void*)(0));
@@ -552,9 +665,9 @@ private:
 		tinygltf::Node& node = model.nodes[indx];
 		//glm::mat4 mat = matrices[indx];
 		glm::mat4 mat(1.0f);
-		//mat = glm::translate(mat, { 0.0f, 5.0f, 0.0f });
+		//mat = glm::translate(mat, { 0.0f, -20.0f, 0.0f });
 		//model = glm::rotate(model, (float)glfwGetTime(), { 1.0f,0.0f,0.0f });
-		mat = glm::scale(mat, { 0.01f,0.01f,0.01f });
+		//mat = glm::scale(mat, { 0.01f,0.01f,0.01f });
 		 //std::cout << glm::to_string(mat) << "\n";
 		shader.setMat4("model", mat);
 

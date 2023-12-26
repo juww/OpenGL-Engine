@@ -29,7 +29,7 @@ vec4 applyBoneTransform(vec4 p) {
 
     for (int i = 0; i < 4; ++i) {
          if(aJoint[i] == -1) continue;
-         vec4 localTransform = boneTransform[aJoint[i]] * vec4(aPos, 1.0);
+         vec4 localTransform = boneTransform[aJoint[i]] * p;
          result += (aWeight[i] * localTransform);
     }
     return result;

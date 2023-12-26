@@ -174,7 +174,7 @@ int main()
     Shader skyboxShader("skybox.vs", "skybox.fs");
     Shader carafeShader("cube.vs", "cube.fs", "normalMapping.gs");
 
-    const std::string& pathfile = "assets/models/phoenix_bird/scene.gltf";
+    const std::string& pathfile = "assets/models/simpleSkin/scene.gltf";
     loadModel carafe(pathfile.c_str());
 
     Skybox skybox;

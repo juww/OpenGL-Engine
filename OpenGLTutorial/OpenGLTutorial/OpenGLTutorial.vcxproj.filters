@@ -47,6 +47,9 @@
     <ClInclude Include="loadModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="animator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cube.vs">
@@ -78,6 +81,12 @@
     </None>
     <None Include="skybox.vs">
       <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="skeletal.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="skeletal.gs">
+      <Filter>Resource Files\GeometryShader</Filter>
     </None>
   </ItemGroup>
 </Project>

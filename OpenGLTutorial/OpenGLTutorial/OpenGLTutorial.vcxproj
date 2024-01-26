@@ -160,6 +160,7 @@
     <None Include="normalLine.fs" />
     <None Include="normalLine.vs" />
     <None Include="normalMapping.gs" />
+    <None Include="skeletal.fs" />
     <None Include="skeletal.gs" />
     <None Include="skeletal.vs" />
     <None Include="skybox.fs" />

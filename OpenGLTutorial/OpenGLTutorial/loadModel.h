@@ -6,6 +6,7 @@
 #include "tinyGLTF/stb_image.h"
 #include "glm/ext.hpp"
 #include "glm/gtx/string_cast.hpp"
+#include <glm/gtx/quaternion.hpp>
 
 #include <iostream>
 #include <cstring>
@@ -52,13 +53,6 @@ struct MaterialModel {
 std::vector<std::pair<int, int> > vp;
 std::string nameNode[1000];
 
-struct AnimationModel {
-	std::string name;
-	float duration;
-	std::vector<float> keyframe;
-	
-};
-
 GLenum glCheckError_(const char* file, int line)
 {
 	std::cout << "check error" << std::endl;
@@ -96,14 +90,15 @@ static float HexToFloat(unsigned char temp[]) {
 class loadModel {
 public:
 	tinygltf::Model model;
-	std::vector<glm::mat4> matrices;
+	std::vector<glm::mat4> localMatrices;
+	std::vector<glm::mat4> modelMatrices;
 	std::vector<glm::mat4> inverseMatrices;
 	std::vector<glm::mat4> globalTransform;
 	std::map<int, unsigned int> ebos;
 	std::map<int, unsigned int> vbos;
 	std::map<int, unsigned int> vaos;
 	std::vector<MaterialModel> materials;
-	std::vector<Animator> animator;
+	Animator animator;
 
 	loadModel(const char* filename) {
 		bool ret = false;
@@ -121,7 +116,7 @@ public:
 
 		if (!warn.empty()) {
 			printf("Warn: %s\n", warn.c_str());
-		}
+		} 
 
 		if (!err.empty()) {
 			printf("Err: %s\n", err.c_str());
@@ -134,10 +129,55 @@ public:
 		printf("Loaded glTF: %s\n", filename);
 		ret = loadScene();
 		ret = loadAnimation();
+	}
 
+	void update(Shader& shader, float deltaTime) {
+
+		animator.update(deltaTime);
+
+		for (int i = 0; i < (int)model.skins[0].joints.size(); i++) {
+			int joint = model.skins[0].joints[i];
+			std::map<int, Transformation>::iterator itr = animator.currentPose.find(joint);
+			globalTransform[i] = glm::mat4(1.0f);
+			//globalTransform[i] = localMatrices[joint];
+			if (itr == animator.currentPose.end()) {
+				Transformation tmp;
+				animator.currentPose.insert({ joint, tmp });
+				itr = animator.currentPose.find(joint);
+			}
+			Transformation& temp = itr->second;
+
+			globalTransform[i] = glm::scale(globalTransform[i], temp.scalation);
+
+			glm::quat q(temp.rotation[0], temp.rotation[1], temp.rotation[2], temp.rotation[3]);
+			glm::mat4 rot = glm::toMat4(q);
+			globalTransform[i] = rot * globalTransform[i];
+
+			globalTransform[i] = glm::translate(globalTransform[i], temp.translation);
+
+			globalTransform[i] = modelMatrices[joint] * globalTransform[i] * inverseMatrices[i];
+			//globalTransform[i] = glm::inverse(inverseMatrices[i]) * globalTransform[i];
+
+			shader.setMat4("boneTransform[" + std::to_string(i) + "]", globalTransform[i]);
+		}
+	}
+
+	void DrawModel(Shader &shader) {
+
+		int defaultScene = model.defaultScene < 0 ? 0 : model.defaultScene;
+		tinygltf::Scene& scene = model.scenes[defaultScene];
+		for (int node : scene.nodes) {
+			drawNodes(node, shader);
+		}
+	}
+
+	std::vector<glm::ivec4> JJ;
+	std::vector<glm::vec4> WW;
+	// WIP: still don't know how to draw the skeletal
+	void DrawSkeleton(Shader& shader) {
 		tinygltf::Skin& skin = model.skins[0];
 		for (int i = 0; i < (int)vp.size(); i++) {
-			int a = 0, b=0;
+			int a = 0, b = 0;
 			for (int j = 0; j < (int)skin.joints.size(); j++) {
 				int joint = skin.joints[j];
 				if (vp[i].first == joint) {
@@ -147,28 +187,36 @@ public:
 					b = 1;
 				}
 			}
-			if (a+b == 2) {
+			if (a + b == 2) {
 				printf("%d %d\n", vp[i].first, vp[i].second);
+
 			}
 		}
+		int Mn = 1e9, Mx = 0;
+		for (int i = 0; i < (int)JJ.size(); i++) {
+			for (int j = 0; j < 4; j++) {
+				printf("%6d ", JJ[i][j]);
+				if (Mn > JJ[i][j]) {
+					Mn = JJ[i][j];
+				}
+				if (Mx < JJ[i][j]) {
+					Mx = JJ[i][j];
+				}
+			}
+			printf("\n");
+			float asu = 0.0f;
+			for (int j = 0; j < 4; j++) {
+				printf("%f ", WW[i][j]);
+				asu += WW[i][j];
+			}
+			printf(" = %f %s", asu, asu>1.0f?"asu" : " ");
+			printf("\n");
+		}
+		printf("Mx: %d\nMn: %d\n", Mx, Mn);
 
 		for (int j = 0; j < (int)skin.joints.size(); j++) {
 			int joint = skin.joints[j];
 			printf("%d -> %s\n", joint, nameNode[joint].c_str());
-		}
-	}
-
-	void DrawModel(Shader &shader) {
-
-		int defaultScene = model.defaultScene < 0 ? 0 : model.defaultScene;
-		tinygltf::Scene& scene = model.scenes[defaultScene];
-		for (int i = 0; i < (int)model.skins[0].joints.size(); i++) {
-			int joint = model.skins[0].joints[i];
-			globalTransform[i] = matrices[joint] * inverseMatrices[i];
-			shader.setMat4("boneTransform[" + std::to_string(i) + "]", globalTransform[i]);
-		}
-		for (int node : scene.nodes) {
-			drawNodes(node, shader);
 		}
 	}
 
@@ -188,11 +236,11 @@ public:
 			}
 		}
 		// M = T * R * S
-		if (!node.translation.empty()) {
-			for (int i = 0; i < node.translation.size(); i++) {
-				t[i] = node.translation[i];
+		if (!node.scale.empty()) {
+			for (int i = 0; i < node.scale.size(); i++) {
+				s[i] = node.scale[i];
 			}
-			matrix = glm::translate(matrix, t);
+			matrix = glm::scale(matrix, s);
 		}
 
 		if (!node.rotation.empty()) {
@@ -203,12 +251,13 @@ public:
 			matrix = matrix * rotMatrix;
 		}
 
-		if (!node.scale.empty()) {
-			for (int i = 0; i < node.scale.size(); i++) {
-				s[i] = node.scale[i];
+		if (!node.translation.empty()) {
+			for (int i = 0; i < node.translation.size(); i++) {
+				t[i] = node.translation[i];
 			}
-			matrix = glm::scale(matrix, s);
+			matrix = glm::translate(matrix, t);
 		}
+
 
 		std::cout << glm::to_string(matrix) << std::endl;
 	}
@@ -463,9 +512,6 @@ private:
 		printf("Type = %d\n", accessor.type);
 		printf("bytestride = %d\n", accessor.ByteStride(model.bufferViews[accessor.bufferView]));
 		printf("size count = %d\n", accessor.count);
-		//std::string name;
-		//int skeleton{ -1 };             // The index of the node used as a skeleton root
-		//std::vector<int> joints;      // Indices of skeleton nodes
 
 	}
 
@@ -478,11 +524,12 @@ private:
 		tinygltf::Node& node = model.nodes[indx];
 		printf("node[%d] name: %s\n", indx, node.name.c_str());
 
-		localTransform(node,matrices[indx]);
+		localTransform(node,localMatrices[indx]);
+		modelMatrices[indx] = localMatrices[indx];
 		if (parent != -1) {
 			vp.push_back({ parent,indx });
-			matrices[indx] = matrices[indx] * matrices[parent];
-			//inverseMatrices[indx] = glm::inverse(matrices[indx]);
+			modelMatrices[indx] = modelMatrices[parent] * modelMatrices[indx];
+			//inverseMatrices[indx] = glm::inverse(modelMatrices[indx]);
 		}
 		nameNode[indx] = node.name;
 		bindMesh(node.mesh);
@@ -491,20 +538,16 @@ private:
 		for (int i = 0; i < node.children.size(); i++) {
 			bindNodes(node.children[i], indx);
 		}
-
-		//int light{ -1 };    // light source index (KHR_lights_punctual)
-		//int emitter{ -1 };  // audio emitter index (KHR_audio)
-		//std::vector<double> weights;  // The weights of the instantiated Morph Target
 	}
 
 	bool loadScene() {
 		bool ret = false;
 
-		matrices.resize(model.nodes.size(), glm::mat4(1.0));
+		localMatrices.resize(model.nodes.size(), glm::mat4(1.0));
+		modelMatrices.resize(model.nodes.size(), glm::mat4(1.0));
 		inverseMatrices.resize(model.nodes.size(), glm::mat4(1.0));
 		globalTransform.resize(model.nodes.size(), glm::mat4(1.0));
 		materials.resize(model.materials.size(), MaterialModel());
-		animator.resize(model.animations.size());
 
 		int defaultScene = model.defaultScene < 0 ? 0 : model.defaultScene;
 		tinygltf::Scene& scene = model.scenes[defaultScene];
@@ -520,9 +563,9 @@ private:
 		bool ret = false;
 
 		int current_animation = 0;
+		animator.animations.resize(model.animations.size());
 		for (tinygltf::Animation& animation : model.animations) {
 			printf("%d: %s\n", current_animation, animation.name.c_str());
-
 			int sampler_length = animation.samplers.size();
 			int channel_length = animation.channels.size();
 			for (tinygltf::AnimationChannel& channel: animation.channels) {
@@ -557,18 +600,18 @@ private:
 
 				int cnt = 0, mi = 0;
 				unsigned char tempBuffer[4];
-				printf("timestamp:\n");
+				//printf("timestamp:\n");
 				std::vector<float> inputData;
 				for (unsigned int i = offsetofData; i < offsetofData + lengthOfData; i++) {
 					tempBuffer[cnt % 4] = bufferInput.data[i];
 					if (cnt % 4 == 3) {
 						float timestamp = HexToFloat(tempBuffer);
-						printf("%.7f\n", timestamp);
+						//printf("%.7f\n", timestamp);
 						inputData.push_back(timestamp);
 					}
 					cnt++;
 				}
-				printf("\n");
+				//printf("\n");
 				tinygltf::Accessor& accessorOutput = model.accessors[sampler.output];
 				tinygltf::BufferView& bufferViewOutput = model.bufferViews[accessorOutput.bufferView];
 				tinygltf::Buffer& bufferOutput = model.buffers[bufferViewOutput.buffer];
@@ -577,11 +620,11 @@ private:
 				stride = accessorOutput.ByteStride(bufferViewOutput);
 				lengthOfData = accessorOutput.count * stride;
 
-				std::cout << "stride " << stride << "\n";
+				//std::cout << "stride " << stride << "\n";
 
 				cnt = 0; mi = 0;
 				int vtemp = 0;
-				printf("output %s:\n", channel.target_path.c_str());
+				//printf("output %s:\n", channel.target_path.c_str());
 				std::vector<glm::vec4> outputData;
 				glm::vec4 tempTransform(0.0f);
 				for (unsigned int i = offsetofData; i < offsetofData + lengthOfData; i++) {
@@ -597,22 +640,8 @@ private:
 					}
 					cnt++;
 				}
-				animator[current_animation].addKeyframe(inputData, outputData, targetNode,sampler.interpolation, targetPath);
+				animator.animations[current_animation].addKeyframe(inputData, outputData, targetNode,sampler.interpolation, targetPath);
 			}
-			
-			//std::vector<AnimationChannel> channels;
-			int sampler{ -1 };          // required
-			int target_node{ -1 };      // optional index of the node to target (alternative
-										// target should be provided by extension)
-			std::string target_path;	// required with standard values of ["translation",
-										// "rotation", "scale", "weights"]
-
-			//std::vector<AnimationSampler> samplers;
-			int input{ -1 };			// indx to accessor (?) time keyframe
-			int output{ -1 };			// indx to accessor (?) transform{translate,rotation, scale};
-
-			std::string interpolation;	// "LINEAR", "STEP","CUBICSPLINE" or user defined
-										// string. default "LINEAR"
 
 			current_animation++;
 		}
@@ -663,13 +692,13 @@ private:
 			return;
 		}
 		tinygltf::Node& node = model.nodes[indx];
-		//glm::mat4 mat = matrices[indx];
+		//glm::mat4 mat = modelMatrices[indx];
 		glm::mat4 mat(1.0f);
 		//mat = glm::translate(mat, { 0.0f, -20.0f, 0.0f });
 		//model = glm::rotate(model, (float)glfwGetTime(), { 1.0f,0.0f,0.0f });
 		//mat = glm::scale(mat, { 0.01f,0.01f,0.01f });
 		 //std::cout << glm::to_string(mat) << "\n";
-		shader.setMat4("model", mat);
+		shader.setMat4("model", mat);	
 
 		drawMesh(node.mesh, shader);
 

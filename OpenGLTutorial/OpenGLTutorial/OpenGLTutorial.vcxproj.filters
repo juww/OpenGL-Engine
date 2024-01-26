@@ -88,5 +88,8 @@
     <None Include="skeletal.gs">
       <Filter>Resource Files\GeometryShader</Filter>
     </None>
+    <None Include="skeletal.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
   </ItemGroup>
 </Project>

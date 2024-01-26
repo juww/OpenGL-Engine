@@ -173,8 +173,10 @@ int main()
     Shader lightCubeShader("light_cube.vs", "light_cube.fs");
     Shader skyboxShader("skybox.vs", "skybox.fs");
     Shader carafeShader("cube.vs", "cube.fs", "normalMapping.gs");
+    //Shader skeletalModel("skeletal.vs", "skeletal.fs", "skeletal.gs");
 
     const std::string& pathfile = "assets/models/simpleSkin/scene.gltf";
+    //const std::string& pathfile = "assets/models/phoenix_bird/scene.gltf";
     loadModel carafe(pathfile.c_str());
 
     Skybox skybox;
@@ -219,6 +221,7 @@ int main()
     carafeShader.setInt("albedoMap", 0);
     carafeShader.setInt("normalMap", 1);
     carafeShader.setInt("roughnessMap", 2);
+    carafe.animator.doAnimation(0);
     // cubeShader.setInt("ambientOcclusionMap", 3);
     //carafeShader.setFloat("uMetallic", modelMesh.metallic);
 
@@ -227,6 +230,8 @@ int main()
 
     // use it for look the all the line of object
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    //carafe.DrawSkeleton(carafeShader);
 
     // render loop
     // -----------
@@ -296,6 +301,7 @@ int main()
         carafeShader.setMat4("projection", projection);
         carafeShader.setMat4("view", view);
 
+        carafe.update(carafeShader, deltaTime);
         carafe.DrawModel(carafeShader);
 
         // use this for show the normal line;
@@ -305,6 +311,13 @@ int main()
         //normalLineShader.setMat4("model", model);
         //glBindVertexArray(modelMesh.vao);
         //modelMesh.DrawMesh();
+
+        // WIP: don't know how to draw the skeleton matrix
+        //skeletalModel.use();
+        //skeletalModel.setMat4("projection", projection);
+        //skeletalModel.setMat4("view", view);
+        //skeletalModel.setMat4("model", model);
+        //carafe.DrawSkeleton(skeletalModel);
 
         //carafe.DrawModel(carafeShader);
 

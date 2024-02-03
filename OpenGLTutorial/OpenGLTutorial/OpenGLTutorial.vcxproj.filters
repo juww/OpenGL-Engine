@@ -22,9 +22,6 @@
     <Filter Include="Resource Files\GeometryShader">
       <UniqueIdentifier>{a291186d-a962-4ece-834c-05cfa7a4a17e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource Files\models">
-      <UniqueIdentifier>{abab26fe-9c16-4a7e-a517-d1932b223d11}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -48,6 +45,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="animator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="plane.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="noise.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Perlin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

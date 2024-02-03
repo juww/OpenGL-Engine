@@ -148,6 +148,9 @@
     <ClInclude Include="animator.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="loadModel.h" />
+    <ClInclude Include="noise.h" />
+    <ClInclude Include="Perlin.h" />
+    <ClInclude Include="plane.h" />
     <ClInclude Include="shader_m.h" />
     <ClInclude Include="skybox.h" />
   </ItemGroup>

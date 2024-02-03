@@ -59,7 +59,8 @@ struct Transformation {
 		//v1 = glm::normalize(v1);
 		float dotq = glm::dot(v0, v1);
 		if (dotq < 0) {
-			dotq = glm::dot(v0, -v1);
+			v1 = -v1;
+			dotq = glm::dot(v0, v1);
 		}
 		float angle = glm::acos(dotq);
 		float sinAngle = glm::sin(angle);

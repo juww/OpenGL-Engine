@@ -17,7 +17,7 @@ class Perlin {
 public:
 	int repeat = 0;
 
-	double OctavePerlin(double x, double y, double z, int octaves, double persistence) {
+	double OctavePerlin(double x, double y, double z, int octaves, double persistence, float lacunarity) {
 		double total = 0;
 		double frequency = 1;
 		double amplitude = 1;
@@ -25,15 +25,15 @@ public:
 			total += perlin(x * frequency, y * frequency, z * frequency) * amplitude;
 
 			amplitude *= persistence;
-			frequency *= 2;
+			frequency *= lacunarity;
 		}
 
 		return total;
 	}
 
-	Perlin(const int& repeat) {
-		int n = 256 * repeat <= 1 ? 2 : repeat;
-
+	Perlin(const int& r) {
+		repeat = r;
+		int n = 256 * 2;
 		p.reserve(n);
 		for (int x = 0; x < n; x++) {
 			p[x] = permutation[x % 256];
@@ -137,6 +137,10 @@ public:
 
 	static double lerp(double a, double b, double x) {
 		return a + x * (b - a);
+	}
+
+	static double inverseLerp(double a, double b, double x) {
+		return (x - a) / (b - a);
 	}
 
 private:

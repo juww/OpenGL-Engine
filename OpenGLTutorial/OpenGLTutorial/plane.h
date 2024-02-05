@@ -10,6 +10,7 @@ public:
 	int id;
 	glm::vec3 pos;
 	glm::vec3 normal;
+	glm::vec2 uv;
 };
 
 class Plane {

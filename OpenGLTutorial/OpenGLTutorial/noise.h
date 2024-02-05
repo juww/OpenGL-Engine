@@ -13,7 +13,7 @@ const float MIN_VALUE = -3.40282347E+38F;
 class Noise {
 public:
 
-	std::vector<std::vector<float>> GenerateNoiseMap(int mapWidth, int mapHeight, float scale, , int octaves, float persistence, float lacunarity) {
+	std::vector<std::vector<float>> GenerateNoiseMap(int mapWidth, int mapHeight, float scale, int octaves, float persistence, float lacunarity) {
 		if (scale <= 0) {
 			scale = 0.000001f;
 		}
@@ -41,7 +41,6 @@ public:
                 noiseMap[y][x] = perlinValue;
             }
         }
-
 
         for (int y = 0; y < mapHeight; y++) {
             for (int x = 0; x < mapWidth; x++) {

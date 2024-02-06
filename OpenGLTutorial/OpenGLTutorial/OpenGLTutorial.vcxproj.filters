@@ -97,5 +97,9 @@
     <None Include="skeletal.fs">
       <Filter>Resource Files\FragmentShader</Filter>
     </None>
+    <None Include="plane.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="plane.fs" />
   </ItemGroup>
 </Project>

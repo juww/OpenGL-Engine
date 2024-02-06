@@ -10,6 +10,7 @@
 #include "camera.h"
 #include "skybox.h"
 #include "loadModel.h"
+#include "plane.h"
 
 #include <iostream>
 #include <string>
@@ -173,6 +174,7 @@ int main()
     Shader lightCubeShader("light_cube.vs", "light_cube.fs");
     Shader skyboxShader("skybox.vs", "skybox.fs");
     Shader carafeShader("cube.vs", "cube.fs", "normalMapping.gs");
+    Shader planeShader("plane.vs", "plane.fs");
     //Shader skeletalModel("skeletal.vs", "skeletal.fs", "skeletal.gs");
 
     const std::string& pathfile = "assets/models/simpleSkin/scene.gltf";
@@ -198,6 +200,7 @@ int main()
     //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     //glEnableVertexAttribArray(1);
 
+    Plane plane(10.0f, 10.0f, 10.0f);
 
     // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
     unsigned int lightCubeVAO;
@@ -320,6 +323,19 @@ int main()
         //carafe.DrawSkeleton(skeletalModel);
 
         //carafe.DrawModel(carafeShader);
+
+        // draw plane
+        planeShader.use();
+        planeShader.setMat4("projection", projection);
+        planeShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        planeShader.setMat4("model", model);
+
+        glBindVertexArray(plane.vao);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plane.ebo);
+        glDrawElements(GL_TRIANGLES, plane.indices.size() * sizeof(unsigned int), GL_UNSIGNED_INT, (void*)(0));
+
+        glBindVertexArray(0);
 
         // also draw the lamp object
         lightCubeShader.use();

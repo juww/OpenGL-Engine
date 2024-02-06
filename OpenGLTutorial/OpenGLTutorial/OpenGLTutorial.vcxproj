@@ -163,6 +163,8 @@
     <None Include="normalLine.fs" />
     <None Include="normalLine.vs" />
     <None Include="normalMapping.gs" />
+    <None Include="plane.fs" />
+    <None Include="plane.vs" />
     <None Include="skeletal.fs" />
     <None Include="skeletal.gs" />
     <None Include="skeletal.vs" />

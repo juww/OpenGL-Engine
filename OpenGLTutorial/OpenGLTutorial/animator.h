@@ -223,12 +223,12 @@ public:
 private:
 	void increaseAnimationTime(float deltaTime) {
 		Animation& animation = animations[currentAnimation];
-		std::cout << "before : " << animationTime << std::endl;
+		//std::cout << "before : " << animationTime << std::endl;
 		animationTime += deltaTime;
-		std::cout << "animation time: " << animationTime << std::endl;
+		//std::cout << "animation time: " << animationTime << std::endl;
 		if (animationTime > animation.length) {
-			std::cout << "reset: " << std::endl;
-			printf("cur = %f --- length = %f\n", animationTime, animation.length);
+			//std::cout << "reset: " << std::endl;
+			//printf("cur = %f --- length = %f\n", animationTime, animation.length);
 			animationTime = 0.0f;
 			currentKeyframe = 0;
 			nextKeyframe = currentKeyframe + 1;
@@ -238,10 +238,10 @@ private:
 	void calculateCurrentAnimationPose() {
 		Animation& animation = animations[currentAnimation];
 		std::vector<KeyFrame>& kf = animation.keyframes;
-		printf("cur = %f --- kf = %f\n", animationTime, kf[nextKeyframe].Timestamp);
+		//printf("cur = %f --- kf = %f\n", animationTime, kf[nextKeyframe].Timestamp);
 		if (animationTime > kf[nextKeyframe].Timestamp) {
 			currentKeyframe = nextKeyframe;
-			std::cout << "current Frame: " << currentKeyframe << std::endl;
+			//std::cout << "current Frame: " << currentKeyframe << std::endl;
 			nextKeyframe++;
 			if (nextKeyframe >= kf.size()) nextKeyframe = kf.size() - 1;
 		}

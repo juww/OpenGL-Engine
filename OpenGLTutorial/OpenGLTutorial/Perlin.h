@@ -17,10 +17,10 @@ class Perlin {
 public:
 	int repeat = 0;
 
-	double OctavePerlin(double x, double y, double z, int octaves, double persistence, float lacunarity) {
-		double total = 0;
-		double frequency = 1;
-		double amplitude = 1;
+	float OctavePerlin(float x, float y, float z, int octaves, float persistence, float lacunarity) {
+		float total = 0;
+		float frequency = 1;
+		float amplitude = 1;
 		for (int i = 0; i < octaves; i++) {
 			total += perlin(x * frequency, y * frequency, z * frequency) * amplitude;
 
@@ -34,13 +34,13 @@ public:
 	Perlin(const int& r) {
 		repeat = r;
 		int n = 256 * 2;
-		p.reserve(n);
+		p.resize(n);
 		for (int x = 0; x < n; x++) {
 			p[x] = permutation[x % 256];
 		}
 	}
 
-	 double perlin(double x, double y, double z) {
+	 float perlin(float x, float y, float z) {
 		if (repeat > 0) {									// If we have any repeat on, change the coordinates to their "local" repetitions
 			x = (x - (int)x) + ((int)x % repeat);
 			y = (y - (int)y) + ((int)y % repeat);
@@ -52,7 +52,7 @@ public:
 		// plus 1.  Next we calculate the location (from 0.0 to 1.0) in that cube.
 		// We also fade the location to smooth the result.
 		int xi, yi, zi;
-		double xf, yf, zf;
+		float xf, yf, zf;
 
 		if (x < 0.0f) {							// Added support for negative values 
 			xi = 255 - ((int)(-x) & 255);
@@ -78,9 +78,9 @@ public:
 			zf = z - (int)z;
 		}
 
-		double u = fade(xf);
-		double v = fade(yf);
-		double w = fade(zf);
+		float u = fade(xf);
+		float v = fade(yf);
+		float w = fade(zf);
 
 		int a = p[xi] + yi;								// This here is Perlin's hash function.  We take our x value (remember,
 		int aa = p[a] + zi;								// between 0 and 255) and get a random value (from our p[] array above) between
@@ -91,7 +91,7 @@ public:
 		// in the end we have 8 values between 0 and 255 - one for each vertex on the unit cube.
 		// These are all interpolated together using u, v, and w below.
 
-		double x1, x2, y1, y2;
+		float x1, x2, y1, y2;
 		x1 = lerp(grad(p[aa], xf, yf, zf),			// This is where the "magic" happens.  We calculate a new set of p[] values and use that to get
 			grad(p[ba], xf - 1, yf, zf),			// our final gradient values.  Then, we interpolate between those gradients with the u value to get
 			u);										// 4 x-values.  Next, we interpolate between the 4 x-values with v to get 2 y-values.  Finally,
@@ -111,11 +111,11 @@ public:
 		return (lerp(y1, y2, w) + 1) / 2;						// For convenience we bound it to 0 - 1 (theoretical min/max before is -1 - 1)
 	}
 
-	static double grad(int hash, double x, double y, double z) {
+	static float grad(int hash, float x, float y, float z) {
 		int h = hash & 15;									// Take the hashed value and take the first 4 bits of it (15 == 0b1111)
-		double u = h < 8 /* 0b1000 */ ? x : y;				// If the most signifigant bit (MSB) of the hash is 0 then set u = x.  Otherwise y.
+		float u = h < 8 /* 0b1000 */ ? x : y;				// If the most signifigant bit (MSB) of the hash is 0 then set u = x.  Otherwise y.
 
-		double v;											// In Ken Perlin's original implementation this was another conditional operator (?:).  I
+		float v;											// In Ken Perlin's original implementation this was another conditional operator (?:).  I
 		// expanded it for readability.
 
 		if (h < 4 /* 0b0100 */)								// If the first and second signifigant bits are 0 set v = y
@@ -128,18 +128,18 @@ public:
 		return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v); // Use the last 2 bits to decide if u and v are positive or negative.  Then return their addition.
 	}
 
-	static double fade(double t) {
+	static float fade(float t) {
 		// Fade function as defined by Ken Perlin.  This eases coordinate values
 		// so that they will "ease" towards integral values.  This ends up smoothing
 		// the final output.
 		return t * t * t * (t * (t * 6 - 15) + 10);			// 6t^5 - 15t^4 + 10t^3
 	}
 
-	static double lerp(double a, double b, double x) {
+	static float lerp(float a, float b, float x) {
 		return a + x * (b - a);
 	}
 
-	static double inverseLerp(double a, double b, double x) {
+	static float inverseLerp(float a, float b, float x) {
 		return (x - a) / (b - a);
 	}
 

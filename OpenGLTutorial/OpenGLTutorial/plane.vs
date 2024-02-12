@@ -1,27 +1,40 @@
 #version 430 core
 
-layout (location = 0) in vec3  aPos;
-layout (location = 1) in vec3  aNormal;
-layout (location = 2) in vec2  aTexCoords;
-layout (location = 3) in vec4  aTangent;
-layout (location = 4) in vec4  aColor;
-layout (location = 5) in ivec4 aJoint;
-layout (location = 6) in vec4  aWeight;
+layout (location = 0) in uint  vertexID;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform float lenght;
 
-//out vec3 FragPos;
 //out vec3 Normal;
-//out vec3 Color;
-//out vec2 TexCoords;
+out vec2 TexCoords;
+
+vec3 planeVertex(){
+
+    vec3 pos;
+
+    float n = lenght * 2.0;
+    float offsetVertices = n + 2.0;
+    float rowIndex = mod(float(vertexID), offsetVertices);
+    float clampedIndex = clamp(rowIndex - 1.0, 0.0, n - 1.0);
+
+    pos.x = floor(clampedIndex / 2.0);
+    pos.z = mod(clampedIndex, 2.0);
+
+    pos.z += (floor(float(vertexID) / offsetVertices));
+
+    return pos;
+}
 
 void main (){
 
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
+    vec3 pos = planeVertex();
 
-    //FragPos = vec3(model * vec4(aPos, 1.0));
+    vec4 mvp = model * vec4(pos, 1.0);
+    TexCoords = mvp.xz / lenght;
+    gl_Position = projection * view * model * vec4(pos, 1.0);
+    
     //Normal = aNormal;
     //TexCoords = aTexCoords;
 	

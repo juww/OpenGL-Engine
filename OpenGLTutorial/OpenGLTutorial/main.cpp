@@ -200,7 +200,12 @@ int main()
     //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     //glEnableVertexAttribArray(1);
 
-    Plane plane(10.0f, 10.0f, 10.0f);
+    int np = 1024;
+    Plane plane(np);
+    plane.GenerateNoiseMap(np, np, 12.3f, 4, 0.5f, 2.0f);
+
+    planeShader.use();
+    planeShader.setInt("noiseMap", 0);
 
     // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
     unsigned int lightCubeVAO;
@@ -232,7 +237,7 @@ int main()
     skyboxShader.setInt("skybox", 0);
 
     // use it for look the all the line of object
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     //carafe.DrawSkeleton(carafeShader);
 
@@ -325,17 +330,7 @@ int main()
         //carafe.DrawModel(carafeShader);
 
         // draw plane
-        planeShader.use();
-        planeShader.setMat4("projection", projection);
-        planeShader.setMat4("view", view);
-        model = glm::mat4(1.0f);
-        planeShader.setMat4("model", model);
-
-        glBindVertexArray(plane.vao);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plane.ebo);
-        glDrawElements(GL_TRIANGLES, plane.indices.size() * sizeof(unsigned int), GL_UNSIGNED_INT, (void*)(0));
-
-        glBindVertexArray(0);
+        plane.draw(planeShader, projection, view, model, np);
 
         // also draw the lamp object
         lightCubeShader.use();
@@ -350,6 +345,7 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         glBindVertexArray(0);
+
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
         skyboxShader.use();
         glm::mat4 viewStatic = glm::mat4(glm::mat3(camera.GetViewMatrix()));

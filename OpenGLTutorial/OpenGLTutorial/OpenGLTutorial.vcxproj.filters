@@ -100,6 +100,8 @@
     <None Include="plane.vs">
       <Filter>Resource Files\VertexShader</Filter>
     </None>
-    <None Include="plane.fs" />
+    <None Include="plane.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
   </ItemGroup>
 </Project>

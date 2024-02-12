@@ -7,33 +7,77 @@
 #include <glad/glad.h>
 
 #include "shader_m.h"
+#include "noise.h"
 
 class Plane {
 
 public:
 
-	unsigned int ebo, vao, vbo;
+	unsigned int ebo, vao;
+	unsigned int noiseTex;
 
-	float width;
-	float length;
-	float division;
-	
-	std::vector<float> attributes;
-	std::vector<unsigned int> indices;
+	unsigned int indicesCount;
+	unsigned int componentType;
 
 	// use x and z; y height
-	Plane(const float& w, const float& l, const float& div) {
+	Plane(const int& planeSize) {
 
-		width = w;
-		length = l;
-		division = div;
-		printf("plane %f %f %f\n", width, length, div);
+		printf("plane %f\n", planeSize);
 
-		planeVertices(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(width, 0.0f, 0.0f), glm::vec3(width, 0.0f, length), glm::vec3(0.0f, 0.0f, length), division);
-		genPlaneIndices(division);
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
 
-		loadAttributePlane();
+		generatePlane(planeSize);
 
+		glBindVertexArray(0);
+	}
+
+	void GenerateNoiseMap(int width, int height, float scale, int octaves, float persistence, float lacunarity) {
+		Noise noise;
+		std::vector<std::vector<float>> noiseMap = noise.GenerateNoiseMap(width, height, scale, octaves, persistence, lacunarity);
+
+		printf("generate Noise map finished\n");
+		printf("noiseMap size y = %d\n", noiseMap.size());
+		printf("noiseMap size x = %d\n", noiseMap[0].size());
+		std::vector<glm::vec4> aColor;
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				aColor.push_back(glm::vec4(noiseMap[y][x], noiseMap[y][x], noiseMap[y][x], 1.0f));
+			}
+		}
+		printf("acolor size = %d\n", aColor.size());
+		glBindVertexArray(vao);
+
+		glGenTextures(1, &noiseTex);
+		glBindTexture(GL_TEXTURE_2D, noiseTex);
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, &aColor.at(0));
+
+		glBindVertexArray(0);
+	}
+
+	void draw(Shader& shader, const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model, const int &np) {
+
+		shader.use();
+		shader.setInt("noiseMap", 0);
+
+		shader.setMat4("projection", projection);
+		shader.setMat4("view", view);
+		shader.setMat4("model", model);
+		shader.setFloat("lenght", np + 1);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, noiseTex);
+
+		glBindVertexArray(vao);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+		glDrawElements(GL_TRIANGLE_STRIP, indicesCount, componentType, (void*)(0));
+
+		glBindVertexArray(0);
 	}
 
 	~Plane() {
@@ -42,102 +86,42 @@ public:
 
 private:
 
-	void loadAttributePlane() {
+	void generatePlane(const int &n) {
+		
+		printf("masuk ke plane indices\n");
+		std::vector<unsigned int> indices;
 
-		glGenVertexArrays(1, &vao);
+		unsigned int indx = 0;
+		for (int row = 0; row < n; row++) {
+			// additional triangle on left
+			indices.push_back(indx++);
+			for (int col = 0; col < n + 1; col++) {
+				// below
+				indices.push_back(indx++);
+				// upper
+				indices.push_back(indx++);
+			}
+			// additional triangle on right
+			indices.push_back(indx++);
+		}
+
 		glBindVertexArray(vao);
+
+		indicesCount = indices.size() * sizeof(unsigned int);
+		componentType = GL_UNSIGNED_INT;
 
 		glGenBuffers(1, &ebo);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices.at(0), GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesCount, &indices.at(0), GL_STATIC_DRAW);
 
-		printf("sizeof attributes = %d\n", sizeof(attributes));
+		unsigned int vboIds;
+		glGenBuffers(1, &vboIds);
+		glBindBuffer(GL_ARRAY_BUFFER, vboIds);
+		glBufferData(GL_ARRAY_BUFFER, indicesCount, &indices.at(0), GL_STATIC_DRAW);
 
-		glGenBuffers(1, &vbo);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, attributes.size() * sizeof(float) * 11, &attributes.at(0), GL_STATIC_DRAW);
-
-		//position
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)0);
+		glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(unsigned int), (void*)0);
 		glEnableVertexAttribArray(0);
-		//normal
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(3 * sizeof(float)));
-		glEnableVertexAttribArray(1);
-		// texture
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float)));
-		glEnableVertexAttribArray(2);
-		// tangent
-		glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(8 * sizeof(float)));
-		glEnableVertexAttribArray(3);
-	}
 
-	void planeVertices(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, glm::vec3 v3, float div) {
-
-												// v3-----v2
-		glm::vec3 vec03 = (v3 - v0) / div;		// |       |
-		glm::vec3 vec12 = (v2 - v1) / div;		// |       |
-												// v0-----v1
-		printf("vec03 - (%f, %f, %f)\n", vec03.x, vec03.y, vec03.z);
-		printf("vec12 - (%f, %f, %f)\n", vec12.x, vec12.y, vec12.z);
-
-		const int n = div + 1;
-		for (int row = 0; row < n; row++) {
-			glm::vec3 start = v0 + vec03 * (float)row;
-			glm::vec3 end = v1 + vec12 * (float)row;
-			glm::vec3 vectorDiv = (end - start) / div;
-			for (int col = 0; col < n; col++) {
-				glm::vec3 line = start + vectorDiv * (float)col;
-				// position
-				attributes.push_back(line.x);
-				attributes.push_back(line.y);
-				attributes.push_back(line.z);
-
-				// Tangent space Vectors;
-				glm::vec3 tangent = glm::normalize(vectorDiv);
-				glm::vec3 nextStart = start + vec03;
-				glm::vec3 nextEnd = end + vec12;
-				glm::vec3 nextVectorDiv = (nextEnd - nextStart) / div;
-				glm::vec3 nextRowCrntVec = nextStart + nextVectorDiv * float(col);
-				glm::vec3 possibleBitangent = glm::normalize(nextRowCrntVec - line);
-				// normal
-				glm::vec3 normal = glm::cross(tangent, possibleBitangent);
-				attributes.push_back(normal.x);
-				attributes.push_back(normal.y);
-				attributes.push_back(normal.z);
-				// texture / UV
-				attributes.push_back(float(col) / div);
-				attributes.push_back(float(row) / div);
-				// tangent
-				attributes.push_back(tangent.x);
-				attributes.push_back(tangent.y);
-				attributes.push_back(tangent.z);
-				// Bitangent
-				// The Bitangent could also be the opposite of this
-				//attributes.push_back(possibleBitangent.x);
-				//attributes.push_back(possibleBitangent.y);
-				//attributes.push_back(possibleBitangent.z);
-			}
-		}
-		printf("attribute size = %d\n", attributes.size());
-	}
-
-	void genPlaneIndices(float div) {
-		
-		printf("masuk ke plane indices\n");
-		int n = div;
-		for (int row = 0; row < n; row++) {
-			for (int col = 0; col < n; col++) {
-				int indx = col + (row * (div + 1));
-				// top 										   ____		
-				indices.push_back(indx);					// |  /
-				indices.push_back(indx + (div + 1) + 1);	// | /
-				indices.push_back(indx + (div + 1));		// |/
-				// bottom
-				indices.push_back(indx);					//   /|
-				indices.push_back(indx + 1);				//  / |
-				indices.push_back(indx + (div + 1) + 1);	// /__|
-			}
-		}
 		printf("size indices: %d\n", indices.size());
 	}
 };

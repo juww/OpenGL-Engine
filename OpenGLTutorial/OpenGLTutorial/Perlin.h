@@ -3,6 +3,7 @@
 #define PERLIN H
 
 #include <vector>
+#include <random>
 
 /*
 Understanding Perlin Noise
@@ -17,12 +18,27 @@ class Perlin {
 public:
 	int repeat = 0;
 
-	float OctavePerlin(float x, float y, float z, int octaves, float persistence, float lacunarity) {
+	float OctavePerlin(float x, float y, float z, int seed, int octaves, float persistence, float lacunarity, glm::vec2 offset) {
+
+		// seeding bikin lemot di cpu;
+		std::mt19937 rng(seed);
+		std::vector<glm::vec2> octaveOffsets(octaves);
+		std::uniform_int_distribution<int> uni(-100000, 100000);
+		for (int i = 0; i < octaves; i++) {
+			glm::vec2 octavesOffset(uni(rng), uni(rng));
+			octaveOffsets[i] = octavesOffset + offset;
+		}
+		/////
+
 		float total = 0;
 		float frequency = 1;
 		float amplitude = 1;
 		for (int i = 0; i < octaves; i++) {
-			total += perlin(x * frequency, y * frequency, z * frequency) * amplitude;
+			float sampleX = x * frequency + octaveOffsets[i].x;
+			float sampleY = y * frequency + octaveOffsets[i].y;
+			float sampleZ = z * frequency;
+
+			total += perlin(sampleX, sampleY, sampleZ) * amplitude;
 
 			amplitude *= persistence;
 			frequency *= lacunarity;

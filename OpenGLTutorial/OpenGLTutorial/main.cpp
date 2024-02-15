@@ -32,8 +32,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1080;
+const unsigned int SCR_HEIGHT = 720;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
@@ -200,9 +200,10 @@ int main()
     //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     //glEnableVertexAttribArray(1);
 
-    int np = 1024;
+    int np = 128;
+    glm::vec2 offset(0.0f, 0.0f);
     Plane plane(np);
-    plane.GenerateNoiseMap(np, np, 12.3f, 4, 0.5f, 2.0f);
+    plane.GenerateNoiseMap(np, np, 4, 27.9f, 4, 0.5f, 2.0f, offset);
 
     planeShader.use();
     planeShader.setInt("noiseMap", 0);
@@ -237,7 +238,7 @@ int main()
     skyboxShader.setInt("skybox", 0);
 
     // use it for look the all the line of object
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     //carafe.DrawSkeleton(carafeShader);
 

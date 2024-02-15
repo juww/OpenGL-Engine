@@ -1,14 +1,19 @@
 #version 430 core
 
 layout (location = 0) in uint  vertexID;
+layout (location = 1) in float heightValue;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+
 uniform float lenght;
+uniform float heightMultiplier;
 
 //out vec3 Normal;
 out vec2 TexCoords;
+
+
 
 vec3 planeVertex(){
 
@@ -21,6 +26,7 @@ vec3 planeVertex(){
 
     pos.x = floor(clampedIndex / 2.0);
     pos.z = mod(clampedIndex, 2.0);
+    pos.y = heightValue * heightMultiplier;
 
     pos.z += (floor(float(vertexID) / offsetVertices));
 

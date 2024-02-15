@@ -13,7 +13,8 @@ const float MIN_VALUE = -3.40282347E+38F;
 class Noise {
 public:
 
-    static std::vector<std::vector<float>> GenerateNoiseMap(int mapWidth, int mapHeight, float scale, int octaves, float persistence, float lacunarity) {
+    static std::vector<std::vector<float>> GenerateNoiseMap(int mapWidth, int mapHeight, int seed, float scale, 
+        int octaves, float persistence, float lacunarity, glm::vec2 offset) {
 	    if (scale <= 0) {
 		    scale = 0.000001f;
 	    }
@@ -23,13 +24,16 @@ public:
         float maxNoiseHeight = MIN_VALUE;
         float minNoiseHeight = MAX_VALUE;
 
+        float halfWidth = mapWidth / 2.0f;
+        float halfHeight = mapHeight/ 2.0f;
+
         for (int y = 0; y < mapHeight; y++) {
             for (int x = 0; x < mapWidth; x++) {
-                float sampleX = x / scale;
-                float sampleY = y / scale;
+                float sampleX = (x - halfWidth) / scale;
+                float sampleY = (y - halfHeight) / scale;
 
-                float perlinValue = (float)perlin.OctavePerlin(sampleX, sampleY, 0,
-                    octaves, persistence, lacunarity);
+                float perlinValue = (float)perlin.OctavePerlin(sampleX, sampleY, 0, seed,
+                    octaves, persistence, lacunarity, offset);
 
                 if (maxNoiseHeight < perlinValue) {
                     maxNoiseHeight = perlinValue;

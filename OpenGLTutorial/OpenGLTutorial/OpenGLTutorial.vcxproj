@@ -149,7 +149,7 @@
     <ClInclude Include="camera.h" />
     <ClInclude Include="loadModel.h" />
     <ClInclude Include="noise.h" />
-    <ClInclude Include="Perlin.h" />
+    <ClInclude Include="perlin.h" />
     <ClInclude Include="plane.h" />
     <ClInclude Include="shader_m.h" />
     <ClInclude Include="skybox.h" />
@@ -170,6 +170,8 @@
     <None Include="skeletal.vs" />
     <None Include="skybox.fs" />
     <None Include="skybox.vs" />
+    <None Include="TessellationControlShader.tcs" />
+    <None Include="TessellationEvaluationShader.tes" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -74,8 +74,7 @@ struct Lightnings {
     }
 };
 
-int main()
-{
+int main() {
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
@@ -90,8 +89,7 @@ int main()
     // glfw window creation
     // --------------------
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
-    if (window == NULL)
-    {
+    if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return -1;
@@ -107,8 +105,7 @@ int main()
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
@@ -175,6 +172,7 @@ int main()
     Shader skyboxShader("skybox.vs", "skybox.fs");
     Shader carafeShader("cube.vs", "cube.fs", "normalMapping.gs");
     Shader planeShader("plane.vs", "plane.fs");
+    // planeShader.setTessellationShader("TessellationControlShader.tcs", "TessellationEvaluationShader.tes");
     //Shader skeletalModel("skeletal.vs", "skeletal.fs", "skeletal.gs");
 
     const std::string& pathfile = "assets/models/simpleSkin/scene.gltf";
@@ -200,10 +198,11 @@ int main()
     //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     //glEnableVertexAttribArray(1);
 
-    int np = 128;
+    int np = 16;
     glm::vec2 offset(0.0f, 0.0f);
     Plane plane(np);
-    plane.GenerateNoiseMap(np, np, 4, 27.9f, 4, 0.5f, 2.0f, offset);
+    //plane.GenerateNoiseMap(np, np, 4, 27.9f, 4, 0.5f, 2.0f, offset);
+    plane.InitTerrainChunk(2, 64.0f, camera.Position);
 
     planeShader.use();
     planeShader.setInt("noiseMap", 0);
@@ -242,14 +241,26 @@ int main()
 
     //carafe.DrawSkeleton(carafeShader);
 
+    float frameCount = 0.0f;
+    float prevFrame = static_cast<float>(glfwGetTime());
+    std::pair<float, float> pp(0.0f, 0.0f);
+
     // render loop
     // -----------
-    while (!glfwWindowShouldClose(window))
-    {
+    while (!glfwWindowShouldClose(window)) {
         // per-frame time logic
         // --------------------
         float currentFrame = static_cast<float>(glfwGetTime());
+        frameCount += 1.0f;
         deltaTime = currentFrame - lastFrame;
+        
+        if (currentFrame - prevFrame >= 1.0) {
+            printf("frame per second : %f\n", frameCount);
+            printf("%f ms\n", 1000.0f / frameCount);
+            frameCount = 0.0f;
+            prevFrame = currentFrame;
+            //pp.second += 1.0f;
+        }
         lastFrame = currentFrame;
 
         // input
@@ -331,7 +342,8 @@ int main()
         //carafe.DrawModel(carafeShader);
 
         // draw plane
-        plane.draw(planeShader, projection, view, model, np);
+        plane.update(camera.Position);
+        plane.draw(planeShader, projection, view, np, camera.Position);
 
         // also draw the lamp object
         lightCubeShader.use();
@@ -379,8 +391,8 @@ int main()
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow* window)
-{
+void processInput(GLFWwindow* window) {
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
@@ -396,8 +408,7 @@ void processInput(GLFWwindow* window)
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
@@ -406,13 +417,12 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 // glfw: whenever the mouse moves, this callback is called
 // -------------------------------------------------------
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
-{
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
+
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
-    if (firstMouse)
-    {
+    if (firstMouse) {
         lastX = xpos;
         lastY = ypos;
         firstMouse = false;
@@ -429,7 +439,6 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
 // ----------------------------------------------------------------------
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }

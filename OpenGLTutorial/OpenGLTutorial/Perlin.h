@@ -18,7 +18,7 @@ class Perlin {
 public:
 	int repeat = 0;
 
-	float OctavePerlin(float x, float y, float z, int seed, int octaves, float persistence, float lacunarity, glm::vec2 offset) {
+	float OctavePerlin(float x, float y, float z, float scale, int seed, int octaves, float persistence, float lacunarity, glm::vec2 offset) {
 
 		// seeding bikin lemot di cpu;
 		std::mt19937 rng(seed);
@@ -26,7 +26,8 @@ public:
 		std::uniform_int_distribution<int> uni(-100000, 100000);
 		for (int i = 0; i < octaves; i++) {
 			glm::vec2 octavesOffset(uni(rng), uni(rng));
-			octaveOffsets[i] = octavesOffset + offset;
+			octaveOffsets[i].x = octavesOffset.x + offset.x;
+			octaveOffsets[i].y = octavesOffset.y + offset.y;
 		}
 		/////
 
@@ -34,11 +35,12 @@ public:
 		float frequency = 1;
 		float amplitude = 1;
 		for (int i = 0; i < octaves; i++) {
-			float sampleX = x * frequency + octaveOffsets[i].x;
-			float sampleY = y * frequency + octaveOffsets[i].y;
-			float sampleZ = z * frequency;
+			float sampleX = (x + octaveOffsets[i].x) / scale * frequency;
+			float sampleY = (y + octaveOffsets[i].y) / scale * frequency;
+			float sampleZ = z / scale * frequency;
 
-			total += perlin(sampleX, sampleY, sampleZ) * amplitude;
+			float perlinValue = perlin(sampleX, sampleY, sampleZ) * 2.0f - 1.0f;
+			total += perlinValue * amplitude;
 
 			amplitude *= persistence;
 			frequency *= lacunarity;

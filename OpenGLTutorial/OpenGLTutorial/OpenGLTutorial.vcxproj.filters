@@ -22,6 +22,9 @@
     <Filter Include="Resource Files\GeometryShader">
       <UniqueIdentifier>{a291186d-a962-4ece-834c-05cfa7a4a17e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\Tesselletion">
+      <UniqueIdentifier>{a967749e-69a8-487d-9a80-85e4fb9476a1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -53,7 +56,7 @@
     <ClInclude Include="noise.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Perlin.h">
+    <ClInclude Include="perlin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -102,6 +105,12 @@
     </None>
     <None Include="plane.fs">
       <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="TessellationControlShader.tcs">
+      <Filter>Resource Files\Tesselletion</Filter>
+    </None>
+    <None Include="TessellationEvaluationShader.tes">
+      <Filter>Resource Files\Tesselletion</Filter>
     </None>
   </ItemGroup>
 </Project>

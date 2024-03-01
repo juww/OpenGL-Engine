@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <glad/glad.h>
+#include <queue>
 
 #include "shader_m.h"
 #include "noise.h"
@@ -22,6 +23,22 @@ public:
 	}
 };
 
+class TerrainChunk {
+public:
+
+	unsigned int vao, tex;
+	glm::vec3 pos;
+	bool visible;
+
+	TerrainChunk() {
+	}
+	~TerrainChunk() {
+	}
+
+	void setPos(const glm::vec3& p) {
+		pos = p;
+	}
+};
 
 class Plane {
 
@@ -30,6 +47,10 @@ public:
 	enum DrawMode { NoiseMap, ColorMap };
 	DrawMode drawMode;
 
+	int planeSize;
+	int chunkSize;
+	float fov;
+
 	unsigned int ebo, vao;
 	unsigned int noiseTex;
 
@@ -37,37 +58,40 @@ public:
 	unsigned int componentType;
 
 	std::vector<Terrain> terrains;
-	std::vector<std::vector<float>> noiseMap;
 
-	// use x and z; y height
-	Plane(const int& planeSize) {
+	std::vector<TerrainChunk> terrainChunks;
+	std::map<std::pair<float, float>, int> DictTerrainChunk;
+	std::queue<int> queueDraw;
 
+	Plane(const int& planesize) {
+
+		planeSize = planesize;
 		printf("plane %d\n", planeSize);
-
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
 
 		generatePlane(planeSize);
 		generateColorTerrain();
-
+	
 		glBindVertexArray(0);
 	}
 
-	void GenerateNoiseMap(int width, int height, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset) {
+	std::pair<GLuint,GLuint> GenerateNoiseMap(int width, int height, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset) {
 
 		Noise noise;
-		noiseMap = noise.GenerateNoiseMap(width + 1, height + 1, seed, scale, octaves, persistence, lacunarity, offset);
+		std::vector<std::vector<float>> noiseMap = noise.GenerateNoiseMap(width + 1, height + 1, seed, scale, octaves, persistence, lacunarity, offset, noise.Global);
 
-		printf("generate Noise map finished\n");
-		printf("noiseMap size y = %d\n", noiseMap.size());
-		printf("noiseMap size x = %d\n", noiseMap[0].size());
-		std::vector<glm::vec4> aColor;
+		//printf("generate Noise map finished\n");
+		//printf("noiseMap size y = %d\n", noiseMap.size());
+		//printf("noiseMap size x = %d\n", noiseMap[0].size());
+		std::vector<glm::vec4> aColor(height * width);
 		std::vector<float> aHeight;
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
 				for (int k = 0; k < terrains.size(); k++) {
-					if (noiseMap[y][x] <= terrains[k].height) {
-						aColor.push_back(glm::vec4(terrains[k].color, 1.0f));
+					if (noiseMap[y][x] >= terrains[k].height) {
+						aColor[y * height + x] = glm::vec4(terrains[k].color, 1.0f);
+					} else {
 						break;
 					}
 				}
@@ -84,10 +108,12 @@ public:
 				aHeight.push_back(noiseMap[y][x]);
 				aHeight.push_back(noiseMap[y + 1 < n ? y + 1 : n - 1][x]);
 			}
-			aHeight.push_back(noiseMap[y+1][m-1]);
+			aHeight.push_back(noiseMap[y + 1][m - 1]);
 		}
-		printf("acolor size = %d\n", aColor.size());
-		glBindVertexArray(vao);
+		//printf("acolor size = %d\n", aColor.size());
+		std::pair<GLuint, GLuint> ret;
+		glGenVertexArrays(1, &ret.first);
+		glBindVertexArray(ret.first);
 
 		unsigned int hVbo;
 		int HeightSize = aHeight.size() * sizeof(float);
@@ -95,11 +121,11 @@ public:
 		glBindBuffer(GL_ARRAY_BUFFER, hVbo);
 		glBufferData(GL_ARRAY_BUFFER, HeightSize, &aHeight.at(0), GL_STATIC_DRAW);
 
-		glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
-		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
 
-		glGenTextures(1, &noiseTex);
-		glBindTexture(GL_TEXTURE_2D, noiseTex);
+		glGenTextures(1, &ret.second);
+		glBindTexture(GL_TEXTURE_2D, ret.second);
 		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
@@ -108,27 +134,76 @@ public:
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, &aColor.at(0));
 
 		glBindVertexArray(0);
+
+		return ret;
 	}
 
-	void draw(Shader& shader, const glm::mat4& projection, const glm::mat4& view, const glm::mat4& model, const int &np) {
+	void InitTerrainChunk(const int &chunksize, const float &visibleDistance, const glm::vec3 &cameraPos) {
+		chunkSize = chunksize - 1;
+		fov = visibleDistance;
+	}
 
+	void update(const glm::vec3 &cameraPos) {
+		/*for (TerrainChunk& tc : terrainChunks) {
+			tc.visible = false;
+		}*/
+		std::pair<float, float> pos;
+		for (int i = -chunkSize; i <= chunkSize; i++) {
+			for (int j = -chunkSize; j <= chunkSize; j++) {
+				TerrainChunk tc;
+
+				pos.first = ((int)cameraPos.x - ((int)cameraPos.x % (int)planeSize));
+				pos.second = ((int)cameraPos.z - ((int)cameraPos.z % (int)planeSize));
+
+				pos.first += (j * planeSize);
+				pos.second += (i * planeSize);
+
+				tc.setPos(glm::vec3(pos.first, 0.0f, pos.second));
+				tc.visible = true;
+				if (DictTerrainChunk.find(pos) == DictTerrainChunk.end()) {
+					std::pair<GLuint, GLuint> res = GenerateNoiseMap(planeSize, planeSize, 4, 27.9f, 4, 0.5f, 2.0f, glm::vec2(pos.first, pos.second));
+					tc.vao = res.first;
+					tc.tex = res.second;
+					terrainChunks.push_back(tc);
+					DictTerrainChunk.insert({ pos, int(terrainChunks.size() - 1) });
+				}
+				int indx = DictTerrainChunk[pos];
+				terrainChunks[indx].visible = true;
+				queueDraw.push(indx);
+			}
+		}
+	}
+
+	void draw(Shader& shader, const glm::mat4& projection, const glm::mat4& view, const int &np, const glm::vec3 &cameraPos) {
+
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		shader.use();
 		shader.setInt("noiseMap", 0);
 
 		shader.setMat4("projection", projection);
 		shader.setMat4("view", view);
-		shader.setMat4("model", model);
 		shader.setFloat("lenght", np + 1);
-		shader.setFloat("heightMultiplier", 10.0f);
+		shader.setFloat("heightMultiplier", 20.0f);
 
-		glBindVertexArray(vao);
+		while (!queueDraw.empty()) {
+			int indx = queueDraw.front();
+			queueDraw.pop();
+			TerrainChunk &tc = terrainChunks[indx];
+			if (tc.visible) {
+				glBindVertexArray(tc.vao);
+				glActiveTexture(GL_TEXTURE0);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, noiseTex);
+				glm::mat4 model(1.0f);
+				model = glm::translate(model, tc.pos);
+				shader.setMat4("model", model);
+				glBindTexture(GL_TEXTURE_2D, tc.tex);
+				glDrawElements(GL_TRIANGLE_STRIP, indicesCount, componentType, (void*)(0));
+			}
+			glBindVertexArray(0);
+		}
 
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-		glDrawElements(GL_TRIANGLE_STRIP, indicesCount, componentType, (void*)(0));
-
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glBindVertexArray(0);
 	}
 
@@ -166,21 +241,13 @@ private:
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesCount, &indices.at(0), GL_STATIC_DRAW);
 
-		unsigned int vboIds;
-		glGenBuffers(1, &vboIds);
-		glBindBuffer(GL_ARRAY_BUFFER, vboIds);
-		glBufferData(GL_ARRAY_BUFFER, indicesCount, &indices.at(0), GL_STATIC_DRAW);
-
-		glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(unsigned int), (void*)0);
-		glEnableVertexAttribArray(0);
-
 		printf("size indices: %d\n", indices.size());
 	}
 
 	void generateColorTerrain() {
 
 		Terrain region;
-		region.setRegion("deep water", { 0.058, 0.368, 0.611 }, 0.3);
+		region.setRegion("deep water", { 0.058, 0.368, 0.611 }, 0.0f);
 		terrains.push_back(region);
 		region.setRegion("water", { 0.109, 0.639, 0.925 }, 0.4);
 		terrains.push_back(region);

@@ -4,6 +4,7 @@ in vec2 TexCoords;
 
 uniform sampler2D noiseMap;
 
+out vec4 FragPos;
 out vec4 FragColor;
 
 void main() {

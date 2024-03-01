@@ -13,8 +13,10 @@ const float MIN_VALUE = -3.40282347E+38F;
 class Noise {
 public:
 
+    enum NormalizeMode { Local, Global };
+
     static std::vector<std::vector<float>> GenerateNoiseMap(int mapWidth, int mapHeight, int seed, float scale, 
-        int octaves, float persistence, float lacunarity, glm::vec2 offset) {
+        int octaves, float persistence, float lacunarity, glm::vec2 offset, NormalizeMode normalizeMode) {
 	    if (scale <= 0) {
 		    scale = 0.000001f;
 	    }
@@ -25,14 +27,23 @@ public:
         float minNoiseHeight = MAX_VALUE;
 
         float halfWidth = mapWidth / 2.0f;
-        float halfHeight = mapHeight/ 2.0f;
+        float halfHeight = mapHeight / 2.0f;
+
+        float maxPossibleHeight = 0.0f;
+        float amplitude = 1.0f;
+        float frequency = 1.0f;
+
+        for (int i = 0; i < octaves; i++) {
+            maxPossibleHeight += amplitude;
+            amplitude *= persistence;
+        }
 
         for (int y = 0; y < mapHeight; y++) {
             for (int x = 0; x < mapWidth; x++) {
-                float sampleX = (x - halfWidth) / scale;
-                float sampleY = (y - halfHeight) / scale;
+                float sampleX = (x - halfWidth);
+                float sampleY = (y - halfHeight);
 
-                float perlinValue = (float)perlin.OctavePerlin(sampleX, sampleY, 0, seed,
+                float perlinValue = (float)perlin.OctavePerlin(sampleX, sampleY, 0, scale, seed,
                     octaves, persistence, lacunarity, offset);
 
                 if (maxNoiseHeight < perlinValue) {
@@ -48,12 +59,20 @@ public:
 
         for (int y = 0; y < mapHeight; y++) {
             for (int x = 0; x < mapWidth; x++) {
-                noiseMap[y][x] = perlin.inverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[y][x]);
+                if (normalizeMode == Local) {
+                    noiseMap[y][x] = perlin.inverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[y][x]);
+                } else {
+                    float normalizedHeight = (noiseMap[y][x] + 1) / (2.0f * maxPossibleHeight / 2.75f);
+                    noiseMap[y][x] = clamp(normalizedHeight, 0.0f, MAX_VALUE);
+                }
             }
         }
         return noiseMap;
 	}
-};
 
+    static float clamp(const float &v, const float &lower, const float &upper) {
+        return std::max(lower, std::min(v, upper));
+    }
+};
 
 #endif

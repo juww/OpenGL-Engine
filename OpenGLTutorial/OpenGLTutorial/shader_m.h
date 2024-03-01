@@ -96,6 +96,53 @@ public:
             glDeleteShader(geometry);
 
     }
+
+    void setTessellationShader(const char* TessellationControlPath, const char* TessellationEvaluationPath) {
+        std::string tcsCode;
+        std::string tesCode;
+        std::ifstream tcsFile;
+        std::ifstream tesFile;
+
+        tcsFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        tesFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        try {
+            tcsFile.open(TessellationControlPath);
+            tesFile.open(TessellationEvaluationPath);
+            std::stringstream tcsShaderStream, tesShaderStream;
+            tcsShaderStream << tcsFile.rdbuf();
+            tesShaderStream << tesFile.rdbuf();
+            tcsFile.close();
+            tesFile.close();
+            tcsCode = tcsShaderStream.str();
+            tesCode = tesShaderStream.str();
+
+        } catch (std::ifstream::failure& e) {
+            std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
+        }
+        const char* tcsShaderCode = tcsCode.c_str();
+        const char* tesShaderCode = tesCode.c_str();
+
+        unsigned int tcs, tes;
+
+        tcs = glCreateShader(GL_TESS_CONTROL_SHADER);
+        glShaderSource(tcs, 1, &tcsShaderCode, NULL);
+        glCompileShader(tcs);
+        checkCompileErrors(tcs, "TESSELLATION CONTROL");
+
+        tes = glCreateShader(GL_TESS_EVALUATION_SHADER);
+        glShaderSource(tes, 1, &tesShaderCode, NULL);
+        glCompileShader(tes);
+        checkCompileErrors(tes, "TESSELLATION EVALUATION");
+
+        glAttachShader(ID, tcs);
+        glAttachShader(ID, tes);
+        glLinkProgram(ID);
+        checkCompileErrors(ID, "TESSELLATION PROGRAM");
+        
+        glDeleteShader(tcs);
+        glDeleteShader(tes);
+    }
+
     // activate the shader
     // ------------------------------------------------------------------------
     void use()

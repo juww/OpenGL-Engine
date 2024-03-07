@@ -32,7 +32,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 
 // settings
-const unsigned int SCR_WIDTH = 1080;
+const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
 
 // camera
@@ -342,8 +342,10 @@ int main() {
         //carafe.DrawModel(carafeShader);
 
         // draw plane
-        plane.update(camera.Position);
+        plane.update(camera.Position, 15.0f);
         plane.draw(planeShader, projection, view, np, camera.Position);
+
+        //plane.drawNormalLine(normalLineShader, projection, view, np, camera.Position);
 
         // also draw the lamp object
         lightCubeShader.use();

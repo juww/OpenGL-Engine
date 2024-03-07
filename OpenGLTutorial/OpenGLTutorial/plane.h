@@ -49,6 +49,7 @@ public:
 
 	int planeSize;
 	int chunkSize;
+	int border;
 	float fov;
 
 	unsigned int ebo, vao;
@@ -66,6 +67,7 @@ public:
 	Plane(const int& planesize) {
 
 		planeSize = planesize;
+		border = planeSize + 2;
 		printf("plane %d\n", planeSize);
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
@@ -76,41 +78,100 @@ public:
 		glBindVertexArray(0);
 	}
 
-	std::pair<GLuint,GLuint> GenerateNoiseMap(int width, int height, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset) {
+	std::pair<GLuint,GLuint> GenerateNoiseMap(int width, int height, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset, const float &heightMultiplier) {
 
 		Noise noise;
-		std::vector<std::vector<float>> noiseMap = noise.GenerateNoiseMap(width + 1, height + 1, seed, scale, octaves, persistence, lacunarity, offset, noise.Global);
+		std::vector<std::vector<float>> noiseMap = noise.GenerateNoiseMap(width + 3, height + 3, seed, scale, octaves, persistence, lacunarity, offset - 1.0f, noise.Global);
 
+		int n = noiseMap.size();
+		int m = noiseMap[0].size();
 		//printf("generate Noise map finished\n");
 		//printf("noiseMap size y = %d\n", noiseMap.size());
 		//printf("noiseMap size x = %d\n", noiseMap[0].size());
-		std::vector<glm::vec4> aColor(height * width);
-		std::vector<float> aHeight;
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
+		std::vector<glm::vec4> aColor;
+		for (int y = 1; y < n - 2; y++) {
+			for (int x = 1; x < m - 2; x++) {
+				int flag = 0;
 				for (int k = 0; k < terrains.size(); k++) {
 					if (noiseMap[y][x] >= terrains[k].height) {
-						aColor[y * height + x] = glm::vec4(terrains[k].color, 1.0f);
+						flag = k;
 					} else {
 						break;
 					}
 				}
+				aColor.push_back(glm::vec4(terrains[flag].color, 1.0f));
 				// noiseMap;
-				//color.push_back(glm::vec4(noiseMap[y][x], noiseMap[y][x], noiseMap[y][x], 1.0f));
+				//aColor.push_back(glm::vec4(noiseMap[y][x], noiseMap[y][x], noiseMap[y][x], 1.0f));
+			}
+		}
+		std::vector<float> heightMap;
+		std::vector<glm::ivec2> indxMap;
+		for (int y = 0; y < n - 1; y++) {
+			for (int x = 0; x < m; x++) {
+				heightMap.push_back(calculateHeightValue(noiseMap[y][x], heightMultiplier));
+				indxMap.push_back({x,y});
+
+				heightMap.push_back(calculateHeightValue(noiseMap[y + 1][x], heightMultiplier));
+				indxMap.push_back({ x,y + 1 });
+			}
+		}
+		int offsetVertices = n * 2;
+		float halfOffset = (float)n / 2.0f;
+		std::vector<glm::vec3> normalMap(heightMap.size(), glm::vec3(0.0f));
+		for (int i = 0; i < (int)heightMap.size() - 3; i++) {
+
+			glm::vec3 pos0((float)indxMap[i].x - halfOffset, heightMap[i], (float)indxMap[i].y - halfOffset);
+			glm::vec3 pos1((float)indxMap[i + 1].x - halfOffset, heightMap[i + 1], (float)indxMap[i + 1].y - halfOffset);
+			glm::vec3 pos2((float)indxMap[i + 2].x - halfOffset, heightMap[i + 2], (float)indxMap[i + 2].y - halfOffset);
+
+			glm::vec3 vec01 = pos1 - pos0;
+			glm::vec3 vec02 = pos2 - pos0;
+			if (i % 2 == 1) {
+				vec01 = pos2 - pos0;
+				vec02 = pos1 - pos0;
+			}
+			glm::vec3 norm = glm::cross(vec01, vec02);
+			norm = glm::normalize(norm);
+
+			normalMap[i] += norm;
+			normalMap[i + 1] += norm;
+			normalMap[i + 2] += norm;
+		}
+
+		for (int i = 0; i < (int)normalMap.size(); i++) {
+			int rowIndex = i % offsetVertices;
+			int colIndex = i / offsetVertices;
+			if (i % 2 == 1 && colIndex < n - 2) {
+				int indx = (colIndex + 1) * offsetVertices + rowIndex - 1;
+				normalMap[i] += normalMap[indx];
+			}
+			if (i % 2 == 0 && colIndex > 0) {
+				int indx = (colIndex - 1) * offsetVertices + rowIndex + 1;
+				normalMap[i] = normalMap[indx];
+			}
+			normalMap[i] = glm::normalize(normalMap[i]);
+		}
+
+		std::vector<float> aHeight;
+		std::vector<glm::vec3> aNormal;
+		for (int i = 0; i < (int)normalMap.size();i++) {
+			glm::ivec2 &coord = indxMap[i];
+			if (coord.x > 0 && coord.y && coord.x <= width + 1 && coord.y <= height + 1) {
+				int colIndex = i / offsetVertices;
+				if (colIndex == 0 || colIndex == n - 1) continue;
+				if (coord.x == 1 && i % 2 == 0) {
+					aHeight.push_back(heightMap[i]);
+					aNormal.push_back(normalMap[i]);
+				}
+				aHeight.push_back(heightMap[i]);
+				aNormal.push_back(normalMap[i]);
+				if (coord.x == m - 2 && i % 2 == 1) {
+					aHeight.push_back(heightMap[i]);
+					aNormal.push_back(normalMap[i]);
+				}
 			}
 		}
 
-		int n = noiseMap.size();
-		for (int y = 0; y < n - 1; y++) {
-			int m = noiseMap[y].size();
-			aHeight.push_back(noiseMap[y][0]);
-			for (int x = 0; x < m; x++) {
-				aHeight.push_back(noiseMap[y][x]);
-				aHeight.push_back(noiseMap[y + 1 < n ? y + 1 : n - 1][x]);
-			}
-			aHeight.push_back(noiseMap[y + 1][m - 1]);
-		}
-		//printf("acolor size = %d\n", aColor.size());
 		std::pair<GLuint, GLuint> ret;
 		glGenVertexArrays(1, &ret.first);
 		glBindVertexArray(ret.first);
@@ -123,6 +184,15 @@ public:
 
 		glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
 		glEnableVertexAttribArray(0);
+
+		unsigned int normVbo;
+		int normSize = aNormal.size() * sizeof(float) * 3;
+		glGenBuffers(1, &normVbo);
+		glBindBuffer(GL_ARRAY_BUFFER, normVbo);
+		glBufferData(GL_ARRAY_BUFFER, normSize, &aNormal.at(0), GL_STATIC_DRAW);
+
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+		glEnableVertexAttribArray(1);
 
 		glGenTextures(1, &ret.second);
 		glBindTexture(GL_TEXTURE_2D, ret.second);
@@ -143,7 +213,7 @@ public:
 		fov = visibleDistance;
 	}
 
-	void update(const glm::vec3 &cameraPos) {
+	void update(const glm::vec3 &cameraPos, const float &heightMultiplier) {
 		/*for (TerrainChunk& tc : terrainChunks) {
 			tc.visible = false;
 		}*/
@@ -161,7 +231,7 @@ public:
 				tc.setPos(glm::vec3(pos.first, 0.0f, pos.second));
 				tc.visible = true;
 				if (DictTerrainChunk.find(pos) == DictTerrainChunk.end()) {
-					std::pair<GLuint, GLuint> res = GenerateNoiseMap(planeSize, planeSize, 4, 27.9f, 4, 0.5f, 2.0f, glm::vec2(pos.first, pos.second));
+					std::pair<GLuint, GLuint> res = GenerateNoiseMap(planeSize, planeSize, 4, 27.9f, 4, 0.5f, 2.0f, glm::vec2(pos.first, pos.second), heightMultiplier);
 					tc.vao = res.first;
 					tc.tex = res.second;
 					terrainChunks.push_back(tc);
@@ -183,7 +253,11 @@ public:
 		shader.setMat4("projection", projection);
 		shader.setMat4("view", view);
 		shader.setFloat("lenght", np + 1);
-		shader.setFloat("heightMultiplier", 20.0f);
+
+		shader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+		shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+		shader.setVec3("lightPos", glm::vec3(1.0f, 0.0f, 0.0f));
+		shader.setVec3("viewPos", cameraPos);
 
 		while (!queueDraw.empty()) {
 			int indx = queueDraw.front();
@@ -264,6 +338,11 @@ private:
 		region.setRegion("snow top", { 1.000, 1.000, 1.000 }, 1.00);
 		terrains.push_back(region);
 	}
+	
+	static float calculateHeightValue(const float& v, const float& heightMultiplier) {
+		return (v * heightMultiplier) - heightMultiplier;
+	}
+
 };
 
 #endif

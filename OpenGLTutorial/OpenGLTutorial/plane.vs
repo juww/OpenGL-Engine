@@ -1,17 +1,17 @@
 #version 430 core
 
 layout (location = 0) in float heightValue;
+layout (location = 1) in vec3  aNormal;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
 uniform float lenght;
-uniform float heightMultiplier;
 
-//out vec3 Normal;
+out vec3 Normal;
 out vec2 TexCoords;
-out vec4 FragPos;
+out vec3 FragPos;
 
 vec3 planeVertex(){
 
@@ -24,7 +24,7 @@ vec3 planeVertex(){
 
     pos.x = floor(clampedIndex / 2.0) - (lenght / 2.0);
     pos.z = mod(clampedIndex, 2.0) - (lenght / 2.0);
-    pos.y = (heightValue * heightMultiplier) - (heightMultiplier);
+    pos.y = heightValue;
     // pos.y = -5.0;
 
     pos.z += (floor(float(gl_VertexID) / offsetVertices));
@@ -36,10 +36,9 @@ void main (){
 
     vec3 pos = planeVertex();
 
-    FragPos = vec4(pos, 1.0) * model;
+    FragPos = vec3(model * vec4(pos, 1.0));
     TexCoords = (pos.xz + (lenght / 2.0)) / lenght;
+    Normal = aNormal;
+
     gl_Position = projection * view * model * vec4(pos, 1.0);
-    
-    //Normal = aNormal;
-    //TexCoords = aTexCoords;
 }

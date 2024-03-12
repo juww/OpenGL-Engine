@@ -13,13 +13,16 @@
 class Terrain {
 public:
 	std::string name;
+	unsigned int tex;
 	glm::vec3 color;
 	float height;
+	float blend;
 
-	void setRegion(const std::string& S, const glm::vec3& C, const float& H) {
+	void setRegion(const std::string& S, const glm::vec3& C, const float& H, const float& B) {
 		name = S;
 		color = C;
 		height = H;
+		blend = B;
 	}
 };
 
@@ -271,6 +274,7 @@ public:
 		for (int i = 0; i < terrains.size(); i++) {
 			shader.setVec3("baseColor[" + std::to_string(i) + "]", terrains[i].color);
 			shader.setFloat("baseStartHeight[" + std::to_string(i) + "]", terrains[i].height);
+			shader.setFloat("baseBlend[" + std::to_string(i) + "]", terrains[i].blend);
 		}
 
 		while (!queueDraw.empty()) {
@@ -337,21 +341,21 @@ private:
 	void generateColorTerrain() {
 
 		Terrain region;
-		region.setRegion("deep water", { 0.058, 0.368, 0.611 }, 0.0f);
+		region.setRegion("deep water", { 0.058, 0.368, 0.611 }, 0.0f, 0.25f);
 		terrains.push_back(region);
-		region.setRegion("water", { 0.109, 0.639, 0.925 }, 0.4);
+		region.setRegion("water", { 0.109, 0.639, 0.925 }, 0.4, 0.25f);
 		terrains.push_back(region);
-		region.setRegion("sand", { 0.941 ,0.929, 0.643 }, 0.45);
+		region.setRegion("sand", { 0.941 ,0.929, 0.643 }, 0.45, 0.05f);
 		terrains.push_back(region);
-		region.setRegion("grass 1", { 0.325, 0.82, 0.204 }, 0.55);
+		region.setRegion("grass 1", { 0.325, 0.82, 0.204 }, 0.55, 0.1f);
 		terrains.push_back(region);
-		region.setRegion("grass 2", { 0.066, 0.486, 0.074 }, 0.65);
+		region.setRegion("grass 2", { 0.066, 0.486, 0.074 }, 0.65, 0.2f);
 		terrains.push_back(region);
-		region.setRegion("rock 1", { 0.333, 0.254, 0.141 }, 0.8);
+		region.setRegion("rock 1", { 0.333, 0.254, 0.141 }, 0.8, 0.1f);
 		terrains.push_back(region);
-		region.setRegion("rock 2", { 0.235, 0.145, 0.082 }, 0.85);
+		region.setRegion("rock 2", { 0.235, 0.145, 0.082 }, 0.85, 0.1f);
 		terrains.push_back(region);
-		region.setRegion("snow top", { 1.000, 1.000, 1.000 }, 0.9);
+		region.setRegion("snow top", { 1.000, 1.000, 1.000 }, 0.9, 0.1f);
 		terrains.push_back(region);
 	}
 	

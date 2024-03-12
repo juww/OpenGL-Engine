@@ -5,6 +5,7 @@ in vec3 Normal;
 in vec2 TexCoords;
 
 const int N_COLOUR = 8;
+const float EPS = 1e-4;
 
 uniform sampler2D noiseMap;
 uniform vec3 lightPos;
@@ -15,6 +16,7 @@ uniform vec3 lightColor;
 uniform int colorCount;
 uniform vec3 baseColor[N_COLOUR];
 uniform float baseStartHeight[N_COLOUR];
+uniform float baseBlend[N_COLOUR];
 
 uniform float minHeight;
 uniform float maxHeight;
@@ -52,8 +54,9 @@ vec3 blinnPhong(){
 
 vec3 heightColor(float heightPercent){
     vec3 res = vec3(heightPercent, heightPercent, heightPercent);
-    for(int i = 0; i < colorCount; i++){
-        float drawStrength = clamp(sign(heightPercent - baseStartHeight[i]), 0.0, 1.0);
+    for(int i = 0; i < colorCount; i++){   
+        //float drawStrength = clamp(sign(heightPercent - baseStartHeight[i]), 0.0, 1.0);
+        float drawStrength = inverseLerp(-baseBlend[i]/2 - EPS, baseBlend[i]/2, heightPercent - baseStartHeight[i]);
         res = res * (1 - drawStrength) + baseColor[i] * drawStrength;
     }
     return res;

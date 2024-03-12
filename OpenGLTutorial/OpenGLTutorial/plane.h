@@ -34,10 +34,6 @@ public:
 	}
 	~TerrainChunk() {
 	}
-
-	void setPos(const glm::vec3& p) {
-		pos = p;
-	}
 };
 
 class Plane {
@@ -51,6 +47,8 @@ public:
 	int chunkSize;
 	int border;
 	float fov;
+
+	float minHeight, maxHeight;
 
 	unsigned int ebo, vao;
 	unsigned int noiseTex;
@@ -71,6 +69,8 @@ public:
 		printf("plane %d\n", planeSize);
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
+		minHeight = MAX_VALUE;
+		maxHeight = MIN_VALUE;
 
 		generatePlane(planeSize);
 		generateColorTerrain();
@@ -78,7 +78,46 @@ public:
 		glBindVertexArray(0);
 	}
 
-	std::pair<GLuint,GLuint> GenerateNoiseMap(int width, int height, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset, const float &heightMultiplier) {
+	std::vector<glm::vec3> GenerateNormalMapping(const std::vector<float>& heightMap, const std::vector<glm::ivec2>& indxMap, const int& offsetVertices, const float& halfOffset, const int &n) {
+
+		std::vector<glm::vec3> normalMap(heightMap.size(), glm::vec3(0.0f));
+		for (int i = 0; i < (int)heightMap.size() - 3; i++) {
+
+			glm::vec3 pos0((float)indxMap[i].x - halfOffset, heightMap[i], (float)indxMap[i].y - halfOffset);
+			glm::vec3 pos1((float)indxMap[i + 1].x - halfOffset, heightMap[i + 1], (float)indxMap[i + 1].y - halfOffset);
+			glm::vec3 pos2((float)indxMap[i + 2].x - halfOffset, heightMap[i + 2], (float)indxMap[i + 2].y - halfOffset);
+
+			glm::vec3 vec01 = pos1 - pos0;
+			glm::vec3 vec02 = pos2 - pos0;
+			if (i % 2 == 1) {
+				vec01 = pos2 - pos0;
+				vec02 = pos1 - pos0;
+			}
+			glm::vec3 norm = glm::cross(vec01, vec02);
+			norm = glm::normalize(norm);
+
+			normalMap[i] += norm;
+			normalMap[i + 1] += norm;
+			normalMap[i + 2] += norm;
+		}
+
+		for (int i = 0; i < (int)normalMap.size(); i++) {
+			int rowIndex = i % offsetVertices;
+			int colIndex = i / offsetVertices;
+			if (i % 2 == 1 && colIndex < n - 2) {
+				int indx = (colIndex + 1) * offsetVertices + rowIndex - 1;
+				normalMap[i] += normalMap[indx];
+			}
+			if (i % 2 == 0 && colIndex > 0) {
+				int indx = (colIndex - 1) * offsetVertices + rowIndex + 1;
+				normalMap[i] = normalMap[indx];
+			}
+			normalMap[i] = glm::normalize(normalMap[i]);
+		}
+		return normalMap;
+	}
+
+	TerrainChunk GenerateTerrain(int width, int height, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset, const float &heightMultiplier) {
 
 		Noise noise;
 		std::vector<std::vector<float>> noiseMap = noise.GenerateNoiseMap(width + 3, height + 3, seed, scale, octaves, persistence, lacunarity, offset - 1.0f, noise.Global);
@@ -117,40 +156,7 @@ public:
 		}
 		int offsetVertices = n * 2;
 		float halfOffset = (float)n / 2.0f;
-		std::vector<glm::vec3> normalMap(heightMap.size(), glm::vec3(0.0f));
-		for (int i = 0; i < (int)heightMap.size() - 3; i++) {
-
-			glm::vec3 pos0((float)indxMap[i].x - halfOffset, heightMap[i], (float)indxMap[i].y - halfOffset);
-			glm::vec3 pos1((float)indxMap[i + 1].x - halfOffset, heightMap[i + 1], (float)indxMap[i + 1].y - halfOffset);
-			glm::vec3 pos2((float)indxMap[i + 2].x - halfOffset, heightMap[i + 2], (float)indxMap[i + 2].y - halfOffset);
-
-			glm::vec3 vec01 = pos1 - pos0;
-			glm::vec3 vec02 = pos2 - pos0;
-			if (i % 2 == 1) {
-				vec01 = pos2 - pos0;
-				vec02 = pos1 - pos0;
-			}
-			glm::vec3 norm = glm::cross(vec01, vec02);
-			norm = glm::normalize(norm);
-
-			normalMap[i] += norm;
-			normalMap[i + 1] += norm;
-			normalMap[i + 2] += norm;
-		}
-
-		for (int i = 0; i < (int)normalMap.size(); i++) {
-			int rowIndex = i % offsetVertices;
-			int colIndex = i / offsetVertices;
-			if (i % 2 == 1 && colIndex < n - 2) {
-				int indx = (colIndex + 1) * offsetVertices + rowIndex - 1;
-				normalMap[i] += normalMap[indx];
-			}
-			if (i % 2 == 0 && colIndex > 0) {
-				int indx = (colIndex - 1) * offsetVertices + rowIndex + 1;
-				normalMap[i] = normalMap[indx];
-			}
-			normalMap[i] = glm::normalize(normalMap[i]);
-		}
+		std::vector<glm::vec3> normalMap = GenerateNormalMapping(heightMap, indxMap, offsetVertices, halfOffset, n);
 
 		std::vector<float> aHeight;
 		std::vector<glm::vec3> aNormal;
@@ -169,12 +175,14 @@ public:
 					aHeight.push_back(heightMap[i]);
 					aNormal.push_back(normalMap[i]);
 				}
+				if (minHeight > heightMap[i]) minHeight = heightMap[i];
+				if (maxHeight < heightMap[i]) maxHeight = heightMap[i];
 			}
 		}
 
-		std::pair<GLuint, GLuint> ret;
-		glGenVertexArrays(1, &ret.first);
-		glBindVertexArray(ret.first);
+		unsigned int vao;
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
 
 		unsigned int hVbo;
 		int HeightSize = aHeight.size() * sizeof(float);
@@ -194,8 +202,9 @@ public:
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 		glEnableVertexAttribArray(1);
 
-		glGenTextures(1, &ret.second);
-		glBindTexture(GL_TEXTURE_2D, ret.second);
+		unsigned int tex;
+		glGenTextures(1, &tex);
+		glBindTexture(GL_TEXTURE_2D, tex);
 		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
@@ -203,9 +212,13 @@ public:
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, &aColor.at(0));
 
+		TerrainChunk result;
+		result.vao = vao;
+		result.tex = tex;
+
 		glBindVertexArray(0);
 
-		return ret;
+		return result;
 	}
 
 	void InitTerrainChunk(const int &chunksize, const float &visibleDistance, const glm::vec3 &cameraPos) {
@@ -214,13 +227,10 @@ public:
 	}
 
 	void update(const glm::vec3 &cameraPos, const float &heightMultiplier) {
-		/*for (TerrainChunk& tc : terrainChunks) {
-			tc.visible = false;
-		}*/
+
 		std::pair<float, float> pos;
 		for (int i = -chunkSize; i <= chunkSize; i++) {
 			for (int j = -chunkSize; j <= chunkSize; j++) {
-				TerrainChunk tc;
 
 				pos.first = ((int)cameraPos.x - ((int)cameraPos.x % (int)planeSize));
 				pos.second = ((int)cameraPos.z - ((int)cameraPos.z % (int)planeSize));
@@ -228,12 +238,9 @@ public:
 				pos.first += (j * planeSize);
 				pos.second += (i * planeSize);
 
-				tc.setPos(glm::vec3(pos.first, 0.0f, pos.second));
-				tc.visible = true;
 				if (DictTerrainChunk.find(pos) == DictTerrainChunk.end()) {
-					std::pair<GLuint, GLuint> res = GenerateNoiseMap(planeSize, planeSize, 4, 27.9f, 4, 0.5f, 2.0f, glm::vec2(pos.first, pos.second), heightMultiplier);
-					tc.vao = res.first;
-					tc.tex = res.second;
+					TerrainChunk tc = GenerateTerrain(planeSize, planeSize, 4, 27.9f, 4, 0.5f, 2.0f, glm::vec2(pos.first, pos.second), heightMultiplier);
+					tc.pos = glm::vec3(pos.first, 0.0f, pos.second);
 					terrainChunks.push_back(tc);
 					DictTerrainChunk.insert({ pos, int(terrainChunks.size() - 1) });
 				}
@@ -257,7 +264,14 @@ public:
 		shader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
 		shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 		shader.setVec3("lightPos", glm::vec3(1.0f, 0.0f, 0.0f));
+		shader.setVec3("lightDirection", glm::vec3(-0.2f, -1.0f, -0.3f));
 		shader.setVec3("viewPos", cameraPos);
+
+		shader.setInt("colorCount", terrains.size());
+		for (int i = 0; i < terrains.size(); i++) {
+			shader.setVec3("baseColor[" + std::to_string(i) + "]", terrains[i].color);
+			shader.setFloat("baseStartHeight[" + std::to_string(i) + "]", terrains[i].height);
+		}
 
 		while (!queueDraw.empty()) {
 			int indx = queueDraw.front();
@@ -271,6 +285,8 @@ public:
 				glm::mat4 model(1.0f);
 				model = glm::translate(model, tc.pos);
 				shader.setMat4("model", model);
+				shader.setFloat("minHeight", minHeight);
+				shader.setFloat("maxHeight", maxHeight);
 				glBindTexture(GL_TEXTURE_2D, tc.tex);
 				glDrawElements(GL_TRIANGLE_STRIP, indicesCount, componentType, (void*)(0));
 			}
@@ -333,9 +349,9 @@ private:
 		terrains.push_back(region);
 		region.setRegion("rock 1", { 0.333, 0.254, 0.141 }, 0.8);
 		terrains.push_back(region);
-		region.setRegion("rock 2", { 0.235, 0.145, 0.082 }, 0.9);
+		region.setRegion("rock 2", { 0.235, 0.145, 0.082 }, 0.85);
 		terrains.push_back(region);
-		region.setRegion("snow top", { 1.000, 1.000, 1.000 }, 1.00);
+		region.setRegion("snow top", { 1.000, 1.000, 1.000 }, 0.9);
 		terrains.push_back(region);
 	}
 	

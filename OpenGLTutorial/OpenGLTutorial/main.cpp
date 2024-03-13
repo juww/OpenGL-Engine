@@ -198,14 +198,13 @@ int main() {
     //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     //glEnableVertexAttribArray(1);
 
-    int np = 16;
+    int np = 512;
     glm::vec2 offset(0.0f, 0.0f);
     Plane plane(np);
     //plane.GenerateNoiseMap(np, np, 4, 27.9f, 4, 0.5f, 2.0f, offset);
-    plane.InitTerrainChunk(2, 64.0f, camera.Position);
+    plane.InitTerrainChunk(1, 64.0f, camera.Position);
 
-    planeShader.use();
-    planeShader.setInt("noiseMap", 0);
+    plane.setAllUniform(planeShader);
 
     // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
     unsigned int lightCubeVAO;
@@ -257,6 +256,7 @@ int main() {
         if (currentFrame - prevFrame >= 1.0) {
             printf("frame per second : %f\n", frameCount);
             printf("%f ms\n", 1000.0f / frameCount);
+            printf("deltaTime = %f \n", deltaTime);
             frameCount = 0.0f;
             prevFrame = currentFrame;
             //pp.second += 1.0f;

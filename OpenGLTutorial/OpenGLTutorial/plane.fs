@@ -2,12 +2,11 @@
 
 in vec3 FragPos;
 in vec3 Normal;
-in vec2 TexCoords;
+in vec3 TexCoords;
 
 const int N_COLOUR = 8;
 const float EPS = 1e-4;
 
-uniform sampler2D noiseMap;
 uniform vec3 lightPos;
 uniform vec3 lightDirection;
 uniform vec3 viewPos;
@@ -15,8 +14,10 @@ uniform vec3 lightColor;
 
 uniform int colorCount;
 uniform vec3 baseColor[N_COLOUR];
+uniform float colorStrength[N_COLOUR];
 uniform float baseStartHeight[N_COLOUR];
 uniform float baseBlend[N_COLOUR];
+uniform sampler2DArray spriteTextures;
 
 uniform float minHeight;
 uniform float maxHeight;
@@ -52,24 +53,36 @@ vec3 blinnPhong(){
     return result;
 }
 
-vec3 heightColor(float heightPercent){
+vec3 triplanar(int texId, vec3 blendAxes){
+    
+    vec3 xProjection = texture(spriteTextures, vec3(TexCoords.yz, texId)).rgb * blendAxes.x;
+    vec3 yProjection = texture(spriteTextures, vec3(TexCoords.xz, texId)).rgb * blendAxes.y;
+    vec3 zProjection = texture(spriteTextures, vec3(TexCoords.xy, texId)).rgb * blendAxes.z;
+
+    return xProjection + yProjection + zProjection;
+}
+
+vec3 heightColor(float heightPercent, vec3 blendAxes){
     vec3 res = vec3(heightPercent, heightPercent, heightPercent);
     for(int i = 0; i < colorCount; i++){   
         //float drawStrength = clamp(sign(heightPercent - baseStartHeight[i]), 0.0, 1.0);
         float drawStrength = inverseLerp(-baseBlend[i]/2 - EPS, baseBlend[i]/2, heightPercent - baseStartHeight[i]);
-        res = res * (1 - drawStrength) + baseColor[i] * drawStrength;
+        vec3 color = baseColor[i] * colorStrength[i];
+        vec3 textureColor = triplanar(i, blendAxes) * (1 - colorStrength[i]);
+
+        res = res * (1 - drawStrength) + (baseColor[i] + textureColor) * drawStrength;
     }
     return res;
 }
 
 void main() {
-    
-    vec3 noise = texture(noiseMap, TexCoords).rgb;
 
     float heightPercent = inverseLerp(minHeight, maxHeight, FragPos.y);
+    vec3 blendAxes = abs(Normal);
+    blendAxes /= (blendAxes.x + blendAxes.y + blendAxes.z);
 
     vec3 lighting = blinnPhong();
-    vec3 terrainColor = heightColor(heightPercent);
+    vec3 terrainColor = heightColor(heightPercent, blendAxes);
 
      vec3 result = terrainColor * lighting;
 

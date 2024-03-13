@@ -15,21 +15,25 @@ public:
 	std::string name;
 	unsigned int tex;
 	glm::vec3 color;
+	float colorStrength;
 	float height;
 	float blend;
+	std::string texturePath;
 
-	void setRegion(const std::string& S, const glm::vec3& C, const float& H, const float& B) {
+	void setRegion(const std::string& S, const glm::vec3& C, const float& CS, const float& H, const float& B, const std::string& TP) {
 		name = S;
 		color = C;
+		colorStrength = CS;
 		height = H;
 		blend = B;
+		texturePath = TP;
 	}
 };
 
 class TerrainChunk {
 public:
 
-	unsigned int vao, tex;
+	unsigned int vao;
 	glm::vec3 pos;
 	bool visible;
 
@@ -52,7 +56,7 @@ public:
 	float fov;
 
 	float minHeight, maxHeight;
-
+	unsigned int spriteTextures;
 	unsigned int ebo, vao;
 	unsigned int noiseTex;
 
@@ -130,22 +134,6 @@ public:
 		//printf("generate Noise map finished\n");
 		//printf("noiseMap size y = %d\n", noiseMap.size());
 		//printf("noiseMap size x = %d\n", noiseMap[0].size());
-		std::vector<glm::vec4> aColor;
-		for (int y = 1; y < n - 2; y++) {
-			for (int x = 1; x < m - 2; x++) {
-				int flag = 0;
-				for (int k = 0; k < terrains.size(); k++) {
-					if (noiseMap[y][x] >= terrains[k].height) {
-						flag = k;
-					} else {
-						break;
-					}
-				}
-				aColor.push_back(glm::vec4(terrains[flag].color, 1.0f));
-				// noiseMap;
-				//aColor.push_back(glm::vec4(noiseMap[y][x], noiseMap[y][x], noiseMap[y][x], 1.0f));
-			}
-		}
 		std::vector<float> heightMap;
 		std::vector<glm::ivec2> indxMap;
 		for (int y = 0; y < n - 1; y++) {
@@ -205,19 +193,8 @@ public:
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 		glEnableVertexAttribArray(1);
 
-		unsigned int tex;
-		glGenTextures(1, &tex);
-		glBindTexture(GL_TEXTURE_2D, tex);
-		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, &aColor.at(0));
-
 		TerrainChunk result;
 		result.vao = vao;
-		result.tex = tex;
 
 		glBindVertexArray(0);
 
@@ -254,28 +231,60 @@ public:
 		}
 	}
 
-	void draw(Shader& shader, const glm::mat4& projection, const glm::mat4& view, const int &np, const glm::vec3 &cameraPos) {
+	void loadSpriteTexture(const int& width, const int& height, const int& layerCount, const int& mipLevelCount) {
+		glGenTextures(1, &spriteTextures);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, spriteTextures);
 
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glTexStorage3D(GL_TEXTURE_2D_ARRAY, mipLevelCount, GL_RGBA, width, height, layerCount);
+		glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, width, height, layerCount, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		//glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+
+		for (int i = 0; i < terrains.size(); i++) {
+			int w, h, nrChannels;
+			unsigned char* data = stbi_load(FileSystem::getPath(terrains[i].texturePath).c_str(), &w, &h, &nrChannels, 4);
+			if (data) {
+				printf("%s\n", terrains[i].name.c_str());
+				printf("%d %d\n", w, h);
+				glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, w, h, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
+			}
+			stbi_image_free(data);
+		}
+	}
+
+	void setAllUniform(Shader& shader) {
 		shader.use();
-		shader.setInt("noiseMap", 0);
-
-		shader.setMat4("projection", projection);
-		shader.setMat4("view", view);
-		shader.setFloat("lenght", np + 1);
 
 		shader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
 		shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 		shader.setVec3("lightPos", glm::vec3(1.0f, 0.0f, 0.0f));
 		shader.setVec3("lightDirection", glm::vec3(-0.2f, -1.0f, -0.3f));
-		shader.setVec3("viewPos", cameraPos);
 
 		shader.setInt("colorCount", terrains.size());
 		for (int i = 0; i < terrains.size(); i++) {
 			shader.setVec3("baseColor[" + std::to_string(i) + "]", terrains[i].color);
+			shader.setFloat("colorStrength" +std::to_string(i) + "]", terrains[i].colorStrength);
 			shader.setFloat("baseStartHeight[" + std::to_string(i) + "]", terrains[i].height);
 			shader.setFloat("baseBlend[" + std::to_string(i) + "]", terrains[i].blend);
 		}
+		loadSpriteTexture(512, 512, terrains.size(), 1);
+		shader.setInt("spriteTextures", 0);
+	}
+
+	void draw(Shader& shader, const glm::mat4& projection, const glm::mat4& view, const int &np, const glm::vec3 &cameraPos) {
+
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		shader.use();
+		shader.setMat4("projection", projection);
+		shader.setMat4("view", view);
+		shader.setFloat("lenght", np + 1);
+
+		shader.setFloat("minHeight", minHeight);
+		shader.setFloat("maxHeight", maxHeight);
 
 		while (!queueDraw.empty()) {
 			int indx = queueDraw.front();
@@ -284,21 +293,16 @@ public:
 			if (tc.visible) {
 				glBindVertexArray(tc.vao);
 				glActiveTexture(GL_TEXTURE0);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-
+				glBindTexture(GL_TEXTURE_2D_ARRAY, spriteTextures);
 				glm::mat4 model(1.0f);
 				model = glm::translate(model, tc.pos);
 				shader.setMat4("model", model);
-				shader.setFloat("minHeight", minHeight);
-				shader.setFloat("maxHeight", maxHeight);
-				glBindTexture(GL_TEXTURE_2D, tc.tex);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 				glDrawElements(GL_TRIANGLE_STRIP, indicesCount, componentType, (void*)(0));
 			}
 			glBindVertexArray(0);
 		}
-
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		glBindVertexArray(0);
 	}
 
 	~Plane() {
@@ -341,21 +345,19 @@ private:
 	void generateColorTerrain() {
 
 		Terrain region;
-		region.setRegion("deep water", { 0.058, 0.368, 0.611 }, 0.0f, 0.25f);
+		region.setRegion("water", { 0.058, 0.368, 0.611 }, 0.0f, 0.0f, 0.25f, "assets/textures/Water.png");
 		terrains.push_back(region);
-		region.setRegion("water", { 0.109, 0.639, 0.925 }, 0.4, 0.25f);
+		region.setRegion("sandy grass", { 0.941 ,0.929, 0.643 }, 0.0f, 0.3, 0.05f, "assets/textures/Sandy grass.png");
 		terrains.push_back(region);
-		region.setRegion("sand", { 0.941 ,0.929, 0.643 }, 0.45, 0.05f);
+		region.setRegion("Stony ground", { 0.325, 0.82, 0.204 }, 0.0f, 0.4, 0.1f, "assets/textures/Stony ground.png");
 		terrains.push_back(region);
-		region.setRegion("grass 1", { 0.325, 0.82, 0.204 }, 0.55, 0.1f);
+		region.setRegion("grass", { 0.066, 0.486, 0.074 }, 0.0f, 0.5, 0.2f, "assets/textures/Grass.png");
 		terrains.push_back(region);
-		region.setRegion("grass 2", { 0.066, 0.486, 0.074 }, 0.65, 0.2f);
+		region.setRegion("rock 1", { 0.333, 0.254, 0.141 }, 0.0f, 0.7, 0.1f, "assets/textures/Rocks 1.png");
 		terrains.push_back(region);
-		region.setRegion("rock 1", { 0.333, 0.254, 0.141 }, 0.8, 0.1f);
+		region.setRegion("rock 2", { 0.235, 0.145, 0.082 }, 0.0f, 0.8, 0.1f, "assets/textures/Rocks 2.png");
 		terrains.push_back(region);
-		region.setRegion("rock 2", { 0.235, 0.145, 0.082 }, 0.85, 0.1f);
-		terrains.push_back(region);
-		region.setRegion("snow top", { 1.000, 1.000, 1.000 }, 0.9, 0.1f);
+		region.setRegion("snow", { 1.000, 1.000, 1.000 }, 0.0f, 0.85, 0.1f, "assets/textures/Snow.png");
 		terrains.push_back(region);
 	}
 	

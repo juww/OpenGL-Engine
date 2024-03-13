@@ -10,7 +10,7 @@ uniform mat4 projection;
 uniform float lenght;
 
 out vec3 Normal;
-out vec2 TexCoords;
+out vec3 TexCoords;
 out vec3 FragPos;
 
 vec3 planeVertex(){
@@ -37,7 +37,7 @@ void main (){
     vec3 pos = planeVertex();
 
     FragPos = vec3(model * vec4(pos, 1.0));
-    TexCoords = (pos.xz + (lenght / 2.0)) / lenght;
+    TexCoords = (pos.xyz + (lenght / 2.0)) / lenght;
     Normal = aNormal;
 
     gl_Position = projection * view * model * vec4(pos, 1.0);

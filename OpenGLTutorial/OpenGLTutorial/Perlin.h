@@ -21,11 +21,12 @@ public:
 	float OctavePerlin(float x, float y, float z, float scale, int seed, int octaves, float persistence, float lacunarity, glm::vec2 offset) {
 
 		// seeding bikin lemot di cpu;
-		std::mt19937 rng(seed);
+		//std::mt19937 rng(seed);
 		std::vector<glm::vec2> octaveOffsets(octaves);
-		std::uniform_int_distribution<int> uni(-100000, 100000);
+		//std::uniform_int_distribution<int> uni(-100000, 100000);
 		for (int i = 0; i < octaves; i++) {
-			glm::vec2 octavesOffset(uni(rng), uni(rng));
+			//glm::vec2 octavesOffset(uni(rng), uni(rng));
+			glm::vec2 octavesOffset(0.0f);
 			octaveOffsets[i].x = octavesOffset.x + offset.x;
 			octaveOffsets[i].y = octavesOffset.y + offset.y;
 		}

@@ -69,6 +69,7 @@ public:
         }
         return noiseMap;
 	}
+private:
 
     static float clamp(const float &v, const float &lower, const float &upper) {
         return std::max(lower, std::min(v, upper));

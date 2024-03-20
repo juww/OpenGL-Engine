@@ -100,6 +100,12 @@ public:
 	std::vector<MaterialModel> materials;
 	Animator animator;
 
+	glm::vec3 pos = glm::vec3(0.0f);
+	glm::vec3 rot = glm::vec3(0.0f);
+	float angle = 0.0f;
+	glm::vec3 scale = glm::vec3(1.0f);
+
+
 	loadModel(const char* filename) {
 		bool ret = false;
 		std::string err;
@@ -695,9 +701,10 @@ private:
 		tinygltf::Node& node = model.nodes[indx];
 		//glm::mat4 mat = modelMatrices[indx];
 		glm::mat4 mat(1.0f);
-		//mat = glm::translate(mat, { 0.0f, -20.0f, 0.0f });
+		mat = glm::translate(mat, pos);
 		//model = glm::rotate(model, (float)glfwGetTime(), { 1.0f,0.0f,0.0f });
-		//mat = glm::scale(mat, { 0.01f,0.01f,0.01f });
+		mat = glm::rotate(mat, angle, rot);
+		mat = glm::scale(mat, scale);
 		 //std::cout << glm::to_string(mat) << "\n";
 		shader.setMat4("model", mat);	
 

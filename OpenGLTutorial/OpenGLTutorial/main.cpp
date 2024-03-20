@@ -44,7 +44,8 @@ Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
-
+bool cursorcb = true;
+bool updatecb = false;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -196,6 +197,8 @@ int main() {
     //const std::string& pathfile = "assets/models/phoenix_bird/scene.gltf";
     loadModel carafe(pathfile.c_str());
 
+    carafe.animator.doAnimation(0);
+
     Skybox skybox;
 
     // first, configure the cube's VAO (and VBO)
@@ -245,7 +248,7 @@ int main() {
     carafeShader.setInt("albedoMap", 0);
     carafeShader.setInt("normalMap", 1);
     carafeShader.setInt("roughnessMap", 2);
-    carafe.animator.doAnimation(0);
+
     // cubeShader.setInt("ambientOcclusionMap", 3);
     //carafeShader.setFloat("uMetallic", modelMesh.metallic);
 
@@ -259,7 +262,6 @@ int main() {
 
     float frameCount = 0.0f;
     float prevFrame = static_cast<float>(glfwGetTime());
-    std::pair<float, float> pp(0.0f, 0.0f);
 
     // render loop
     // -----------
@@ -276,7 +278,7 @@ int main() {
             printf("deltaTime = %f \n", deltaTime);
             frameCount = 0.0f;
             prevFrame = currentFrame;
-            //pp.second += 1.0f;
+            updatecb = true;
         }
         lastFrame = currentFrame;
 
@@ -284,7 +286,43 @@ int main() {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        ImGui::ShowDemoWindow(); // Show demo window! :)
+        //ImGui::ShowDemoWindow(); // Show demo window! :)
+
+        ImGui::Begin("Demo window");
+        ImGui::Button("Hello!");
+        float modelPos[3] = { carafe.pos.x, carafe.pos.y, carafe.pos.z };
+        ImGui::DragFloat3("position", modelPos, 0.005f);
+        carafe.pos[0] = modelPos[0];
+        carafe.pos[1] = modelPos[1];
+        carafe.pos[2] = modelPos[2];
+
+        ImGui::SliderAngle("angle", &carafe.angle);
+        float modelRot[3] = {carafe.rot.x, carafe.rot.y, carafe.rot.z};
+        ImGui::SliderFloat3("rotation", modelRot, 0.000, 1.000);
+        carafe.rot[0] = modelRot[0];
+        carafe.rot[1] = modelRot[1];
+        carafe.rot[2] = modelRot[2];
+
+        float modelScale[3] = { carafe.scale.x, carafe.scale.y, carafe.scale.z };
+        ImGui::DragFloat3("scale", modelScale);
+        carafe.scale[0] = modelScale[0];
+        carafe.scale[1] = modelScale[1];
+        carafe.scale[2] = modelScale[2];
+
+        int N_TEMP = carafe.animator.animations.size();
+        const char* animationName[] = {"Animation 0", "no animation"};
+
+        static int currentAnimation = carafe.animator.currentAnimation;
+        ImGui::Combo("Animation", &currentAnimation, animationName, 2);
+        if(currentAnimation != carafe.animator.currentAnimation){
+            if (currentAnimation == 0) {
+                carafe.animator.doAnimation(currentAnimation);
+            } else {
+                carafe.animator.doAnimation(-1);
+            }
+        }
+
+        ImGui::End();
 
         // input
         // -----
@@ -438,6 +476,21 @@ void processInput(GLFWwindow* window) {
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        camera.ProcessKeyboard(UP, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        camera.ProcessKeyboard(DOWN, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
+        if (!updatecb) return;
+        updatecb = false;
+        if (!cursorcb) {
+            cursorcb = true;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        } else {
+            cursorcb = false;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+    }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -467,8 +520,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
 
     lastX = xpos;
     lastY = ypos;
-
-    camera.ProcessMouseMovement(xoffset, yoffset);
+    if(cursorcb) camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called

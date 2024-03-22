@@ -213,11 +213,12 @@ public:
 		currentPose.clear();
 	}
 
-	void update(float deltaTime) {
-		if (currentAnimation == -1) return;
+	bool update(float deltaTime) {
+		if (currentAnimation < 0 || currentAnimation >= animations.size()) return false;
 
 		increaseAnimationTime(deltaTime);
 		calculateCurrentAnimationPose();
+		return true;
 	}
 
 private:

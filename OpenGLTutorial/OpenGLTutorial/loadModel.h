@@ -101,7 +101,7 @@ public:
 	Animator animator;
 
 	glm::vec3 pos = glm::vec3(0.0f);
-	glm::vec3 rot = glm::vec3(0.0f);
+	glm::vec3 rot = glm::vec3(1.0f);
 	float angle = 0.0f;
 	glm::vec3 scale = glm::vec3(1.0f);
 
@@ -288,12 +288,17 @@ private:
 			return 0;
 		}
 		tinygltf::Image& image = model.images[t.source];
+		tinygltf::Sampler sampler;
 		if (t.sampler < 0 || t.sampler >= (int)model.samplers.size()) {
 			std::cout << "index sampler is out of bound\n";
 			std::cout << "indx: " << t.sampler << "\n";
-			return 0;
+			sampler.wrapS = GL_REPEAT;
+			sampler.wrapT = GL_REPEAT;
+			sampler.minFilter = GL_LINEAR;
+			sampler.magFilter = GL_LINEAR;
+		} else {
+			sampler = model.samplers[t.sampler];
 		}
-		tinygltf::Sampler& sampler = model.samplers[t.sampler];
 
 		unsigned int format = 1;
 		switch (image.component) {

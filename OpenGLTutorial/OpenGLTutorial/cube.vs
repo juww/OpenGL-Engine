@@ -13,6 +13,7 @@ layout (location = 6) in vec4  aWeight;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform int hasBone;
 
 uniform mat4 boneTransform[MAX_BONES];
 
@@ -37,16 +38,16 @@ vec4 applyBoneTransform(vec4 p) {
 
 void main() {
 
-    vec4 position = applyBoneTransform(vec4(aPos, 1.0));
-    vec4 normal = normalize(applyBoneTransform(vec4(aNormal, 0.0)));
+    vec4 position = vec4(aPos, 1.0);
+    vec4 normal = vec4(aNormal, 0.0);
+    if(hasBone == 1){
+        position = applyBoneTransform(vec4(aPos, 1.0));
+        normal = normalize(applyBoneTransform(vec4(aNormal, 0.0)));
+    } 
 
-    //gl_Position = projection * view * model * vec4(aPos, 1.0);
     gl_Position = projection * view * model * position;
 
     data_out.model = model;
-
-    //data_out.FragPos = vec3(model * vec4(aPos, 1.0));
-    //data_out.Normal = aNormal;
 
     data_out.FragPos = vec3(model * position);
     data_out.Normal = vec3(normal);

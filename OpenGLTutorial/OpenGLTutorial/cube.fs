@@ -144,7 +144,12 @@ vec3 PBR(vec3 albedo, float metallic, float roughness, float ao){
 
     return Lo;
 }
-
+// pbr what i missed:
+// use baseColor or Texture Albedo
+// baseColorFactor
+// metallicFactor
+// roughnessFactor
+// AOFactor?
 void main() {
 
   // vec3 TangentLightPos = TBN * light.position;
@@ -152,12 +157,11 @@ void main() {
   // vec3 TangentFragPos  = TBN * FragPos;
 
     vec3 albedo     = pow(texture(albedoMap, TexCoords).rgb, vec3(2.2));
-    //float metallic  = texture(metallicMap, TexCoords).r;
-    float roughness = texture(roughnessMap, TexCoords).r;
-    float ao        = 1.0;
-    // float ao        = texture(aoMap, TexCoords).r;
+    float metallic  = texture(roughnessMap, TexCoords).b;
+    float roughness = texture(roughnessMap, TexCoords).g;
+    float ao        = texture(roughnessMap, TexCoords).r;
 
-    vec3 Lo = PBR(albedo, uMetallic, roughness, ao);
+    vec3 Lo = PBR(albedo, metallic, roughness, ao);
     
     vec3 ambient = vec3(0.03) * albedo * ao;
     vec3 color = ambient + Lo;

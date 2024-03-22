@@ -309,6 +309,14 @@ int main() {
         carafe.scale[1] = modelScale[1];
         carafe.scale[2] = modelScale[2];
 
+        static bool check = true;
+        ImGui::Checkbox("checkbox", &check);
+        if (check == false) {
+            carafeShader.setInt("hasBone", 0);
+        } else if (check == true) {
+            carafeShader.setInt("hasBone", 1);
+        }
+
         int N_TEMP = carafe.animator.animations.size();
         const char* animationName[] = {"Animation 0", "no animation"};
 

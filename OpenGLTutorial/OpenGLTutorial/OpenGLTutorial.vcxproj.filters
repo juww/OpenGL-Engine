@@ -25,6 +25,9 @@
     <Filter Include="Resource Files\Tesselletion">
       <UniqueIdentifier>{a967749e-69a8-487d-9a80-85e4fb9476a1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Utils">
+      <UniqueIdentifier>{17aa149a-0304-4efd-aeff-3b678631ab33}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

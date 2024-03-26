@@ -139,7 +139,7 @@ public:
 
 	void update(Shader& shader, float deltaTime) {
 
-		animator.update(deltaTime);
+		if(!animator.update(deltaTime)) return;
 
 		for (int i = 0; i < (int)model.skins[0].joints.size(); i++) {
 			int joint = model.skins[0].joints[i];

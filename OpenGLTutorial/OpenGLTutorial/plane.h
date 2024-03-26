@@ -85,46 +85,7 @@ public:
 		glBindVertexArray(0);
 	}
 
-	std::vector<glm::vec3> GenerateNormalMapping(const std::vector<float>& heightMap, const std::vector<glm::ivec2>& indxMap, const int& offsetVertices, const float& halfOffset, const int &n) {
-
-		std::vector<glm::vec3> normalMap(heightMap.size(), glm::vec3(0.0f));
-		for (int i = 0; i < (int)heightMap.size() - 3; i++) {
-
-			glm::vec3 pos0((float)indxMap[i].x - halfOffset, heightMap[i], (float)indxMap[i].y - halfOffset);
-			glm::vec3 pos1((float)indxMap[i + 1].x - halfOffset, heightMap[i + 1], (float)indxMap[i + 1].y - halfOffset);
-			glm::vec3 pos2((float)indxMap[i + 2].x - halfOffset, heightMap[i + 2], (float)indxMap[i + 2].y - halfOffset);
-
-			glm::vec3 vec01 = pos1 - pos0;
-			glm::vec3 vec02 = pos2 - pos0;
-			if (i % 2 == 1) {
-				vec01 = pos2 - pos0;
-				vec02 = pos1 - pos0;
-			}
-			glm::vec3 norm = glm::cross(vec01, vec02);
-			norm = glm::normalize(norm);
-
-			normalMap[i] += norm;
-			normalMap[i + 1] += norm;
-			normalMap[i + 2] += norm;
-		}
-
-		for (int i = 0; i < (int)normalMap.size(); i++) {
-			int rowIndex = i % offsetVertices;
-			int colIndex = i / offsetVertices;
-			if (i % 2 == 1 && colIndex < n - 2) {
-				int indx = (colIndex + 1) * offsetVertices + rowIndex - 1;
-				normalMap[i] += normalMap[indx];
-			}
-			if (i % 2 == 0 && colIndex > 0) {
-				int indx = (colIndex - 1) * offsetVertices + rowIndex + 1;
-				normalMap[i] = normalMap[indx];
-			}
-			normalMap[i] = glm::normalize(normalMap[i]);
-		}
-		return normalMap;
-	}
-
-	TerrainChunk GenerateTerrain(int width, int height, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset, const float &heightMultiplier) {
+	void GenerateTerrain(int width, int height, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset, const float &heightMultiplier) {
 
 		Noise noise;
 		std::vector<std::vector<float>> noiseMap = noise.GenerateNoiseMap(width + 3, height + 3, seed, scale, octaves, persistence, lacunarity, offset - 1.0f, noise.Global);
@@ -145,60 +106,21 @@ public:
 				indxMap.push_back({ x,y + 1 });
 			}
 		}
+		TerrainChunk result;
+		result.pos = { offset.x, 0.0f ,offset.y };
+
+		glGenVertexArrays(1, &result.vao);
+		glBindVertexArray(result.vao);
+
 		int offsetVertices = n * 2;
 		float halfOffset = (float)n / 2.0f;
-		std::vector<glm::vec3> normalMap = GenerateNormalMapping(heightMap, indxMap, offsetVertices, halfOffset, n);
-
-		std::vector<float> aHeight;
-		std::vector<glm::vec3> aNormal;
-		for (int i = 0; i < (int)normalMap.size();i++) {
-			glm::ivec2 &coord = indxMap[i];
-			if (coord.x > 0 && coord.y && coord.x <= width + 1 && coord.y <= height + 1) {
-				int colIndex = i / offsetVertices;
-				if (colIndex == 0 || colIndex == n - 1) continue;
-				if (coord.x == 1 && i % 2 == 0) {
-					aHeight.push_back(heightMap[i]);
-					aNormal.push_back(normalMap[i]);
-				}
-				aHeight.push_back(heightMap[i]);
-				aNormal.push_back(normalMap[i]);
-				if (coord.x == m - 2 && i % 2 == 1) {
-					aHeight.push_back(heightMap[i]);
-					aNormal.push_back(normalMap[i]);
-				}
-				if (minHeight > heightMap[i]) minHeight = heightMap[i];
-				if (maxHeight < heightMap[i]) maxHeight = heightMap[i];
-			}
-		}
-
-		unsigned int vao;
-		glGenVertexArrays(1, &vao);
-		glBindVertexArray(vao);
-
-		unsigned int hVbo;
-		int HeightSize = aHeight.size() * sizeof(float);
-		glGenBuffers(1, &hVbo);
-		glBindBuffer(GL_ARRAY_BUFFER, hVbo);
-		glBufferData(GL_ARRAY_BUFFER, HeightSize, &aHeight.at(0), GL_STATIC_DRAW);
-
-		glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
-		glEnableVertexAttribArray(0);
-
-		unsigned int normVbo;
-		int normSize = aNormal.size() * sizeof(float) * 3;
-		glGenBuffers(1, &normVbo);
-		glBindBuffer(GL_ARRAY_BUFFER, normVbo);
-		glBufferData(GL_ARRAY_BUFFER, normSize, &aNormal.at(0), GL_STATIC_DRAW);
-
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
-		glEnableVertexAttribArray(1);
-
-		TerrainChunk result;
-		result.vao = vao;
+		GenerateHeightMapping(heightMap, indxMap, offsetVertices, n, m, width, height);
+		GenerateNormalMapping(heightMap, indxMap, offsetVertices, halfOffset, n, m, width, height);
 
 		glBindVertexArray(0);
 
-		return result;
+		terrainChunks.push_back(result);
+		DictTerrainChunk.insert({ {offset.x, offset.y}, int(terrainChunks.size() - 1)});
 	}
 
 	void InitTerrainChunk(const int &chunksize, const float &visibleDistance, const glm::vec3 &cameraPos) {
@@ -219,10 +141,7 @@ public:
 				pos.second += (i * planeSize);
 
 				if (DictTerrainChunk.find(pos) == DictTerrainChunk.end()) {
-					TerrainChunk tc = GenerateTerrain(planeSize, planeSize, 4, 27.9f, 4, 0.5f, 2.0f, glm::vec2(pos.first, pos.second), heightMultiplier);
-					tc.pos = glm::vec3(pos.first, 0.0f, pos.second);
-					terrainChunks.push_back(tc);
-					DictTerrainChunk.insert({ pos, int(terrainChunks.size() - 1) });
+					GenerateTerrain(planeSize, planeSize, 4, 27.9f, 4, 0.5f, 2.0f, glm::vec2(pos.first, pos.second), heightMultiplier);
 				}
 				int indx = DictTerrainChunk[pos];
 				terrainChunks[indx].visible = true;
@@ -248,8 +167,6 @@ public:
 			int w, h, nrChannels;
 			unsigned char* data = stbi_load(FileSystem::getPath(terrains[i].texturePath).c_str(), &w, &h, &nrChannels, 4);
 			if (data) {
-				printf("%s\n", terrains[i].name.c_str());
-				printf("%d %d\n", w, h);
 				glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, w, h, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
 			}
 			stbi_image_free(data);
@@ -339,7 +256,101 @@ private:
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesCount, &indices.at(0), GL_STATIC_DRAW);
 
-		printf("size indices: %d\n", indices.size());
+		printf("size indices: %ul\n", indices.size());
+	}
+
+	void GenerateHeightMapping(const std::vector<float>& heightMap, const std::vector<glm::ivec2>& indxMap, const int& offsetVertices, const int& n, const int& m, const int& width, const int& height) {
+
+		std::vector<float> aHeight;
+		for (int i = 0; i < (int)heightMap.size(); i++) {
+			const glm::ivec2& coord = indxMap[i];
+			if (coord.x > 0 && coord.y && coord.x <= width + 1 && coord.y <= height + 1) {
+				int colIndex = i / offsetVertices;
+				if (colIndex == 0 || colIndex == n - 1) continue;
+				if (coord.x == 1 && i % 2 == 0) {
+					aHeight.push_back(heightMap[i]);
+				}
+				aHeight.push_back(heightMap[i]);
+				if (coord.x == m - 2 && i % 2 == 1) {
+					aHeight.push_back(heightMap[i]);
+				}
+				if (minHeight > heightMap[i]) minHeight = heightMap[i];
+				if (maxHeight < heightMap[i]) maxHeight = heightMap[i];
+			}
+		}
+
+		unsigned int hVbo;
+		int HeightSize = aHeight.size() * sizeof(float);
+		glGenBuffers(1, &hVbo);
+		glBindBuffer(GL_ARRAY_BUFFER, hVbo);
+		glBufferData(GL_ARRAY_BUFFER, HeightSize, &aHeight.at(0), GL_STATIC_DRAW);
+
+		glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
+	}
+
+	void GenerateNormalMapping(const std::vector<float>& heightMap, const std::vector<glm::ivec2>& indxMap, const int& offsetVertices, const float& halfOffset,
+		const int& n, const int& m, const int& width, const int& height) {
+
+		std::vector<glm::vec3> normalMap(heightMap.size(), glm::vec3(0.0f));
+		for (int i = 0; i < (int)heightMap.size() - 3; i++) {
+
+			glm::vec3 pos0((float)indxMap[i].x - halfOffset, heightMap[i], (float)indxMap[i].y - halfOffset);
+			glm::vec3 pos1((float)indxMap[i + 1].x - halfOffset, heightMap[i + 1], (float)indxMap[i + 1].y - halfOffset);
+			glm::vec3 pos2((float)indxMap[i + 2].x - halfOffset, heightMap[i + 2], (float)indxMap[i + 2].y - halfOffset);
+
+			glm::vec3 vec01 = pos1 - pos0;
+			glm::vec3 vec02 = pos2 - pos0;
+			if (i % 2 == 1) {
+				vec01 = pos2 - pos0;
+				vec02 = pos1 - pos0;
+			}
+			glm::vec3 norm = glm::cross(vec01, vec02);
+			norm = glm::normalize(norm);
+
+			normalMap[i] += norm;
+			normalMap[i + 1] += norm;
+			normalMap[i + 2] += norm;
+		}
+
+		for (int i = 0; i < (int)normalMap.size(); i++) {
+			int rowIndex = i % offsetVertices;
+			int colIndex = i / offsetVertices;
+			if (i % 2 == 1 && colIndex < n - 2) {
+				int indx = (colIndex + 1) * offsetVertices + rowIndex - 1;
+				normalMap[i] += normalMap[indx];
+			}
+			if (i % 2 == 0 && colIndex > 0) {
+				int indx = (colIndex - 1) * offsetVertices + rowIndex + 1;
+				normalMap[i] = normalMap[indx];
+			}
+			normalMap[i] = glm::normalize(normalMap[i]);
+		}
+
+		std::vector<glm::vec3> aNormal;
+		for (int i = 0; i < (int)heightMap.size(); i++) {
+			const glm::ivec2& coord = indxMap[i];
+			if (coord.x > 0 && coord.y && coord.x <= width + 1 && coord.y <= height + 1) {
+				int colIndex = i / offsetVertices;
+				if (colIndex == 0 || colIndex == n - 1) continue;
+				if (coord.x == 1 && i % 2 == 0) {
+					aNormal.push_back(normalMap[i]);
+				}
+				aNormal.push_back(normalMap[i]);
+				if (coord.x == m - 2 && i % 2 == 1) {
+					aNormal.push_back(normalMap[i]);
+				}
+			}
+		}
+
+		unsigned int normVbo;
+		int normSize = aNormal.size() * sizeof(float) * 3;
+		glGenBuffers(1, &normVbo);
+		glBindBuffer(GL_ARRAY_BUFFER, normVbo);
+		glBufferData(GL_ARRAY_BUFFER, normSize, &aNormal.at(0), GL_STATIC_DRAW);
+
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+		glEnableVertexAttribArray(1);
 	}
 
 	void generateColorTerrain() {

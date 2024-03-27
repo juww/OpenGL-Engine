@@ -218,11 +218,10 @@ int main() {
     //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     //glEnableVertexAttribArray(1);
 
-    int np = 256;
-    glm::vec2 offset(0.0f, 0.0f);
+    int np = 65, lvl = 1;
     Plane plane(np);
     //plane.GenerateNoiseMap(np, np, 4, 27.9f, 4, 0.5f, 2.0f, offset);
-    plane.InitTerrainChunk(2, 64.0f, camera.Position);
+    plane.InitTerrainChunk(lvl, 64.0f, camera.Position);
 
     plane.setAllUniform(planeShader);
 
@@ -262,6 +261,15 @@ int main() {
 
     float frameCount = 0.0f;
     float prevFrame = static_cast<float>(glfwGetTime());
+
+    // parameter for generate terrain
+    int seed = 4;
+    float scale = 27.9f;
+    int octaves = 4;
+    float persistence = 0.5f;
+    float lacunarity = 2.0f;
+    glm::vec2 offset(0.0f, 0.0f);
+    float heightMultiplier = 15.0f;
 
     // render loop
     // -----------
@@ -329,6 +337,34 @@ int main() {
                 carafe.animator.doAnimation(-1);
             }
         }
+
+        static int pSeed = seed;
+        static float pScale = scale;
+        static int pOctaves = octaves;
+        static float pPersistence = persistence;
+        static float pLacunarity = lacunarity;
+        static float pOffset[2] = { offset.x, offset.y };
+        static float pAmplitude = heightMultiplier;
+        static bool changeParam = false;
+        ImGui::DragInt("seed", &pSeed);
+        ImGui::DragFloat("scale", &pScale, 0.01f, 0.01f);
+        ImGui::DragInt("octaves", &pOctaves, 1, 1, 16);
+        ImGui::DragFloat("persistence", &pPersistence, 0.01f, 0.01f);
+        ImGui::DragFloat("lacunarity", &pLacunarity , 0.01f, 0.01f);
+        ImGui::DragFloat2("offset", pOffset, 0.01f);
+        ImGui::DragFloat("amplitude", &pAmplitude, 0.1f, 0.01f);
+        
+        if (pSeed != seed || pScale != scale || pOctaves != octaves || pPersistence != persistence || pLacunarity != lacunarity ||
+            pOffset[0] != offset.x || pOffset[1] != offset.y || pAmplitude != heightMultiplier) {
+            changeParam = true;
+        }
+        seed = pSeed;
+        scale = pScale;
+        octaves = pOctaves;
+        persistence = pPersistence;
+        lacunarity = pLacunarity;
+        offset.x = pOffset[0]; offset.y = pOffset[1];
+        heightMultiplier = pAmplitude;
 
         ImGui::End();
 
@@ -411,7 +447,7 @@ int main() {
         //carafe.DrawModel(carafeShader);
 
         // draw plane
-        plane.update(camera.Position, 15.0f);
+        plane.update(camera.Position, seed, scale, octaves, persistence, lacunarity, offset, heightMultiplier, changeParam);
         plane.draw(planeShader, projection, view, np, camera.Position);
 
         //plane.drawNormalLine(normalLineShader, projection, view, np, camera.Position);

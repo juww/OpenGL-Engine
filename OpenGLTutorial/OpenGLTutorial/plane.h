@@ -85,7 +85,7 @@ public:
 		glBindVertexArray(0);
 	}
 
-	void GenerateTerrain(int width, int height, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset, const float &heightMultiplier) {
+	TerrainChunk GenerateTerrain(int width, int height, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset, const float &heightMultiplier) {
 
 		Noise noise;
 		std::vector<std::vector<float>> noiseMap = noise.GenerateNoiseMap(width + 3, height + 3, seed, scale, octaves, persistence, lacunarity, offset - 1.0f, noise.Global);
@@ -107,7 +107,6 @@ public:
 			}
 		}
 		TerrainChunk result;
-		result.pos = { offset.x, 0.0f ,offset.y };
 
 		glGenVertexArrays(1, &result.vao);
 		glBindVertexArray(result.vao);
@@ -119,8 +118,7 @@ public:
 
 		glBindVertexArray(0);
 
-		terrainChunks.push_back(result);
-		DictTerrainChunk.insert({ {offset.x, offset.y}, int(terrainChunks.size() - 1)});
+		return result;
 	}
 
 	void InitTerrainChunk(const int &chunksize, const float &visibleDistance, const glm::vec3 &cameraPos) {
@@ -128,7 +126,7 @@ public:
 		fov = visibleDistance;
 	}
 
-	void update(const glm::vec3 &cameraPos, const float &heightMultiplier) {
+	void update(const glm::vec3 &cameraPos, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset, const float& heightMultiplier, bool changeParam) {
 
 		std::pair<float, float> pos;
 		for (int i = -chunkSize; i <= chunkSize; i++) {
@@ -141,9 +139,17 @@ public:
 				pos.second += (i * planeSize);
 
 				if (DictTerrainChunk.find(pos) == DictTerrainChunk.end()) {
-					GenerateTerrain(planeSize, planeSize, 4, 27.9f, 4, 0.5f, 2.0f, glm::vec2(pos.first, pos.second), heightMultiplier);
+					TerrainChunk tc = GenerateTerrain(planeSize, planeSize, seed, scale, octaves, persistence, lacunarity, glm::vec2(pos.first, pos.second) + offset, heightMultiplier);
+					tc.pos = { pos.first, 0.0f ,pos.second };
+					terrainChunks.push_back(tc);
+					DictTerrainChunk.insert({ {offset.x, offset.y}, int(terrainChunks.size() - 1) });
 				}
 				int indx = DictTerrainChunk[pos];
+				if (changeParam) {
+					TerrainChunk tc = GenerateTerrain(planeSize, planeSize, seed, scale, octaves, persistence, lacunarity, glm::vec2(pos.first, pos.second) + offset, heightMultiplier);
+					tc.pos = { pos.first, 0.0f ,pos.second };
+					terrainChunks[indx] = tc;
+				}
 				terrainChunks[indx].visible = true;
 				queueDraw.push(indx);
 			}

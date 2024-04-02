@@ -154,6 +154,7 @@
   <ItemGroup>
     <ClInclude Include="animator.h" />
     <ClInclude Include="camera.h" />
+    <ClInclude Include="grass.h" />
     <ClInclude Include="imGui\imconfig.h" />
     <ClInclude Include="imGui\imgui.h" />
     <ClInclude Include="imGui\imgui_impl_glfw.h" />
@@ -173,6 +174,8 @@
   <ItemGroup>
     <None Include="cube.fs" />
     <None Include="cube.vs" />
+    <None Include="grass.fs" />
+    <None Include="grass.vs" />
     <None Include="normalLine.gs" />
     <None Include="light_cube.fs" />
     <None Include="light_cube.vs" />

@@ -52,7 +52,6 @@ public:
 
 	int planeSize;
 	int chunkSize;
-	int border;
 	float fov;
 
 	float minHeight, maxHeight;
@@ -72,7 +71,6 @@ public:
 	Plane(const int& planesize) {
 
 		planeSize = planesize;
-		border = planeSize + 2;
 		printf("plane %d\n", planeSize);
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
@@ -126,7 +124,7 @@ public:
 		fov = visibleDistance;
 	}
 
-	void update(const glm::vec3 &cameraPos, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset, const float& heightMultiplier, bool changeParam) {
+	void update(const glm::vec3 &cameraPos, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset, const float& heightMultiplier, static bool &changeParam) {
 
 		std::pair<float, float> pos;
 		for (int i = -chunkSize; i <= chunkSize; i++) {
@@ -142,13 +140,14 @@ public:
 					TerrainChunk tc = GenerateTerrain(planeSize, planeSize, seed, scale, octaves, persistence, lacunarity, glm::vec2(pos.first, pos.second) + offset, heightMultiplier);
 					tc.pos = { pos.first, 0.0f ,pos.second };
 					terrainChunks.push_back(tc);
-					DictTerrainChunk.insert({ {offset.x, offset.y}, int(terrainChunks.size() - 1) });
+					DictTerrainChunk.insert({ {pos.first, pos.second}, int(terrainChunks.size() - 1) });
 				}
 				int indx = DictTerrainChunk[pos];
 				if (changeParam) {
 					TerrainChunk tc = GenerateTerrain(planeSize, planeSize, seed, scale, octaves, persistence, lacunarity, glm::vec2(pos.first, pos.second) + offset, heightMultiplier);
 					tc.pos = { pos.first, 0.0f ,pos.second };
 					terrainChunks[indx] = tc;
+					changeParam = false;
 				}
 				terrainChunks[indx].visible = true;
 				queueDraw.push(indx);
@@ -229,7 +228,6 @@ public:
 	}
 
 	~Plane() {
-
 	}
 
 private:
@@ -270,7 +268,7 @@ private:
 		std::vector<float> aHeight;
 		for (int i = 0; i < (int)heightMap.size(); i++) {
 			const glm::ivec2& coord = indxMap[i];
-			if (coord.x > 0 && coord.y && coord.x <= width + 1 && coord.y <= height + 1) {
+			if (coord.x > 0 && coord.y > 0 && coord.x <= width + 1 && coord.y <= height + 1) {
 				int colIndex = i / offsetVertices;
 				if (colIndex == 0 || colIndex == n - 1) continue;
 				if (coord.x == 1 && i % 2 == 0) {
@@ -336,7 +334,7 @@ private:
 		std::vector<glm::vec3> aNormal;
 		for (int i = 0; i < (int)heightMap.size(); i++) {
 			const glm::ivec2& coord = indxMap[i];
-			if (coord.x > 0 && coord.y && coord.x <= width + 1 && coord.y <= height + 1) {
+			if (coord.x > 0 && coord.y > 0 && coord.x <= width + 1 && coord.y <= height + 1) {
 				int colIndex = i / offsetVertices;
 				if (colIndex == 0 || colIndex == n - 1) continue;
 				if (coord.x == 1 && i % 2 == 0) {

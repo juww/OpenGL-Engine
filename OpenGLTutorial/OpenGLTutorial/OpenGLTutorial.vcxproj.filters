@@ -110,6 +110,9 @@
     <ClInclude Include="imGui\imgui_impl_opengl3.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="grass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cube.vs">
@@ -162,6 +165,12 @@
     </None>
     <None Include="TessellationEvaluationShader.tes">
       <Filter>Resource Files\Tesselletion</Filter>
+    </None>
+    <None Include="grass.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="grass.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
     </None>
   </ItemGroup>
 </Project>

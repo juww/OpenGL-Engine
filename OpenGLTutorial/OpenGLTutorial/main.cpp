@@ -15,6 +15,7 @@
 #include "skybox.h"
 #include "loadModel.h"
 #include "plane.h"
+#include "grass.h"
 
 #include <iostream>
 #include <string>
@@ -190,12 +191,16 @@ int main() {
     Shader skyboxShader("skybox.vs", "skybox.fs");
     Shader carafeShader("cube.vs", "cube.fs", "normalMapping.gs");
     Shader planeShader("plane.vs", "plane.fs");
+    Shader grassShader("grass.vs", "grass.fs");
     // planeShader.setTessellationShader("TessellationControlShader.tcs", "TessellationEvaluationShader.tes");
     //Shader skeletalModel("skeletal.vs", "skeletal.fs", "skeletal.gs");
 
     const std::string& pathfile = "assets/models/simpleSkin/scene.gltf";
     //const std::string& pathfile = "assets/models/phoenix_bird/scene.gltf";
     loadModel carafe(pathfile.c_str());
+
+    Grass grass;
+    grass.initialize();
 
     carafe.animator.doAnimation(0);
 
@@ -428,6 +433,8 @@ int main() {
 
         carafe.update(carafeShader, deltaTime);
         carafe.DrawModel(carafeShader);
+
+        grass.draw(grassShader, view, projection);
 
         // use this for show the normal line;
         //normalLineShader.use();

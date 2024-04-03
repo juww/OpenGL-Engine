@@ -7,7 +7,7 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-uniform float lenght;
+uniform float length;
 
 out vec3 Normal;
 out vec3 TexCoords;
@@ -17,13 +17,13 @@ vec3 planeVertex(){
 
     vec3 pos;
 
-    float n = lenght * 2.0;
+    float n = length * 2.0;
     float offsetVertices = n + 2.0;
     float rowIndex = mod(float(gl_VertexID), offsetVertices);
     float clampedIndex = clamp(rowIndex - 1.0, 0.0, n - 1.0);
 
-    pos.x = floor(clampedIndex / 2.0) - (lenght / 2.0);
-    pos.z = mod(clampedIndex, 2.0) - (lenght / 2.0);
+    pos.x = floor(clampedIndex / 2.0) - (length / 2.0);
+    pos.z = mod(clampedIndex, 2.0) - (length / 2.0);
     pos.y = heightValue;
     // pos.y = -5.0;
 
@@ -37,7 +37,7 @@ void main (){
     vec3 pos = planeVertex();
 
     FragPos = vec3(model * vec4(pos, 1.0));
-    TexCoords = (pos.xyz + (lenght / 2.0)) / (lenght / 8.0);
+    TexCoords = (pos.xyz + (length / 2.0)) / (length / 8.0);
     Normal = aNormal;
 
     gl_Position = projection * view * model * vec4(pos, 1.0);

@@ -33,13 +33,15 @@ public:
 	unsigned int vao, ebo;
 	int width, height;
 	int density;
+	int count;
 
-	void initialize() {
+	void initialize(const int &w, const int &h, const int &d) {
 		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(-0.050f, 0.0f, 0.0f));
 
-		// hard coded
-		width = 65; 
-		height = 65;
+		width = w;
+		height = h;
+		density = d;
 
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
@@ -60,23 +62,24 @@ public:
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 		glEnableVertexAttribArray(0);
 
+		glBindVertexArray(0);
+	}
+
+	void setPositionGrass(const std::vector<glm::vec3>& posOffset) {
+		glBindVertexArray(vao);
+
 		unsigned int instanceVbo;
 		glGenBuffers(1, &instanceVbo);
 		glBindBuffer(GL_ARRAY_BUFFER, instanceVbo);
 
-		std::vector<glm::vec2> offset;
-		for (int i = 0; i < height; i++) {
-			for (int j = 0; j < width; j++) {
-				offset.push_back({i, j});
-			}
-		}
-		glBufferData(GL_ARRAY_BUFFER, offset.size() * sizeof(float) * 2, &offset.at(0), GL_STATIC_DRAW);
-
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void*)0);
+		glBufferData(GL_ARRAY_BUFFER, posOffset.size() * sizeof(float) * 3, &posOffset.at(0), GL_STATIC_DRAW);
+		count = posOffset.size();
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 		glEnableVertexAttribArray(1);
 
 		glVertexAttribDivisor(1, 1);
 
+		printf("count Grass = %d\n", count);
 		glBindVertexArray(0);
 	}
 
@@ -91,10 +94,11 @@ public:
 		shader.setMat4("model", model);
 		shader.setMat4("view", view);
 		shader.setMat4("projection", projection);
+		shader.setFloat("halfOffset", float(width) / 2.0f + 0.5f);
 
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-		glDrawElementsInstanced(GL_TRIANGLE_STRIP, (N_VERTEX / 3) * sizeof(unsigned int), GL_UNSIGNED_INT, (void*)0, height * width);
+		glDrawElementsInstanced(GL_TRIANGLE_STRIP, (N_VERTEX / 3) * sizeof(unsigned int), GL_UNSIGNED_INT, (void*)0, count);
 
 		glBindVertexArray(0);
 	}

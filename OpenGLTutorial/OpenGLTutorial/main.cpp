@@ -15,7 +15,6 @@
 #include "skybox.h"
 #include "loadModel.h"
 #include "plane.h"
-#include "grass.h"
 
 #include <iostream>
 #include <string>
@@ -199,9 +198,6 @@ int main() {
     //const std::string& pathfile = "assets/models/phoenix_bird/scene.gltf";
     loadModel carafe(pathfile.c_str());
 
-    Grass grass;
-    grass.initialize();
-
     carafe.animator.doAnimation(0);
 
     Skybox skybox;
@@ -227,7 +223,7 @@ int main() {
     Plane plane(np);
     //plane.GenerateNoiseMap(np, np, 4, 27.9f, 4, 0.5f, 2.0f, offset);
     plane.InitTerrainChunk(lvl, 64.0f, camera.Position);
-
+    plane.initGrass(1);
     plane.setAllUniform(planeShader);
 
     // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
@@ -371,6 +367,9 @@ int main() {
         offset.x = pOffset[0]; offset.y = pOffset[1];
         heightMultiplier = pAmplitude;
 
+        static int density = 1;
+        ImGui::InputInt("density grass", &density);
+
         ImGui::End();
 
         // input
@@ -434,8 +433,6 @@ int main() {
         carafe.update(carafeShader, deltaTime);
         carafe.DrawModel(carafeShader);
 
-        grass.draw(grassShader, view, projection);
-
         // use this for show the normal line;
         //normalLineShader.use();
         //normalLineShader.setMat4("projection", projection);
@@ -456,6 +453,7 @@ int main() {
         // draw plane
         plane.update(camera.Position, seed, scale, octaves, persistence, lacunarity, offset, heightMultiplier, changeParam);
         plane.draw(planeShader, projection, view, np, camera.Position);
+        plane.drawGrass(grassShader, view, projection);
 
         //plane.drawNormalLine(normalLineShader, projection, view, np, camera.Position);
 

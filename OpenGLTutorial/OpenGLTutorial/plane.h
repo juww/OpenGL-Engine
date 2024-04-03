@@ -9,6 +9,7 @@
 
 #include "shader_m.h"
 #include "noise.h"
+#include "grass.h"
 
 class Terrain {
 public:
@@ -36,6 +37,7 @@ public:
 	unsigned int vao;
 	glm::vec3 pos;
 	bool visible;
+	
 
 	TerrainChunk() {
 	}
@@ -67,6 +69,7 @@ public:
 	std::vector<TerrainChunk> terrainChunks;
 	std::map<std::pair<float, float>, int> DictTerrainChunk;
 	std::queue<int> queueDraw;
+	Grass grass;
 
 	Plane(const int& planesize) {
 
@@ -115,8 +118,34 @@ public:
 		GenerateNormalMapping(heightMap, indxMap, offsetVertices, halfOffset, n, m, width, height);
 
 		glBindVertexArray(0);
+		GenerateGrass(heightMap, indxMap, offsetVertices, n, m, width, height);
 
 		return result;
+	}
+
+	void initGrass(const int& density) {
+		grass.initialize(planeSize, planeSize, density);
+	}
+
+	void GenerateGrass(const std::vector<float> &heightMap, const std::vector<glm::ivec2> &indxMap, const int &offsetVertices,
+		const int &n, const int &m, const int &width, const int &height) {
+
+		std::vector<glm::vec3> posOffset;
+		for (int i = 0; i < (int)heightMap.size(); i++) {
+			const glm::ivec2& coord = indxMap[i];
+			if (coord.x > 0 && coord.y > 0 && coord.x <= width + 1 && coord.y <= height + 1) {
+				int colIndex = i / offsetVertices;
+				if (colIndex == 0 || colIndex == n - 1) continue;
+				if (i % 2 == 1) continue;
+				glm::vec3 pos(coord.x - 1, heightMap[i], coord.y - 1);
+				posOffset.push_back(pos);
+			}
+		}
+		grass.setPositionGrass(posOffset);
+	}
+
+	void drawGrass(Shader &shader, const glm::mat4& view, const glm::mat4& projection) {
+		grass.draw(shader, view, projection);
 	}
 
 	void InitTerrainChunk(const int &chunksize, const float &visibleDistance, const glm::vec3 &cameraPos) {
@@ -203,7 +232,7 @@ public:
 		shader.use();
 		shader.setMat4("projection", projection);
 		shader.setMat4("view", view);
-		shader.setFloat("lenght", np + 1);
+		shader.setFloat("length", np + 1);
 
 		shader.setFloat("minHeight", minHeight);
 		shader.setFloat("maxHeight", maxHeight);
@@ -213,6 +242,7 @@ public:
 			queueDraw.pop();
 			TerrainChunk &tc = terrainChunks[indx];
 			if (tc.visible) {
+				tc.visible = false;
 				glBindVertexArray(tc.vao);
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D_ARRAY, spriteTextures);

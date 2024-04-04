@@ -223,7 +223,7 @@ int main() {
     Plane plane(np);
     //plane.GenerateNoiseMap(np, np, 4, 27.9f, 4, 0.5f, 2.0f, offset);
     plane.InitTerrainChunk(lvl, 64.0f, camera.Position);
-    plane.initGrass(1);
+    plane.initGrass(50);
     plane.setAllUniform(planeShader);
 
     // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
@@ -367,7 +367,7 @@ int main() {
         offset.x = pOffset[0]; offset.y = pOffset[1];
         heightMultiplier = pAmplitude;
 
-        static int density = 1;
+        static int density = 2;
         ImGui::InputInt("density grass", &density);
 
         ImGui::End();

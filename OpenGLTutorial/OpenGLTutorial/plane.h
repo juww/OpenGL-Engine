@@ -131,14 +131,29 @@ public:
 		const int &n, const int &m, const int &width, const int &height) {
 
 		std::vector<glm::vec3> posOffset;
-		for (int i = 0; i < (int)heightMap.size(); i++) {
+		for (int i = 0; i < (int)heightMap.size() - 3; i++) {
 			const glm::ivec2& coord = indxMap[i];
-			if (coord.x > 0 && coord.y > 0 && coord.x <= width + 1 && coord.y <= height + 1) {
+			if (coord.x > 0 && coord.y > 0 && coord.x <= width && coord.y <= height + 1) {
 				int colIndex = i / offsetVertices;
-				if (colIndex == 0 || colIndex == n - 1) continue;
-				if (i % 2 == 1) continue;
-				glm::vec3 pos(coord.x - 1, heightMap[i], coord.y - 1);
-				posOffset.push_back(pos);
+				if (colIndex == 0 || colIndex == n - 2) continue;
+				const glm::ivec2& c1 = indxMap[i + 1];
+				const glm::ivec2& c2 = indxMap[i + 2];
+				glm::vec3 pos1(coord.x - 1, heightMap[i], coord.y - 1);
+				glm::vec3 pos2(c1.x - 1, heightMap[i + 1], c1.y - 1);
+				glm::vec3 pos3(c2.x - 1, heightMap[i + 2], c2.y - 1);
+
+				for (int k = 0; k < grass.density; k++) {
+
+					float t = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+					glm::vec3 l1 = lerp(t, pos1, pos2);
+					t = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+					glm::vec3 l2 = lerp(t, pos1, pos3);
+					t = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+					glm::vec3 l3 = lerp(t, l1, l2);
+
+					posOffset.push_back(l3);
+				}
+
 			}
 		}
 		grass.setPositionGrass(posOffset);
@@ -410,6 +425,10 @@ private:
 		return (v * heightMultiplier) - heightMultiplier;
 	}
 
+
+	glm::vec3 lerp(float t, glm::vec3 v0, glm::vec3 v1) {
+		return v0 + (t * (v1 - v0));
+	}
 };
 
 #endif

@@ -11,6 +11,8 @@
 #include "noise.h"
 #include "grass.h"
 
+const float PI = 3.14159265359;
+
 class Terrain {
 public:
 	std::string name;
@@ -131,6 +133,7 @@ public:
 		const int &n, const int &m, const int &width, const int &height) {
 
 		std::vector<glm::vec3> posOffset;
+		std::vector<float> rad;
 		for (int i = 0; i < (int)heightMap.size() - 3; i++) {
 			const glm::ivec2& coord = indxMap[i];
 			if (coord.x > 0 && coord.y > 0 && coord.x <= width && coord.y <= height + 1) {
@@ -151,12 +154,16 @@ public:
 					t = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 					glm::vec3 l3 = lerp(t, l1, l2);
 
+					float tehta = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+					tehta *= (2 * PI);
+
 					posOffset.push_back(l3);
+					rad.push_back(tehta);
 				}
 
 			}
 		}
-		grass.setPositionGrass(posOffset);
+		grass.setPositionGrass(posOffset, rad);
 	}
 
 	void drawGrass(Shader &shader, const glm::mat4& view, const glm::mat4& projection) {
@@ -305,7 +312,7 @@ private:
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesCount, &indices.at(0), GL_STATIC_DRAW);
 
-		printf("size indices: %ul\n", indices.size());
+		printf("size indices: %u\n", indices.size());
 	}
 
 	void GenerateHeightMapping(const std::vector<float>& heightMap, const std::vector<glm::ivec2>& indxMap, const int& offsetVertices, const int& n, const int& m, const int& width, const int& height) {

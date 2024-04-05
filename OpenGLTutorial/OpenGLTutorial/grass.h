@@ -30,7 +30,7 @@ public:
 	};
 	glm::vec3 pos, rot, scale;
 	glm::mat4 model;
-	unsigned int vao, ebo;
+	unsigned int vao = 0, ebo = 0;
 	int width, height;
 	int density;
 	int count;
@@ -65,7 +65,9 @@ public:
 		glBindVertexArray(0);
 	}
 
-	void setPositionGrass(const std::vector<glm::vec3>& posOffset) {
+	void setPositionGrass(const std::vector<glm::vec3>& posOffset, const std::vector<float> &rad) {
+
+		if (vao == 0) return;
 		glBindVertexArray(vao);
 
 		unsigned int instanceVbo;
@@ -76,8 +78,17 @@ public:
 		count = posOffset.size();
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 		glEnableVertexAttribArray(1);
+		
+		unsigned int radVbo;
+		glGenBuffers(1, &radVbo);
+		glBindBuffer(GL_ARRAY_BUFFER, radVbo);
+
+		glBufferData(GL_ARRAY_BUFFER, rad.size() * sizeof(float), &rad.at(0), GL_STATIC_DRAW);
+		glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
+		glEnableVertexAttribArray(2);
 
 		glVertexAttribDivisor(1, 1);
+		glVertexAttribDivisor(2, 1);
 
 		printf("count Grass = %d\n", count);
 		glBindVertexArray(0);

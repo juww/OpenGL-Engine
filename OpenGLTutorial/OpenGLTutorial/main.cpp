@@ -223,8 +223,11 @@ int main() {
     Plane plane(np);
     //plane.GenerateNoiseMap(np, np, 4, 27.9f, 4, 0.5f, 2.0f, offset);
     plane.InitTerrainChunk(lvl, 64.0f, camera.Position);
-    plane.initGrass(50);
+    plane.initGrass(50, grassShader);
     plane.setAllUniform(planeShader);
+
+    Noise noise;
+    
 
     // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
     unsigned int lightCubeVAO;
@@ -272,6 +275,7 @@ int main() {
     glm::vec2 offset(0.0f, 0.0f);
     float heightMultiplier = 15.0f;
 
+    plane.grass.generateNoiseMap(grassShader, seed, scale, octaves, persistence, lacunarity, offset);
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
@@ -353,7 +357,13 @@ int main() {
         ImGui::DragFloat("persistence", &pPersistence, 0.01f, 0.01f);
         ImGui::DragFloat("lacunarity", &pLacunarity , 0.01f, 0.01f);
         ImGui::DragFloat2("offset", pOffset, 0.01f);
-        ImGui::DragFloat("amplitude", &pAmplitude, 0.1f, 0.01f);
+        ImGui::DragFloat("elevation", &pAmplitude, 0.1f, 0.01f);
+
+        static float frequency = 0.0f;
+        static float amplitude = 0.0f;
+
+        ImGui::DragFloat("frequency", &frequency, 0.01f, 0.01f);
+        ImGui::DragFloat("amplitude", &amplitude, 0.01f, 0.01f);
         
         if (pSeed != seed || pScale != scale || pOctaves != octaves || pPersistence != persistence || pLacunarity != lacunarity ||
             pOffset[0] != offset.x || pOffset[1] != offset.y || pAmplitude != heightMultiplier) {
@@ -451,9 +461,15 @@ int main() {
         //carafe.DrawModel(carafeShader);
 
         // draw plane
+
+        if (changeParam) {
+            changeParam = false;
+            plane.grass.generateNoiseMap(grassShader, seed, scale, octaves, persistence, lacunarity, offset);
+        }
+
         plane.update(camera.Position, seed, scale, octaves, persistence, lacunarity, offset, heightMultiplier, changeParam);
         plane.draw(planeShader, projection, view, np, camera.Position);
-        plane.drawGrass(grassShader, view, projection);
+        plane.drawGrass(grassShader, view, projection, currentFrame * 2.0f, frequency, amplitude);
 
         //plane.drawNormalLine(normalLineShader, projection, view, np, camera.Position);
 

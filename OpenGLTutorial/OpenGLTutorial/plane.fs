@@ -82,7 +82,8 @@ void main() {
     blendAxes /= (blendAxes.x + blendAxes.y + blendAxes.z);
 
     vec3 lighting = blinnPhong();
-    vec3 terrainColor = heightColor(heightPercent, blendAxes);
+    //vec3 terrainColor = heightColor(heightPercent, blendAxes);
+    vec3 terrainColor = vec3(0.0, 1.0, 0.0);
 
      vec3 result = terrainColor * lighting;
 

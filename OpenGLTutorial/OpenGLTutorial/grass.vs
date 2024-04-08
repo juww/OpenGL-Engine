@@ -12,6 +12,7 @@ uniform float halfOffset;
 
 out vec3 FragPos;
 out vec3 Normal;
+out vec3 Offset;
 
 mat4 rotY(){
 	mat4 ret = mat4(1.0);
@@ -37,6 +38,7 @@ void main(){
 
 	FragPos = vec3(model * pos);
 	Normal = aNormal;
+	Offset = aOffset;
 
 	gl_Position = projection * view * model * pos;
 }

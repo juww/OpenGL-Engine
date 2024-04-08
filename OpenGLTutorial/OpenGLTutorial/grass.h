@@ -3,6 +3,7 @@
 #define GRASS_H
 
 #include <vector>
+#include <cmath>
 #include <glm/glm.hpp>
 
 #include "shader_m.h"
@@ -31,12 +32,15 @@ public:
 	glm::vec3 pos, rot, scale;
 	glm::mat4 model;
 	unsigned int vao = 0, ebo = 0;
+	unsigned int noiseTex = 0;
 	int width, height;
 	int density;
 	int count;
+	std::vector<float> noiseMap;
 
 	void initialize(const int &w, const int &h, const int &d) {
 		model = glm::mat4(1.0f);
+		//model = glm::scale(model, glm::vec3(2.0f));
 		model = glm::translate(model, glm::vec3(-0.050f, 0.0f, 0.0f));
 
 		width = w;
@@ -63,6 +67,36 @@ public:
 		glEnableVertexAttribArray(0);
 
 		glBindVertexArray(0);
+	}
+
+	void generateNoiseMap(Shader &shader, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset) {
+
+		if (noiseTex != 0) {
+			glDeleteTextures(1, &noiseTex);
+			noiseTex = 0;
+		}
+		Noise noise;
+		std::vector<std::vector<float> > perlinNoiseMap = noise.GenerateNoiseMap(width, height, seed, scale, octaves, persistence, lacunarity, offset, noise.Local);
+		noiseMap.resize(width * height);
+		for (int i = 0; i < height; i++) {
+			for (int j = 0; j < width; j++) {
+				noiseMap[j + (height * i)] = perlinNoiseMap[i][j];
+			}
+		}
+		glGenTextures(1, &noiseTex);
+		glBindTexture(GL_TEXTURE_2D, noiseTex);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		// float = 4 byte
+		// to do: reduce size using unsigned byte = 1 byte
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_FLOAT, &noiseMap.at(0));
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		shader.use();
+		shader.setInt("noiseMap", 0);
 	}
 
 	void setPositionGrass(const std::vector<glm::vec3>& posOffset, const std::vector<float> &rad) {
@@ -98,7 +132,7 @@ public:
 
 	}
 
-	void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection) {
+	void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, const float &_time, const float &F, const float &A) {
 
 		shader.use();
 		
@@ -106,8 +140,14 @@ public:
 		shader.setMat4("view", view);
 		shader.setMat4("projection", projection);
 		shader.setFloat("halfOffset", float(width) / 2.0f + 0.5f);
+		shader.setFloat("deltaTime", _time);
+		shader.setFloat("length", width);
+		shader.setFloat("frequency", F);
+		shader.setFloat("amplitude", A);
 
 		glBindVertexArray(vao);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, noiseTex);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 		glDrawElementsInstanced(GL_TRIANGLE_STRIP, (N_VERTEX / 3) * sizeof(unsigned int), GL_UNSIGNED_INT, (void*)0, count);
 

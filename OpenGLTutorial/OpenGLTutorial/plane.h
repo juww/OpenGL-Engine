@@ -125,8 +125,9 @@ public:
 		return result;
 	}
 
-	void initGrass(const int& density) {
+	void initGrass(const int& density, Shader &shader) {
 		grass.initialize(planeSize, planeSize, density);
+		
 	}
 
 	void GenerateGrass(const std::vector<float> &heightMap, const std::vector<glm::ivec2> &indxMap, const int &offsetVertices,
@@ -166,8 +167,8 @@ public:
 		grass.setPositionGrass(posOffset, rad);
 	}
 
-	void drawGrass(Shader &shader, const glm::mat4& view, const glm::mat4& projection) {
-		grass.draw(shader, view, projection);
+	void drawGrass(Shader &shader, const glm::mat4& view, const glm::mat4& projection, const float &_time, const float &F, const float &A) {
+		grass.draw(shader, view, projection, _time, F, A);
 	}
 
 	void InitTerrainChunk(const int &chunksize, const float &visibleDistance, const glm::vec3 &cameraPos) {

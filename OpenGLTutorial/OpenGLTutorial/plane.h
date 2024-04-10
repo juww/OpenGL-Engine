@@ -167,8 +167,8 @@ public:
 		grass.setPositionGrass(posOffset, rad);
 	}
 
-	void drawGrass(Shader &shader, const glm::mat4& view, const glm::mat4& projection, const float &_time, const float &F, const float &A) {
-		grass.draw(shader, view, projection, _time, F, A);
+	void drawGrass(Shader &shader, const glm::mat4& view, const glm::mat4& projection, const float &_time, const float &F, const float &A, const float &scl, const float &drp) {
+		grass.draw(shader, view, projection, _time, F, A, scl, drp);
 	}
 
 	void InitTerrainChunk(const int &chunksize, const float &visibleDistance, const glm::vec3 &cameraPos) {

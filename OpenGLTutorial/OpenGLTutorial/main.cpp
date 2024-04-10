@@ -226,9 +226,6 @@ int main() {
     plane.initGrass(50, grassShader);
     plane.setAllUniform(planeShader);
 
-    Noise noise;
-    
-
     // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
     unsigned int lightCubeVAO;
     glGenVertexArrays(1, &lightCubeVAO);
@@ -273,9 +270,9 @@ int main() {
     float persistence = 0.5f;
     float lacunarity = 2.0f;
     glm::vec2 offset(0.0f, 0.0f);
-    float heightMultiplier = 15.0f;
+    float heightMultiplier = 5.0f;
 
-    plane.grass.generateNoiseMap(grassShader, seed, scale, octaves, persistence, lacunarity, offset);
+    plane.grass.generateNoiseMap(grassShader, 1, 10.0f, 4, 1.5f, 2.0f, { 0.0f,0.0f });
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
@@ -295,6 +292,9 @@ int main() {
         }
         lastFrame = currentFrame;
 
+        // todo:
+        // make in different class or file for ImGUI
+        // very messy here
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -359,11 +359,15 @@ int main() {
         ImGui::DragFloat2("offset", pOffset, 0.01f);
         ImGui::DragFloat("elevation", &pAmplitude, 0.1f, 0.01f);
 
-        static float frequency = 0.0f;
-        static float amplitude = 0.0f;
+        static float frequency = 3.0f;
+        static float amplitude = 0.5f;
+        static float scl = 1.12f;
+        static float drp = 0.7f;
 
         ImGui::DragFloat("frequency", &frequency, 0.01f, 0.01f);
         ImGui::DragFloat("amplitude", &amplitude, 0.01f, 0.01f);
+        ImGui::DragFloat("_Scale", &scl, 0.01f, 0.01f);
+        ImGui::DragFloat("_Droop", &drp, 0.01f, 0.01f);
         
         if (pSeed != seed || pScale != scale || pOctaves != octaves || pPersistence != persistence || pLacunarity != lacunarity ||
             pOffset[0] != offset.x || pOffset[1] != offset.y || pAmplitude != heightMultiplier) {
@@ -461,15 +465,9 @@ int main() {
         //carafe.DrawModel(carafeShader);
 
         // draw plane
-
-        if (changeParam) {
-            changeParam = false;
-            plane.grass.generateNoiseMap(grassShader, seed, scale, octaves, persistence, lacunarity, offset);
-        }
-
         plane.update(camera.Position, seed, scale, octaves, persistence, lacunarity, offset, heightMultiplier, changeParam);
         plane.draw(planeShader, projection, view, np, camera.Position);
-        plane.drawGrass(grassShader, view, projection, currentFrame * 2.0f, frequency, amplitude);
+        plane.drawGrass(grassShader, view, projection, currentFrame, frequency, amplitude, scl, drp);
 
         //plane.drawNormalLine(normalLineShader, projection, view, np, camera.Position);
 

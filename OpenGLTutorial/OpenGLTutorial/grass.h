@@ -8,26 +8,31 @@
 
 #include "shader_m.h"
 
-const int N_VERTEX = 45;
+const int N_VERTEX = 16;
+const int SIZEPOSITION = 3;
+const int SIZETEXCOORD = 2;
 
 class Grass {
 public:
-	const float vectices[N_VERTEX] = {
-		0.012f, 0.000f, 0.000f,
-		0.088f, 0.000f, 0.000f,
-		0.013f, 0.100f, 0.000f,
-		0.087f, 0.100f, 0.000f,
-		0.016f, 0.187f, 0.000f,
-		0.084f, 0.187f, 0.000f,
-		0.021f, 0.264f, 0.000f,
-		0.079f, 0.264f, 0.000f,
-		0.025f, 0.336f, 0.000f,
-		0.075f, 0.336f, 0.000f,
-		0.031f, 0.394f, 0.000f,
-		0.068f, 0.394f, 0.000f,
-		0.038f, 0.440f, 0.000f,
-		0.061f, 0.440f, 0.000f,
-		0.050f, 0.485f, 0.000f,
+	const float vectices[N_VERTEX * SIZEPOSITION * SIZETEXCOORD] = {
+		// position				texcoord
+		0.012f, 0.000f, 0.000f, 0.400f, 1.000f,
+		0.088f, 0.000f, 0.000f, 0.500f, 1.000f,
+		0.013f, 0.100f, 0.000f, 0.400f, 0.900f,
+		0.087f, 0.100f, 0.000f, 0.500f, 0.900f,
+		0.016f, 0.187f, 0.000f, 0.400f, 0.800f,
+		0.084f, 0.187f, 0.000f, 0.500f, 0.800f,
+		0.021f, 0.264f, 0.000f, 0.400f, 0.700f,
+		0.079f, 0.264f, 0.000f, 0.500f, 0.700f,
+		0.025f, 0.336f, 0.000f, 0.400f, 0.600f,
+		0.075f, 0.336f, 0.000f, 0.500f, 0.600f,
+		0.031f, 0.394f, 0.000f, 0.400f, 0.500f,
+		0.068f, 0.394f, 0.000f, 0.500f, 0.500f,
+		0.038f, 0.440f, 0.000f, 0.400f, 0.400f,
+		0.061f, 0.440f, 0.000f, 0.500f, 0.400f,
+		0.050f, 0.485f, 0.000f, 0.450f, 0.300f,
+		// double the last vertex for make the triangle strip is invisible
+		0.050f, 0.485f, 0.000f, 0.450f, 0.300f,
 	};
 	glm::vec3 pos, rot, scale;
 	glm::mat4 model;
@@ -53,7 +58,7 @@ public:
 		glGenBuffers(1, &ebo);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 		std::vector<unsigned int> indices;
-		for (int i = 0; i < (N_VERTEX / 3); i++) {
+		for (int i = 0; i < N_VERTEX; i++) {
 			indices.push_back(i);
 		}
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices.at(0), GL_STATIC_DRAW);
@@ -61,10 +66,14 @@ public:
 		unsigned int vbo;
 		glGenBuffers(1, &vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, N_VERTEX * sizeof(float), &vectices, GL_STATIC_DRAW);
+		unsigned int sizeBuffer = N_VERTEX * SIZEPOSITION * SIZETEXCOORD * sizeof(float);
+		glBufferData(GL_ARRAY_BUFFER, sizeBuffer, &vectices, GL_STATIC_DRAW);
 
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)0);
 		glEnableVertexAttribArray(0);
+
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*) (sizeof(float) * 3));
+		glEnableVertexAttribArray(2);
 
 		glBindVertexArray(0);
 	}
@@ -110,19 +119,19 @@ public:
 
 		glBufferData(GL_ARRAY_BUFFER, posOffset.size() * sizeof(float) * 3, &posOffset.at(0), GL_STATIC_DRAW);
 		count = posOffset.size();
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
-		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+		glEnableVertexAttribArray(6);
 		
 		unsigned int radVbo;
 		glGenBuffers(1, &radVbo);
 		glBindBuffer(GL_ARRAY_BUFFER, radVbo);
 
 		glBufferData(GL_ARRAY_BUFFER, rad.size() * sizeof(float), &rad.at(0), GL_STATIC_DRAW);
-		glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
-		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(7, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
+		glEnableVertexAttribArray(7);
 
-		glVertexAttribDivisor(1, 1);
-		glVertexAttribDivisor(2, 1);
+		glVertexAttribDivisor(6, 1);
+		glVertexAttribDivisor(7, 1);
 
 		printf("count Grass = %d\n", count);
 		glBindVertexArray(0);
@@ -132,7 +141,7 @@ public:
 
 	}
 
-	void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, const float &_time, const float &F, const float &A) {
+	void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, const float &_time, const float &F, const float &A, const float &scl, const float &drp) {
 
 		shader.use();
 		
@@ -144,6 +153,8 @@ public:
 		shader.setFloat("length", width);
 		shader.setFloat("frequency", F);
 		shader.setFloat("amplitude", A);
+		shader.setFloat("_scale", scl);
+		shader.setFloat("_droop", drp);
 
 		glBindVertexArray(vao);
 		glActiveTexture(GL_TEXTURE0);

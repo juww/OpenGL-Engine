@@ -22,8 +22,9 @@
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{923ec16f-5705-437a-beba-5cc39e6a68b4}</ProjectGuid>
-    <RootNamespace>OpenGLTutorial</RootNamespace>
+    <RootNamespace>OpenGL-Engine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>OpenGL-Engine</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -72,7 +73,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LibraryPath>$(LibraryPath)</LibraryPath>
-    <IncludePath>D:\glad\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)external\glad\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LibraryPath>$(LibraryPath)</LibraryPath>
@@ -112,12 +113,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\glad;D:\vs2022\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)external;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\glad;D:\vs2022\lib\glfw-lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)lib\glfw-lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>glfw3.lib;opengl32.lib;user32.lib;gdi32.lib;shell32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -141,56 +142,57 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="D:\glad\src\glad.c" />
-    <ClCompile Include="imGui\imgui.cpp" />
-    <ClCompile Include="imGui\imgui_demo.cpp" />
-    <ClCompile Include="imGui\imgui_draw.cpp" />
-    <ClCompile Include="imGui\imgui_impl_glfw.cpp" />
-    <ClCompile Include="imGui\imgui_impl_opengl3.cpp" />
-    <ClCompile Include="imGui\imgui_tables.cpp" />
-    <ClCompile Include="imGui\imgui_widgets.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="external\glad\src\glad.c" />
+    <ClCompile Include="src\imGui\imgui.cpp" />
+    <ClCompile Include="src\imGui\imgui_demo.cpp" />
+    <ClCompile Include="src\imGui\imgui_draw.cpp" />
+    <ClCompile Include="src\imGui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="src\imGui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="src\imGui\imgui_tables.cpp" />
+    <ClCompile Include="src\imGui\imgui_widgets.cpp" />
+    <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="animator.h" />
-    <ClInclude Include="camera.h" />
-    <ClInclude Include="grass.h" />
-    <ClInclude Include="imGui\imconfig.h" />
-    <ClInclude Include="imGui\imgui.h" />
-    <ClInclude Include="imGui\imgui_impl_glfw.h" />
-    <ClInclude Include="imGui\imgui_impl_opengl3.h" />
-    <ClInclude Include="imGui\imgui_impl_opengl3_loader.h" />
-    <ClInclude Include="imGui\imgui_internal.h" />
-    <ClInclude Include="imGui\imstb_rectpack.h" />
-    <ClInclude Include="imGui\imstb_textedit.h" />
-    <ClInclude Include="imGui\imstb_truetype.h" />
-    <ClInclude Include="loadModel.h" />
-    <ClInclude Include="noise.h" />
-    <ClInclude Include="perlin.h" />
-    <ClInclude Include="plane.h" />
-    <ClInclude Include="shader_m.h" />
-    <ClInclude Include="skybox.h" />
+    <ClInclude Include="src\animator.h" />
+    <ClInclude Include="src\camera.h" />
+    <ClInclude Include="src\grass.h" />
+    <ClInclude Include="src\imGui\imconfig.h" />
+    <ClInclude Include="src\imGui\imgui.h" />
+    <ClInclude Include="src\imGui\imgui_impl_glfw.h" />
+    <ClInclude Include="src\imGui\imgui_impl_opengl3.h" />
+    <ClInclude Include="src\imGui\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="src\imGui\imgui_internal.h" />
+    <ClInclude Include="src\imGui\imstb_rectpack.h" />
+    <ClInclude Include="src\imGui\imstb_textedit.h" />
+    <ClInclude Include="src\imGui\imstb_truetype.h" />
+    <ClInclude Include="src\imgui_impl_glfw.h" />
+    <ClInclude Include="src\loadModel.h" />
+    <ClInclude Include="src\noise.h" />
+    <ClInclude Include="src\Perlin.h" />
+    <ClInclude Include="src\plane.h" />
+    <ClInclude Include="src\shader_m.h" />
+    <ClInclude Include="src\skybox.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="cube.fs" />
-    <None Include="cube.vs" />
-    <None Include="grass.fs" />
-    <None Include="grass.vs" />
-    <None Include="normalLine.gs" />
-    <None Include="light_cube.fs" />
-    <None Include="light_cube.vs" />
-    <None Include="normalLine.fs" />
-    <None Include="normalLine.vs" />
-    <None Include="normalMapping.gs" />
-    <None Include="plane.fs" />
-    <None Include="plane.vs" />
-    <None Include="skeletal.fs" />
-    <None Include="skeletal.gs" />
-    <None Include="skeletal.vs" />
-    <None Include="skybox.fs" />
-    <None Include="skybox.vs" />
-    <None Include="TessellationControlShader.tcs" />
-    <None Include="TessellationEvaluationShader.tes" />
+    <None Include="src\shader\cube.fs" />
+    <None Include="src\shader\cube.vs" />
+    <None Include="src\shader\grass.fs" />
+    <None Include="src\shader\grass.vs" />
+    <None Include="src\shader\light_cube.fs" />
+    <None Include="src\shader\light_cube.vs" />
+    <None Include="src\shader\normalLine.fs" />
+    <None Include="src\shader\normalLine.gs" />
+    <None Include="src\shader\normalLine.vs" />
+    <None Include="src\shader\normalMapping.gs" />
+    <None Include="src\shader\plane.fs" />
+    <None Include="src\shader\plane.vs" />
+    <None Include="src\shader\skeletal.fs" />
+    <None Include="src\shader\skeletal.gs" />
+    <None Include="src\shader\skeletal.vs" />
+    <None Include="src\shader\skybox.fs" />
+    <None Include="src\shader\skybox.vs" />
+    <None Include="src\shader\TessellationControlShader.tcs" />
+    <None Include="src\shader\TessellationEvaluationShader.tes" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

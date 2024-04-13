@@ -3,7 +3,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include<glm/gtc/quaternion.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #include "imGui/imgui.h"
@@ -194,7 +194,7 @@ int main() {
     // planeShader.setTessellationShader("TessellationControlShader.tcs", "TessellationEvaluationShader.tes");
     //Shader skeletalModel("skeletal.vs", "skeletal.fs", "skeletal.gs");
 
-    const std::string& pathfile = "assets/models/simpleSkin/scene.gltf";
+    const std::string& pathfile = "res/models/simpleSkin/scene.gltf";
     //const std::string& pathfile = "assets/models/phoenix_bird/scene.gltf";
     loadModel carafe(pathfile.c_str());
 

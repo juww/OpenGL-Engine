@@ -60,12 +60,12 @@ const float skyboxVertices[] = {
 
 const std::vector<std::string> faces
 {
-    FileSystem::getPath("assets/skybox/right.jpg"),
-    FileSystem::getPath("assets/skybox/left.jpg"),
-    FileSystem::getPath("assets/skybox/top.jpg"),
-    FileSystem::getPath("assets/skybox/bottom.jpg"),
-    FileSystem::getPath("assets/skybox/front.jpg"),
-    FileSystem::getPath("assets/skybox/back.jpg")
+    FileSystem::getPath("res/skybox/right.jpg"),
+    FileSystem::getPath("res/skybox/left.jpg"),
+    FileSystem::getPath("res/skybox/top.jpg"),
+    FileSystem::getPath("res/skybox/bottom.jpg"),
+    FileSystem::getPath("res/skybox/front.jpg"),
+    FileSystem::getPath("res/skybox/back.jpg")
 };
 
 class Skybox {

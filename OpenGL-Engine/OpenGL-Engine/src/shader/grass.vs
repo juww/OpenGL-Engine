@@ -47,7 +47,7 @@ uint rand_xorshift() {
 }
 
 float rand() {
-    return rand_xorshift() * (1.0 / 4294967296.0);
+    return float(rand_xorshift()) * (1.0 / 4294967296.0);
 }
 
 void initRand(uint seed) {

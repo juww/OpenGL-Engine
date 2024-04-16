@@ -72,7 +72,7 @@ vec4 rotY(vec4 pos, float rad){
 	float sina = sin(rad);
 	float cosa = cos(rad);
 
-	rot[0][0] = cosa;  rot[0][2] = -sina;
+	rot[0][0] = cosa; rot[0][2] = -sina;
 	rot[2][0] = sina; rot[2][2] = cosa;
 
 	pos = rot * pos;

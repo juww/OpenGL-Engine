@@ -143,6 +143,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="external\glad\src\glad.c" />
+    <ClCompile Include="src\GUI.cpp" />
     <ClCompile Include="src\imGui\imgui.cpp" />
     <ClCompile Include="src\imGui\imgui_demo.cpp" />
     <ClCompile Include="src\imGui\imgui_draw.cpp" />
@@ -156,6 +157,7 @@
     <ClInclude Include="src\animator.h" />
     <ClInclude Include="src\camera.h" />
     <ClInclude Include="src\grass.h" />
+    <ClInclude Include="src\GUI.h" />
     <ClInclude Include="src\imGui\imconfig.h" />
     <ClInclude Include="src\imGui\imgui.h" />
     <ClInclude Include="src\imGui\imgui_impl_glfw.h" />
@@ -165,7 +167,7 @@
     <ClInclude Include="src\imGui\imstb_rectpack.h" />
     <ClInclude Include="src\imGui\imstb_textedit.h" />
     <ClInclude Include="src\imGui\imstb_truetype.h" />
-    <ClInclude Include="src\imgui_impl_glfw.h" />
+    <ClInclude Include="src\interpolate.h" />
     <ClInclude Include="src\loadModel.h" />
     <ClInclude Include="src\noise.h" />
     <ClInclude Include="src\Perlin.h" />

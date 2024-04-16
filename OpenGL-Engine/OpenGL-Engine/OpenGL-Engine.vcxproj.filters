@@ -34,6 +34,9 @@
     <Filter Include="Source Files\imGui">
       <UniqueIdentifier>{e26bc905-6d03-4f5d-a53d-8f7a83d4221b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\utils">
+      <UniqueIdentifier>{0c714b53-74ce-4ad6-be78-b47a45238039}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="external\glad\src\glad.c">
@@ -63,6 +66,9 @@
     <ClCompile Include="src\imGui\imgui_tables.cpp">
       <Filter>Source Files\imGui</Filter>
     </ClCompile>
+    <ClCompile Include="src\GUI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\animator.h">
@@ -72,9 +78,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\grass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\imgui_impl_glfw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\loadModel.h">
@@ -121,6 +124,12 @@
     </ClInclude>
     <ClInclude Include="src\imGui\imstb_truetype.h">
       <Filter>Header Files\imGui_h</Filter>
+    </ClInclude>
+    <ClInclude Include="src\interpolate.h">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GUI.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

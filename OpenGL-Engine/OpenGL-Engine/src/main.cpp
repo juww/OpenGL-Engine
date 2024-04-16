@@ -1,20 +1,12 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-#include "imGui/imgui.h"
-#include "imGui/imgui_impl_glfw.h"
-#include "imGui/imgui_impl_opengl3.h"
-
 #include "shader_m.h"
 #include "camera.h"
 #include "skybox.h"
 #include "loadModel.h"
 #include "plane.h"
+#include "GUI.h"
 
 #include <iostream>
 #include <string>
@@ -169,19 +161,6 @@ int main() {
         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
     };
 
-    // Setup Dear ImGui context
-    // ------------------------------------
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
-
-    // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForOpenGL(window, true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
-    ImGui_ImplOpenGL3_Init();
-
     // build and compile our shader zprogram
     // ------------------------------------
     Shader cubeShader("cube.vs", "cube.fs", "normalMapping.gs");
@@ -210,15 +189,6 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    //glBindVertexArray(cubeVAO);
-
-    //// position attribute
-    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-    //glEnableVertexAttribArray(0);
-    //// normal attribute
-    //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-    //glEnableVertexAttribArray(1);
-
     int np = 65, lvl = 1;
     Plane plane(np);
     //plane.GenerateNoiseMap(np, np, 4, 27.9f, 4, 0.5f, 2.0f, offset);
@@ -240,18 +210,13 @@ int main() {
     cubeShader.setInt("albedoMap", 0);
     cubeShader.setInt("normalMap", 1);
     cubeShader.setInt("roughnessMap", 2);
-    // cubeShader.setInt("ambientOcclusionMap", 3);
-    // cubeShader.setInt("metallicMap", 3);
-    //cubeShader.setFloat("uMetallic", modelMesh.metallic);
 
     carafeShader.use();
     carafeShader.setInt("albedoMap", 0);
     carafeShader.setInt("normalMap", 1);
     carafeShader.setInt("roughnessMap", 2);
 
-    // cubeShader.setInt("ambientOcclusionMap", 3);
-    //carafeShader.setFloat("uMetallic", modelMesh.metallic);
-
+    
     skyboxShader.use();
     skyboxShader.setInt("skybox", 0);
 
@@ -263,6 +228,7 @@ int main() {
     float frameCount = 0.0f;
     float prevFrame = static_cast<float>(glfwGetTime());
 
+    GUI::initialize(window);
     // parameter for generate terrain
     int seed = 4;
     float scale = 27.9f;
@@ -271,6 +237,12 @@ int main() {
     float lacunarity = 2.0f;
     glm::vec2 offset(0.0f, 0.0f);
     float heightMultiplier = 5.0f;
+
+    // grass
+    float frequency = 3.0f;
+    float amplitude = 0.5f;
+    float scl = 1.12f;
+    float drp = 0.7f;
 
     plane.grass.generateNoiseMap(grassShader, 1, 10.0f, 4, 1.5f, 2.0f, { 0.0f,0.0f });
     // render loop
@@ -292,99 +264,11 @@ int main() {
         }
         lastFrame = currentFrame;
 
-        // todo:
-        // make in different class or file for ImGUI
-        // very messy here
-        // Start the Dear ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-        //ImGui::ShowDemoWindow(); // Show demo window! :)
-
-        ImGui::Begin("Demo window");
-        ImGui::Button("Hello!");
-        float modelPos[3] = { carafe.pos.x, carafe.pos.y, carafe.pos.z };
-        ImGui::DragFloat3("position", modelPos, 0.005f);
-        carafe.pos[0] = modelPos[0];
-        carafe.pos[1] = modelPos[1];
-        carafe.pos[2] = modelPos[2];
-
-        ImGui::SliderAngle("angle", &carafe.angle);
-        float modelRot[3] = {carafe.rot.x, carafe.rot.y, carafe.rot.z};
-        ImGui::SliderFloat3("rotation", modelRot, 0.000, 1.000);
-        carafe.rot[0] = modelRot[0];
-        carafe.rot[1] = modelRot[1];
-        carafe.rot[2] = modelRot[2];
-
-        float modelScale[3] = { carafe.scale.x, carafe.scale.y, carafe.scale.z };
-        ImGui::DragFloat3("scale", modelScale);
-        carafe.scale[0] = modelScale[0];
-        carafe.scale[1] = modelScale[1];
-        carafe.scale[2] = modelScale[2];
-
-        static bool check = true;
-        ImGui::Checkbox("checkbox", &check);
-        if (check == false) {
-            carafeShader.setInt("hasBone", 0);
-        } else if (check == true) {
-            carafeShader.setInt("hasBone", 1);
-        }
-
-        int N_TEMP = carafe.animator.animations.size();
-        const char* animationName[] = {"Animation 0", "no animation"};
-
-        static int currentAnimation = carafe.animator.currentAnimation;
-        ImGui::Combo("Animation", &currentAnimation, animationName, 2);
-        if(currentAnimation != carafe.animator.currentAnimation){
-            if (currentAnimation == 0) {
-                carafe.animator.doAnimation(currentAnimation);
-            } else {
-                carafe.animator.doAnimation(-1);
-            }
-        }
-
-        static int pSeed = seed;
-        static float pScale = scale;
-        static int pOctaves = octaves;
-        static float pPersistence = persistence;
-        static float pLacunarity = lacunarity;
-        static float pOffset[2] = { offset.x, offset.y };
-        static float pAmplitude = heightMultiplier;
-        static bool changeParam = false;
-        ImGui::DragInt("seed", &pSeed);
-        ImGui::DragFloat("scale", &pScale, 0.01f, 0.01f);
-        ImGui::DragInt("octaves", &pOctaves, 1, 1, 16);
-        ImGui::DragFloat("persistence", &pPersistence, 0.01f, 0.01f);
-        ImGui::DragFloat("lacunarity", &pLacunarity , 0.01f, 0.01f);
-        ImGui::DragFloat2("offset", pOffset, 0.01f);
-        ImGui::DragFloat("elevation", &pAmplitude, 0.1f, 0.01f);
-
-        static float frequency = 3.0f;
-        static float amplitude = 0.5f;
-        static float scl = 1.12f;
-        static float drp = 0.7f;
-
-        ImGui::DragFloat("frequency", &frequency, 0.01f, 0.01f);
-        ImGui::DragFloat("amplitude", &amplitude, 0.01f, 0.01f);
-        ImGui::DragFloat("_Scale", &scl, 0.01f, 0.01f);
-        ImGui::DragFloat("_Droop", &drp, 0.01f, 0.01f);
-        
-        if (pSeed != seed || pScale != scale || pOctaves != octaves || pPersistence != persistence || pLacunarity != lacunarity ||
-            pOffset[0] != offset.x || pOffset[1] != offset.y || pAmplitude != heightMultiplier) {
-            changeParam = true;
-        }
-        seed = pSeed;
-        scale = pScale;
-        octaves = pOctaves;
-        persistence = pPersistence;
-        lacunarity = pLacunarity;
-        offset.x = pOffset[0]; offset.y = pOffset[1];
-        heightMultiplier = pAmplitude;
-
-        static int density = 2;
-        ImGui::InputInt("density grass", &density);
-
-        ImGui::End();
+        GUI::GUIFrame();
+        GUI::modelTransform(carafe.pos, carafe.rot, carafe.angle, carafe.scale);
+        GUI::modelAnimation(carafe.animator.animations.size(), 0);
+        bool changeParam = GUI::proceduralTerrainParam(seed, scale, octaves, persistence, lacunarity, offset, heightMultiplier);
+        GUI::grassParam(frequency, amplitude, scl, drp);
 
         // input
         // -----
@@ -399,34 +283,8 @@ int main() {
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
 
-        // be sure to activate shader when setting uniforms/drawing objects
-        //cubeShader.use();
-        //cubeShader.setVec3("light.position", lightPos);
-        //cubeShader.setVec3("viewPos", camera.Position);
-        //cubeShader.setVec3("light.color", lightColor);
-        //cubeShader.setMat4("projection", projection);
-        //cubeShader.setMat4("view", view);
-
-        //glActiveTexture(GL_TEXTURE0);
-        //glBindTexture(GL_TEXTURE_2D, modelMesh.texColor);
-        //glActiveTexture(GL_TEXTURE1);
-        //glBindTexture(GL_TEXTURE_2D, modelMesh.texNormal);
-        //glActiveTexture(GL_TEXTURE2);
-        //glBindTexture(GL_TEXTURE_2D, modelMesh.texRoughness);
-
         // world transformation
         glm::mat4 model = glm::mat4(1.0f);
-        //model = glm::translate(model, { 5.0f, -3.0f, 0.0f });
-        //glm::mat4 rotMatrix = glm::mat4_cast(quaternion);
-        //model = model * rotMatrix;
-        //model = glm::rotate(model, (float)glfwGetTime(), { 1.0f,0.0f,0.0f });
-        //model = glm::scale(model, {1.0f,1.0f,1.0f});
-        //cubeShader.setMat4("model", model);
-        // render the cube
-        /*glBindVertexArray(cubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);*/
-        //glBindVertexArray(modelMesh.vao);
-        //modelMesh.DrawMesh();
 
         glBindVertexArray(0);
         // load carafe
@@ -446,23 +304,6 @@ int main() {
 
         carafe.update(carafeShader, deltaTime);
         carafe.DrawModel(carafeShader);
-
-        // use this for show the normal line;
-        //normalLineShader.use();
-        //normalLineShader.setMat4("projection", projection);
-        //normalLineShader.setMat4("view", view);
-        //normalLineShader.setMat4("model", model);
-        //glBindVertexArray(modelMesh.vao);
-        //modelMesh.DrawMesh();
-
-        // WIP: don't know how to draw the skeleton matrix
-        //skeletalModel.use();
-        //skeletalModel.setMat4("projection", projection);
-        //skeletalModel.setMat4("view", view);
-        //skeletalModel.setMat4("model", model);
-        //carafe.DrawSkeleton(skeletalModel);
-
-        //carafe.DrawModel(carafeShader);
 
         // draw plane
         plane.update(camera.Position, seed, scale, octaves, persistence, lacunarity, offset, heightMultiplier, changeParam);
@@ -498,20 +339,17 @@ int main() {
         glBindVertexArray(0);
         glDepthFunc(GL_LESS); // set depth function back to default
 
-        // Render ImGui
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        ImGui::End();
 
+
+        GUI::renderUI();
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    // Shutdown ImGui
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
+    GUI::shutDown();
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------

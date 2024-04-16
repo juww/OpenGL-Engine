@@ -10,6 +10,7 @@
 #include "shader_m.h"
 #include "noise.h"
 #include "grass.h"
+#include "interpolate.h"
 
 const float PI = 3.14159265359;
 
@@ -149,11 +150,11 @@ public:
 				for (int k = 0; k < grass.density; k++) {
 
 					float t = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-					glm::vec3 l1 = lerp(t, pos1, pos2);
+					glm::vec3 l1 = interpolate::lerp(pos1, pos2, t);
 					t = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-					glm::vec3 l2 = lerp(t, pos1, pos3);
+					glm::vec3 l2 = interpolate::lerp(pos1, pos3, t);
 					t = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-					glm::vec3 l3 = lerp(t, l1, l2);
+					glm::vec3 l3 = interpolate::lerp(l1, l2, t);
 
 					float tehta = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 					tehta *= (2 * PI);
@@ -306,12 +307,12 @@ private:
 
 		glBindVertexArray(vao);
 
-		indicesCount = indices.size() * sizeof(unsigned int);
+		indicesCount = indices.size();
 		componentType = GL_UNSIGNED_INT;
 
 		glGenBuffers(1, &ebo);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesCount, &indices.at(0), GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesCount * sizeof(unsigned int), &indices.at(0), GL_STATIC_DRAW);
 
 		printf("size indices: %u\n", indices.size());
 	}
@@ -431,11 +432,6 @@ private:
 	
 	static float calculateHeightValue(const float& v, const float& heightMultiplier) {
 		return (v * heightMultiplier) - heightMultiplier;
-	}
-
-
-	glm::vec3 lerp(float t, glm::vec3 v0, glm::vec3 v1) {
-		return v0 + (t * (v1 - v0));
 	}
 };
 

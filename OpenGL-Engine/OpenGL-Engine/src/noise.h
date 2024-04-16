@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Perlin.h"
+#include "interpolate.h"
 
 const float MAX_VALUE = 3.40282347E+38F;
 const float MIN_VALUE = -3.40282347E+38F;
@@ -60,7 +61,7 @@ public:
         for (int y = 0; y < mapHeight; y++) {
             for (int x = 0; x < mapWidth; x++) {
                 if (normalizeMode == Local) {
-                    noiseMap[y][x] = perlin.inverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[y][x]);
+                    noiseMap[y][x] = interpolate::inverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[y][x]);
                 } else {
                     float normalizedHeight = (noiseMap[y][x] + 1) / (2.0f * maxPossibleHeight / 2.75f);
                     noiseMap[y][x] = clamp(normalizedHeight, 0.0f, MAX_VALUE);

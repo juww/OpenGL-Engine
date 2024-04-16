@@ -8,7 +8,7 @@
 
 #include "shader_m.h"
 
-const int N_VERTEX = 16;
+const int N_VERTEX = 15;
 const int SIZEPOSITION = 3;
 const int SIZETEXCOORD = 2;
 
@@ -30,8 +30,6 @@ public:
 		0.068f, 0.394f, 0.000f, 0.500f, 0.500f,
 		0.038f, 0.440f, 0.000f, 0.400f, 0.400f,
 		0.061f, 0.440f, 0.000f, 0.500f, 0.400f,
-		0.050f, 0.485f, 0.000f, 0.450f, 0.300f,
-		// double the last vertex for make the triangle strip is invisible
 		0.050f, 0.485f, 0.000f, 0.450f, 0.300f,
 	};
 	glm::vec3 pos, rot, scale;
@@ -160,7 +158,7 @@ public:
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, noiseTex);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-		glDrawElementsInstanced(GL_TRIANGLE_STRIP, (N_VERTEX / 3) * sizeof(unsigned int), GL_UNSIGNED_INT, (void*)0, count);
+		glDrawElementsInstanced(GL_TRIANGLE_STRIP, N_VERTEX, GL_UNSIGNED_INT, (void*)0, count);
 
 		glBindVertexArray(0);
 	}

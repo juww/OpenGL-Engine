@@ -5,6 +5,10 @@
 #include <vector>
 #include <random>
 
+#include "interpolate.h"
+
+using namespace interpolate;
+
 /*
 Understanding Perlin Noise
 https://adrianb.io/2014/08/09/perlinnoise.html
@@ -152,14 +156,6 @@ public:
 		// so that they will "ease" towards integral values.  This ends up smoothing
 		// the final output.
 		return t * t * t * (t * (t * 6 - 15) + 10);			// 6t^5 - 15t^4 + 10t^3
-	}
-
-	static float lerp(float a, float b, float x) {
-		return a + x * (b - a);
-	}
-
-	static float inverseLerp(float a, float b, float x) {
-		return (x - a) / (b - a);
 	}
 
 private:

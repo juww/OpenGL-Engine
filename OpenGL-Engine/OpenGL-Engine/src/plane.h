@@ -234,7 +234,6 @@ public:
 	void setAllUniform(Shader& shader) {
 		shader.use();
 
-		shader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
 		shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 		shader.setVec3("lightPos", glm::vec3(1.0f, 0.0f, 0.0f));
 		shader.setVec3("lightDirection", glm::vec3(-0.2f, -1.0f, -0.3f));

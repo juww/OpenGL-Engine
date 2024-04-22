@@ -14,6 +14,7 @@ const std::string PREFIX_PATH = "src/shader/";
 class Shader
 {
 public:
+    std::string name;
     unsigned int ID;
     // constructor generates the shader on the fly
     // ------------------------------------------------------------------------

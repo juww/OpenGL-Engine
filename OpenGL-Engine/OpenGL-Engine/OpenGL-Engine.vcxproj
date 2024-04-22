@@ -151,7 +151,10 @@
     <ClCompile Include="src\imGui\imgui_impl_opengl3.cpp" />
     <ClCompile Include="src\imGui\imgui_tables.cpp" />
     <ClCompile Include="src\imGui\imgui_widgets.cpp" />
+    <ClCompile Include="src\light.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\renderer.cpp" />
+    <ClCompile Include="src\scene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\animator.h" />
@@ -168,10 +171,13 @@
     <ClInclude Include="src\imGui\imstb_textedit.h" />
     <ClInclude Include="src\imGui\imstb_truetype.h" />
     <ClInclude Include="src\interpolate.h" />
+    <ClInclude Include="src\light.h" />
     <ClInclude Include="src\loadModel.h" />
     <ClInclude Include="src\noise.h" />
     <ClInclude Include="src\Perlin.h" />
     <ClInclude Include="src\plane.h" />
+    <ClInclude Include="src\renderer.h" />
+    <ClInclude Include="src\scene.h" />
     <ClInclude Include="src\shader_m.h" />
     <ClInclude Include="src\skybox.h" />
   </ItemGroup>

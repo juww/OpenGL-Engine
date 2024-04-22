@@ -9,7 +9,7 @@ const float EPS = 1e-4;
 
 uniform vec3 lightPos;
 uniform vec3 lightDirection;
-uniform vec3 viewPos;
+uniform vec3 viewPos;        // unset this uniform (viewPos = cameraPos) == vec3(0.0)
 uniform vec3 lightColor;
 
 uniform int colorCount;

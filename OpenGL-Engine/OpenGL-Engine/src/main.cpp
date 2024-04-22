@@ -6,6 +6,7 @@
 #include "skybox.h"
 #include "loadModel.h"
 #include "plane.h"
+#include "light.h"
 #include "GUI.h"
 
 #include <iostream>
@@ -42,35 +43,6 @@ bool updatecb = false;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-// lighting
-struct Lightnings {
-    int ID;
-
-    glm::vec3 direction;
-    glm::vec3 position;
-
-    float cutOff;
-    float outerCutOff;
-
-    float constant;
-    float linear;
-    float quadratic;
-
-    glm::vec3 color;
-
-    Lightnings(int id, glm::vec3 dir, glm::vec3 pos, float cutoff, float outer, float c, float l, float q, glm::vec3 col) {
-        ID = id;
-        direction = dir;
-        position = pos;
-        cutOff = cutoff;
-        outerCutOff = outer;
-        constant = c;
-        linear = l;
-        quadratic = q;
-        color = col;
-    }
-};
-
 int main() {
     // glfw: initialize and configure
     // ------------------------------
@@ -106,9 +78,13 @@ int main() {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-    std::vector<Lightnings> lights;
-    lights.push_back({ 1,glm::vec3(-0.2f, -1.0f, -0.3f), glm::vec3(0.0f, 0.0f, 0.0f), 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f) });
-    lights.push_back({ 2,glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f) });
+    
+    std::vector<Light> lights;
+    Light l1;
+    l1.setLight(glm::vec3(-0.2f, -1.0f, -0.3f));
+    lights.push_back(l1);
+    l1.setLight(glm::vec3(1.0f, 0.0f, 0.0f), 1.0f, 0.0f, 1.0f);
+    lights.push_back(l1);
 
     // configure global opengl state
     // -----------------------------
@@ -230,6 +206,8 @@ int main() {
 
     GUI::initialize(window);
     // parameter for generate terrain
+    GUI::terrainParam tp();
+
     int seed = 4;
     float scale = 27.9f;
     int octaves = 4;
@@ -292,10 +270,10 @@ int main() {
         int light_n = lights.size();
         carafeShader.setInt("light_n", light_n);
         for (int i = 0; i < light_n; i++) {
-            carafeShader.setInt("lightID[" + std::to_string(i) + "]", lights[i].ID);
-            carafeShader.setVec3("lightDirection[" + std::to_string(i) + "]", lights[i].direction);
-            carafeShader.setVec3("lightPosition[" + std::to_string(i) + "]", lights[i].position);
-            carafeShader.setVec3("lightColor[" + std::to_string(i) + "]", lights[i].color);
+            carafeShader.setInt("lightID[" + std::to_string(i) + "]", i+1);
+            carafeShader.setVec3("lightDirection[" + std::to_string(i) + "]", lights[i].m_Direction);
+            carafeShader.setVec3("lightPosition[" + std::to_string(i) + "]", lights[i].m_Position);
+            carafeShader.setVec3("lightColor[" + std::to_string(i) + "]", lights[i].m_Color);
         }
 
         carafeShader.setVec3("viewPos", camera.Position);

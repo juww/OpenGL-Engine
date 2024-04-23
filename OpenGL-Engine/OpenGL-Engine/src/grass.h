@@ -42,7 +42,7 @@ public:
 		unsigned int vbo;
 		glGenBuffers(1, &vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		unsigned int sizeBuffer = N_VERTEX * SIZEPOSITION * SIZETEXCOORD * sizeof(float);
+        unsigned int sizeBuffer = N_VERTEX * (3 + 2) * sizeof(float);
 		glBufferData(GL_ARRAY_BUFFER, sizeBuffer, &vectices, GL_STATIC_DRAW);
 
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)0);

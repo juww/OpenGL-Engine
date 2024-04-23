@@ -2,7 +2,8 @@
 
 namespace GUI {
 
-    static terrainParam _tp(4, 27.9f, 4, 0.5f, 2.0f, {0.0f, 0.0f}, 5.0f);
+    static TerrainParam _tp(4, 27.9f, 4, 0.5f, 2.0f, {0.0f, 0.0f}, 5.0f);
+    static GrassParam _gp();
 
     void initialize(GLFWwindow* w) {
         IMGUI_CHECKVERSION();
@@ -70,26 +71,26 @@ namespace GUI {
 
         bool ret = false;
 
-        ImGui::DragInt("seed", &_tp.pSeed);
-        ImGui::DragFloat("scale", &_tp.pScale, 0.01f, 0.01f);
-        ImGui::DragInt("octaves", &_tp.pOctaves, 1, 1, 16);
-        ImGui::DragFloat("persistence", &_tp.pPersistence, 0.01f, 0.01f);
-        ImGui::DragFloat("lacunarity", &_tp.pLacunarity, 0.01f, 0.01f);
-        ImGui::DragFloat2("offset", _tp.pOffset, 0.01f);
-        ImGui::DragFloat("elevation", &_tp.pAmplitude, 0.1f, 0.01f);
+        ImGui::DragInt("seed", &_tp.m_Seed);
+        ImGui::DragFloat("scale", &_tp.m_Scale, 0.01f, 0.01f);
+        ImGui::DragInt("octaves", &_tp.m_Octaves, 1, 1, 16);
+        ImGui::DragFloat("persistence", &_tp.m_Persistence, 0.01f, 0.01f);
+        ImGui::DragFloat("lacunarity", &_tp.m_Lacunarity, 0.01f, 0.01f);
+        ImGui::DragFloat2("offset", _tp.m_Offset, 0.01f);
+        ImGui::DragFloat("elevation", &_tp.m_Amplitude, 0.1f, 0.01f);
 
-        if (_tp.pSeed != seed || _tp.pScale != scale || _tp.pOctaves != octaves || _tp.pPersistence != persistence || _tp.pLacunarity != lacunarity ||
-            _tp.pOffset[0] != offset.x || _tp.pOffset[1] != offset.y || _tp.pAmplitude != heightMultiplier) {
+        if (_tp.m_Seed != seed || _tp.m_Scale != scale || _tp.m_Octaves != octaves || _tp.m_Persistence != persistence || _tp.m_Lacunarity != lacunarity ||
+            _tp.m_Offset[0] != offset.x || _tp.m_Offset[1] != offset.y || _tp.m_Amplitude != heightMultiplier) {
             ret = true;
         }
 
-        seed = _tp.pSeed;
-        scale = _tp.pScale;
-        octaves = _tp.pOctaves;
-        persistence = _tp.pPersistence;
-        lacunarity = _tp.pLacunarity;
-        offset.x = _tp.pOffset[0]; offset.y = _tp.pOffset[1];
-        heightMultiplier = _tp.pAmplitude;
+        seed = _tp.m_Seed;
+        scale = _tp.m_Scale;
+        octaves = _tp.m_Octaves;
+        persistence = _tp.m_Persistence;
+        lacunarity = _tp.m_Lacunarity;
+        offset.x = _tp.m_Offset[0]; offset.y = _tp.m_Offset[1];
+        heightMultiplier = _tp.m_Amplitude;
 
         return ret;
     }

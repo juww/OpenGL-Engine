@@ -11,23 +11,37 @@
 namespace GUI {
 
     // procedural Terrain param
-    class terrainParam {
+    class TerrainParam {
     public:
-        int pSeed;
-        float pScale;
-        int pOctaves;
-        float pPersistence;
-        float pLacunarity;
-        glm::vec2 po;
-        float pOffset[2];
-        float pAmplitude;
-        terrainParam(const int seed, const float &scale, const int &octaves, const float &persistence, const float &lacunarity, const glm::vec2 offset, const float& amplitude) :
-            pSeed(seed), pScale(scale), pOctaves(octaves), pPersistence(persistence), pLacunarity(lacunarity), po(offset), pAmplitude(amplitude){
-            pOffset[0] = offset[0];
-            pOffset[1] = offset[1];
+        int m_Seed;
+        float m_Scale;
+        int m_Octaves;
+        float m_Persistence;
+        float m_Lacunarity;
+        glm::vec2 m_OffsetV;
+        float m_Offset[2];
+        float m_Amplitude;
+        TerrainParam(const int& seed, const float &scale, const int &octaves, const float &persistence, const float &lacunarity, const glm::vec2 offset, const float& amplitude) :
+            m_Seed(seed), m_Scale(scale), m_Octaves(octaves), m_Persistence(persistence), m_Lacunarity(lacunarity), m_OffsetV(offset), m_Amplitude(amplitude){
+            m_Offset[0] = offset[0];
+            m_Offset[1] = offset[1];
         }
 
-        ~terrainParam(){}
+        ~TerrainParam(){}
+    };
+
+    class GrassParam {
+    public:
+        float m_Frequency = 3.0f;
+        float m_Amplitude = 0.5f;
+        float m_Scale = 1.12f;
+        float m_Drop = 0.7f;
+        GrassParam(const float& f, const float& a, const float& s, const float& d) {
+            m_Frequency = f;
+            m_Amplitude = a;
+            m_Scale = s;
+            m_Drop = d;
+        }
     };
     
 

@@ -4,25 +4,32 @@
 
 #include <iostream>
 
-const unsigned int SCR_WIDTH = 1280;
-const unsigned int SCR_HEIGHT = 720;
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+// #define TINYGLTF_NOEXCEPTION // optional. disable exception handling.
+#include "tinyGLTF/tiny_gltf.h"
 Scene* Scene::instance = nullptr;
-/*
+
 bool cursorcb = true;
 bool updatecb = false;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-*/
+
 Scene::Scene() {
     m_Window = nullptr;
     m_Renderer = nullptr;
     m_Camera = nullptr;
 
-    m_LastX = SCR_WIDTH / 2.0f;
-    m_LastY = SCR_HEIGHT / 2.0f;
+    m_SceneWidth = 1280;
+    m_SceneHeight = 720;
+
+    m_LastX = m_SceneWidth / 2.0f;
+    m_LastY = m_SceneHeight / 2.0f;
     m_FirstMouse = true;
 
+    m_CurrentTime = 0.0f;
     m_DeltaTime = 0.0f;
     m_LastTime = 0.0f;
     m_FramePerSecond = 0.0f;
@@ -47,7 +54,7 @@ int Scene::setup() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    m_Window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    m_Window = glfwCreateWindow(m_SceneWidth, m_SceneHeight, "LearnOpenGL", NULL, NULL);
     if (m_Window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -56,11 +63,6 @@ int Scene::setup() {
     glfwMakeContextCurrent(m_Window);
 
     return 0;
-}
-
-void Scene::getRenderer() {
-    m_Renderer = Renderer::getInstance();
-    m_Camera = m_Renderer->getCamera();
 }
 
 int Scene::initGlad() {
@@ -72,33 +74,35 @@ int Scene::initGlad() {
 }
 
 void Scene::setGlfwCallbacks() {
-    //glfwSetFramebufferSizeCallback(m_Window, framebuffer_size_callback);
-    //glfwSetCursorPosCallback(m_Window, mouse_callback);
-    //glfwSetScrollCallback(m_Window, scroll_callback);
+    glfwSetFramebufferSizeCallback(m_Window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(m_Window, mouse_callback);
+    glfwSetScrollCallback(m_Window, scroll_callback);
 
     // tell GLFW to capture our mouse
     glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
-void Scene::configureGlobalState() {
-    glEnable(GL_DEPTH_TEST);
-    // glEnable(GL_FRAMEBUFFER_SRGB); // gamma correction 
+
+void Scene::getRenderer() {
+    m_Renderer = Renderer::getInstance();
+    m_Camera = m_Renderer->getCamera();
 }
 
-void Scene::updateFps() {
-    float currentTime = static_cast<float>(glfwGetTime());
-    m_FramePerSecond += 1.0f;
-    m_DeltaTime = currentTime - m_LastTime;
 
-    if (currentTime - m_PreviousFrameTime >= 1.0) {
+void Scene::updateFps() {
+    m_CurrentTime = static_cast<float>(glfwGetTime());
+    m_FramePerSecond += 1.0f;
+    m_DeltaTime = m_CurrentTime - m_LastTime;
+
+    if (m_CurrentTime - m_PreviousFrameTime >= 1.0) {
         printf("frame per second : %f\n", m_FramePerSecond);
         printf("%f ms\n", 1000.0f / m_FramePerSecond);
         printf("deltaTime = %f \n", m_DeltaTime);
         m_FramePerSecond = 0.0f;
-        m_PreviousFrameTime = currentTime;
-        //updatecb = true;
+        m_PreviousFrameTime = m_CurrentTime;
+        updatecb = true;
     }
-    m_LastTime = currentTime;
+    m_LastTime = m_CurrentTime;
 }
 
 int Scene::run() {
@@ -106,8 +110,9 @@ int Scene::run() {
     initGlad();
     setGlfwCallbacks();
     getRenderer();
-    configureGlobalState();
+    m_Renderer->start();
 
+    GUI::initialize(m_Window);
     m_PreviousFrameTime = static_cast<float>(glfwGetTime());
     while (!glfwWindowShouldClose(m_Window)) {
         updateFps();
@@ -115,9 +120,9 @@ int Scene::run() {
         processInput(m_Window);
 
         GUI::GUIFrame();
-        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        m_Camera->setAspect(m_SceneWidth, m_SceneHeight);
 
+        m_Renderer->render(m_CurrentTime);
 
         ImGui::End();
         GUI::renderUI();
@@ -156,19 +161,18 @@ void Scene::processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         m_Camera->ProcessKeyboard(DOWN, m_DeltaTime);
     if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
-        //if (!updatecb) return;
-        //updatecb = false;
-        //if (!cursorcb) {
-        //    cursorcb = true;
-        //    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        //}
-        //else {
-        //    cursorcb = false;
-        //    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        //}
+        if (!updatecb) return;
+        updatecb = false;
+        if (!cursorcb) {
+            cursorcb = true;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
+        else {
+            cursorcb = false;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
     }
 }
-/*
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
@@ -206,4 +210,3 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     Scene* scene = Scene::getInstance();
     scene->m_Camera->ProcessMouseScroll(static_cast<float>(yoffset));
 }
-*/

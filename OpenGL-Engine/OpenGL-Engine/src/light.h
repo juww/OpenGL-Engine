@@ -16,9 +16,11 @@ public:
 
     glm::vec3 m_Color;
 
+    Light();
+    ~Light();
     void setLight(const glm::vec3& direction, const glm::vec3& color = glm::vec3(1.0f));
     void setLight(const glm::vec3& position, const float& constant, const float& linear, const float& quadratic, const glm::vec3& color = glm::vec3(1.0f));
-
+    void setColor(glm::vec3 color);
 };
 
 #endif // LIGHT_H

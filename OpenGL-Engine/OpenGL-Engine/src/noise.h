@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "Perlin.h"
-#include "interpolate.h"
 
 const float MAX_VALUE = 3.40282347E+38F;
 const float MIN_VALUE = -3.40282347E+38F;

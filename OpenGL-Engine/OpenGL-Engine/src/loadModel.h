@@ -15,19 +15,7 @@
 
 #include "animator.h"
 
-#define BUFFER_OFFSET(i) ((char *)NULL + (i))
-
 const unsigned int INF = 4294967294U;
-std::map<std::string, int> vertexAttributeArray({ 
-	{"POSITION",0},
-	{"NORMAL",1},
-	{"TEXCOORD_0",2},
-	{"TANGENT",3},
-	{"COLOR_0",4},
-	{"JOINTS_0",5},
-	{"WEIGHTS_0",6},
-});
-
 struct MaterialModel {
 	bool flag;
 	glm::vec4 baseColor;
@@ -49,43 +37,6 @@ struct MaterialModel {
 
 	}
 };
-
-std::vector<std::pair<int, int> > vp;
-std::string nameNode[1000];
-
-GLenum glCheckError_(const char* file, int line)
-{
-	std::cout << "check error" << std::endl;
-	GLenum errorCode;
-	while ((errorCode = glGetError()) != GL_NO_ERROR)
-	{
-		std::string error;
-		switch (errorCode)
-		{
-		case GL_INVALID_ENUM:                  error = "INVALID_ENUM"; break;
-		case GL_INVALID_VALUE:                 error = "INVALID_VALUE"; break;
-		case GL_INVALID_OPERATION:             error = "INVALID_OPERATION"; break;
-		case GL_STACK_OVERFLOW:                error = "STACK_OVERFLOW"; break;
-		case GL_STACK_UNDERFLOW:               error = "STACK_UNDERFLOW"; break;
-		case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
-		case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
-		}
-		std::cout << error << " | " << file << " (" << line << ")" << std::endl;
-	}
-	return errorCode;
-}
-#define glCheckError() glCheckError_(__FILE__, __LINE__) 
-
-static float HexToFloat(unsigned char temp[]) {
-	uint32_t x = temp[3];
-	for (int i = 2; i >= 0; i--) x = (x << 8) | temp[i];
-	static_assert(sizeof(float) == sizeof(uint32_t), "Float and uint32_t size dont match. Check another int type");
-
-	float f{};
-	memcpy(&f, &x, sizeof(x));
-
-	return f;
-}
 
 class loadModel {
 public:
@@ -133,11 +84,15 @@ public:
 			return;
 		}
 		printf("Loaded glTF: %s\n", filename);
+
+        setDictAttribArray();
 		ret = loadScene();
 		ret = loadAnimation();
+
+        glBindVertexArray(0);
 	}
 
-	void update(Shader& shader, float deltaTime) {
+	void update(Shader* shader, float deltaTime) {
 
 		if(!animator.update(deltaTime)) return;
 
@@ -164,13 +119,13 @@ public:
 			globalTransform[i] = modelMatrices[joint] * globalTransform[i] * inverseMatrices[i];
 			//globalTransform[i] = glm::inverse(inverseMatrices[i]) * globalTransform[i];
 
-			shader.setMat4("boneTransform[" + std::to_string(i) + "]", globalTransform[i]);
+			shader->setMat4("boneTransform[" + std::to_string(i) + "]", globalTransform[i]);
 		}
 	}
 
-	void DrawModel(Shader &shader) {
+	void DrawModel(Shader *shader) {
 
-		shader.use();
+		shader->use();
 		int defaultScene = model.defaultScene < 0 ? 0 : model.defaultScene;
 		tinygltf::Scene& scene = model.scenes[defaultScene];
 		for (int node : scene.nodes) {
@@ -376,8 +331,8 @@ private:
 				continue;
 			}
 
-			auto vaa = vertexAttributeArray.find(attr.first);
-			if (vaa == vertexAttributeArray.end()) {
+			auto vaa = dictVertexAttributeArray.find(attr.first);
+			if (vaa == dictVertexAttributeArray.end()) {
 				std::cout << "attribute is not found!\n";
 				std::cout << attr.first << " " << attr.second << std::endl;
 				continue;
@@ -662,7 +617,7 @@ private:
 		return ret;
 	}
 
-	void drawMesh(int indx, Shader& shader) {
+	void drawMesh(int indx, Shader* shader) {
 		if (indx < 0 || indx >= (int)model.meshes.size()) {
 			return;
 		}
@@ -699,7 +654,7 @@ private:
 		glBindVertexArray(0);
 	}
 	
-	void drawNodes(int indx, Shader& shader) {
+	void drawNodes(int indx, Shader* shader) {
 		if (indx < 0 || indx >= (int)model.nodes.size()) {
 			return;
 		}
@@ -711,7 +666,7 @@ private:
 		mat = glm::rotate(mat, angle, rot);
 		mat = glm::scale(mat, scale);
 		 //std::cout << glm::to_string(mat) << "\n";
-		shader.setMat4("model", mat);	
+		shader->setMat4("model", mat);	
 
 		drawMesh(node.mesh, shader);
 
@@ -720,6 +675,56 @@ private:
 		}
 
 	}
+private:
+
+    std::vector<std::pair<int, int> > vp;
+    std::string nameNode[1000];
+
+    std::map<std::string, int> dictVertexAttributeArray;
+
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+    void setDictAttribArray() {
+        dictVertexAttributeArray["POSITION"] = 0;
+        dictVertexAttributeArray["NORMAL"] = 1;
+        dictVertexAttributeArray["TEXCOORD_0"] = 2;
+        dictVertexAttributeArray["TANGENT"] = 3;
+        dictVertexAttributeArray["COLOR_0"] = 4;
+        dictVertexAttributeArray["JOINTS_0"] = 5;
+        dictVertexAttributeArray["WEIGHTS_0"] = 6;
+    }
+    GLenum glCheckError_(const char* file, int line)
+    {
+        std::cout << "check error" << std::endl;
+        GLenum errorCode;
+        while ((errorCode = glGetError()) != GL_NO_ERROR)
+        {
+            std::string error;
+            switch (errorCode)
+            {
+            case GL_INVALID_ENUM:                  error = "INVALID_ENUM"; break;
+            case GL_INVALID_VALUE:                 error = "INVALID_VALUE"; break;
+            case GL_INVALID_OPERATION:             error = "INVALID_OPERATION"; break;
+            case GL_STACK_OVERFLOW:                error = "STACK_OVERFLOW"; break;
+            case GL_STACK_UNDERFLOW:               error = "STACK_UNDERFLOW"; break;
+            case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
+            case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
+            }
+            std::cout << error << " | " << file << " (" << line << ")" << std::endl;
+        }
+        return errorCode;
+    }
+#define glCheckError() glCheckError_(__FILE__, __LINE__) 
+
+    static float HexToFloat(unsigned char temp[]) {
+        uint32_t x = temp[3];
+        for (int i = 2; i >= 0; i--) x = (x << 8) | temp[i];
+        static_assert(sizeof(float) == sizeof(uint32_t), "Float and uint32_t size dont match. Check another int type");
+
+        float f{};
+        memcpy(&f, &x, sizeof(x));
+
+        return f;
+    }
 
 };
 

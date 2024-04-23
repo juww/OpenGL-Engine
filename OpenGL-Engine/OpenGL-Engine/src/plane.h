@@ -6,11 +6,11 @@
 #include <vector>
 #include <glad/glad.h>
 #include <queue>
+#include <map>
 
 #include "shader_m.h"
 #include "noise.h"
 #include "grass.h"
-#include "interpolate.h"
 
 const float PI = 3.14159265359;
 
@@ -126,7 +126,7 @@ public:
 		return result;
 	}
 
-	void initGrass(const int& density, Shader &shader) {
+	void initGrass(const int& density) {
 		grass.initialize(planeSize, planeSize, density);
 		
 	}
@@ -168,8 +168,8 @@ public:
 		grass.setPositionGrass(posOffset, rad);
 	}
 
-	void drawGrass(Shader &shader, const glm::mat4& view, const glm::mat4& projection, const float &_time, const float &F, const float &A, const float &scl, const float &drp) {
-		grass.draw(shader, view, projection, _time, F, A, scl, drp);
+	void drawGrass(Shader *shader, const glm::mat4& projection, const glm::mat4& view, const float &_time, const float &F, const float &A, const float &scl, const float &drp) {
+		grass.draw(shader, projection, view, _time, F, A, scl, drp);
 	}
 
 	void InitTerrainChunk(const int &chunksize, const float &visibleDistance, const glm::vec3 &cameraPos) {
@@ -231,34 +231,34 @@ public:
 		}
 	}
 
-	void setAllUniform(Shader& shader) {
-		shader.use();
+	void setAllUniform(Shader *shader) {
+		shader->use();
 
-		shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-		shader.setVec3("lightPos", glm::vec3(1.0f, 0.0f, 0.0f));
-		shader.setVec3("lightDirection", glm::vec3(-0.2f, -1.0f, -0.3f));
+		shader->setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+		shader->setVec3("lightPos", glm::vec3(1.0f, 0.0f, 0.0f));
+		shader->setVec3("lightDirection", glm::vec3(-0.2f, -1.0f, -0.3f));
 
-		shader.setInt("colorCount", terrains.size());
+		shader->setInt("colorCount", terrains.size());
 		for (int i = 0; i < terrains.size(); i++) {
-			shader.setVec3("baseColor[" + std::to_string(i) + "]", terrains[i].color);
-			shader.setFloat("colorStrength" +std::to_string(i) + "]", terrains[i].colorStrength);
-			shader.setFloat("baseStartHeight[" + std::to_string(i) + "]", terrains[i].height);
-			shader.setFloat("baseBlend[" + std::to_string(i) + "]", terrains[i].blend);
+			shader->setVec3("baseColor[" + std::to_string(i) + "]", terrains[i].color);
+			shader->setFloat("colorStrength" +std::to_string(i) + "]", terrains[i].colorStrength);
+			shader->setFloat("baseStartHeight[" + std::to_string(i) + "]", terrains[i].height);
+			shader->setFloat("baseBlend[" + std::to_string(i) + "]", terrains[i].blend);
 		}
 		loadSpriteTexture(512, 512, terrains.size(), 1);
-		shader.setInt("spriteTextures", 0);
+		shader->setInt("spriteTextures", 0);
 	}
 
-	void draw(Shader& shader, const glm::mat4& projection, const glm::mat4& view, const int &np, const glm::vec3 &cameraPos) {
+	void draw(Shader* shader, const glm::mat4& projection, const glm::mat4& view) {
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		shader.use();
-		shader.setMat4("projection", projection);
-		shader.setMat4("view", view);
-		shader.setFloat("length", np + 1);
+		shader->use();
+		shader->setMat4("projection", projection);
+		shader->setMat4("view", view);
+		shader->setFloat("length", planeSize + 1);
 
-		shader.setFloat("minHeight", minHeight);
-		shader.setFloat("maxHeight", maxHeight);
+		shader->setFloat("minHeight", minHeight);
+		shader->setFloat("maxHeight", maxHeight);
 
 		while (!queueDraw.empty()) {
 			int indx = queueDraw.front();
@@ -271,7 +271,7 @@ public:
 				glBindTexture(GL_TEXTURE_2D_ARRAY, spriteTextures);
 				glm::mat4 model(1.0f);
 				model = glm::translate(model, tc.pos);
-				shader.setMat4("model", model);
+				shader->setMat4("model", model);
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 				glDrawElements(GL_TRIANGLE_STRIP, indicesCount, componentType, (void*)(0));
 			}

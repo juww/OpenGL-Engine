@@ -13,10 +13,14 @@ public:
     static Scene* getInstance();
     int run();
 
+    unsigned int m_SceneWidth;
+    unsigned int m_SceneHeight;
+
     float m_LastX, m_LastY;
     bool m_FirstMouse;
 
     Camera* m_Camera;
+    float m_CurrentTime;
     float m_DeltaTime;
     float m_LastTime;
     float m_PreviousFrameTime;
@@ -33,7 +37,6 @@ private:
     int initGlad();
     void getRenderer();
     void setGlfwCallbacks();
-    void configureGlobalState();
     void updateFps();
 
     void processInput(GLFWwindow* window);

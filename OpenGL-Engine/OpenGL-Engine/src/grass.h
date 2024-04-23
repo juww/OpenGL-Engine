@@ -8,30 +8,8 @@
 
 #include "shader_m.h"
 
-const int N_VERTEX = 15;
-const int SIZEPOSITION = 3;
-const int SIZETEXCOORD = 2;
-
 class Grass {
 public:
-	const float vectices[N_VERTEX * SIZEPOSITION * SIZETEXCOORD] = {
-		// position				texcoord
-		0.012f, 0.000f, 0.000f, 0.400f, 1.000f,
-		0.088f, 0.000f, 0.000f, 0.500f, 1.000f,
-		0.013f, 0.100f, 0.000f, 0.400f, 0.900f,
-		0.087f, 0.100f, 0.000f, 0.500f, 0.900f,
-		0.016f, 0.187f, 0.000f, 0.400f, 0.800f,
-		0.084f, 0.187f, 0.000f, 0.500f, 0.800f,
-		0.021f, 0.264f, 0.000f, 0.400f, 0.700f,
-		0.079f, 0.264f, 0.000f, 0.500f, 0.700f,
-		0.025f, 0.336f, 0.000f, 0.400f, 0.600f,
-		0.075f, 0.336f, 0.000f, 0.500f, 0.600f,
-		0.031f, 0.394f, 0.000f, 0.400f, 0.500f,
-		0.068f, 0.394f, 0.000f, 0.500f, 0.500f,
-		0.038f, 0.440f, 0.000f, 0.400f, 0.400f,
-		0.061f, 0.440f, 0.000f, 0.500f, 0.400f,
-		0.050f, 0.485f, 0.000f, 0.450f, 0.300f,
-	};
 	glm::vec3 pos, rot, scale;
 	glm::mat4 model;
 	unsigned int vao = 0, ebo = 0;
@@ -76,7 +54,7 @@ public:
 		glBindVertexArray(0);
 	}
 
-	void generateNoiseMap(Shader &shader, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset) {
+	void generateNoiseMap(Shader *shader, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset) {
 
 		if (noiseTex != 0) {
 			glDeleteTextures(1, &noiseTex);
@@ -102,8 +80,8 @@ public:
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_FLOAT, &noiseMap.at(0));
 		glGenerateMipmap(GL_TEXTURE_2D);
 
-		shader.use();
-		shader.setInt("noiseMap", 0);
+		shader->use();
+		shader->setInt("noiseMap", 0);
 	}
 
 	void setPositionGrass(const std::vector<glm::vec3>& posOffset, const std::vector<float> &rad) {
@@ -139,20 +117,20 @@ public:
 
 	}
 
-	void draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, const float &_time, const float &F, const float &A, const float &scl, const float &drp) {
+	void draw(Shader* shader, const glm::mat4& projection, const glm::mat4& view, const float &_time, const float &F, const float &A, const float &scl, const float &drp) {
 
-		shader.use();
+		shader->use();
 		
-		shader.setMat4("model", model);
-		shader.setMat4("view", view);
-		shader.setMat4("projection", projection);
-		shader.setFloat("halfOffset", float(width) / 2.0f + 0.5f);
-		shader.setFloat("deltaTime", _time);
-		shader.setFloat("length", width);
-		shader.setFloat("frequency", F);
-		shader.setFloat("amplitude", A);
-		shader.setFloat("_scale", scl);
-		shader.setFloat("_droop", drp);
+		shader->setMat4("model", model);
+		shader->setMat4("projection", projection);
+		shader->setMat4("view", view);
+		shader->setFloat("halfOffset", float(width) / 2.0f + 0.5f);
+		shader->setFloat("deltaTime", _time);
+		shader->setFloat("length", width);
+		shader->setFloat("frequency", F);
+		shader->setFloat("amplitude", A);
+		shader->setFloat("_scale", scl);
+		shader->setFloat("_droop", drp);
 
 		glBindVertexArray(vao);
 		glActiveTexture(GL_TEXTURE0);
@@ -162,6 +140,26 @@ public:
 
 		glBindVertexArray(0);
 	}
+private:
+    static const int N_VERTEX = 15;
+    const float vectices[N_VERTEX * (3 + 2)] = {
+        // position				texcoord
+        0.012f, 0.000f, 0.000f, 0.400f, 1.000f,
+        0.088f, 0.000f, 0.000f, 0.500f, 1.000f,
+        0.013f, 0.100f, 0.000f, 0.400f, 0.900f,
+        0.087f, 0.100f, 0.000f, 0.500f, 0.900f,
+        0.016f, 0.187f, 0.000f, 0.400f, 0.800f,
+        0.084f, 0.187f, 0.000f, 0.500f, 0.800f,
+        0.021f, 0.264f, 0.000f, 0.400f, 0.700f,
+        0.079f, 0.264f, 0.000f, 0.500f, 0.700f,
+        0.025f, 0.336f, 0.000f, 0.400f, 0.600f,
+        0.075f, 0.336f, 0.000f, 0.500f, 0.600f,
+        0.031f, 0.394f, 0.000f, 0.400f, 0.500f,
+        0.068f, 0.394f, 0.000f, 0.500f, 0.500f,
+        0.038f, 0.440f, 0.000f, 0.400f, 0.400f,
+        0.061f, 0.440f, 0.000f, 0.500f, 0.400f,
+        0.050f, 0.485f, 0.000f, 0.450f, 0.300f,
+    };
 };
 
 #endif

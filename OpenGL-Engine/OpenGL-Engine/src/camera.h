@@ -24,7 +24,7 @@ const float PITCH = 0.0f;
 const float SPEED = 2.5f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
-
+const float ASPECT = 1.7778f;
 
 // An abstract camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
 class Camera
@@ -43,9 +43,10 @@ public:
     float MovementSpeed;
     float MouseSensitivity;
     float Zoom;
+    float Aspect;
 
     // constructor with vectors
-    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
+    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM), Aspect(ASPECT)
     {
         Position = position;
         WorldUp = up;
@@ -61,6 +62,10 @@ public:
         Yaw = yaw;
         Pitch = pitch;
         updateCameraVectors();
+    }
+
+    void setAspect(const float& p_width, const float& p_height) {
+        Aspect = p_width / p_height;
     }
 
     // returns the view matrix calculated using Euler Angles and the LookAt Matrix

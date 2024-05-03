@@ -54,6 +54,7 @@ void Renderer::setupShaders() {
     m_GrassShader = new Shader("grass.vs", "grass.fs");
     m_LightCubeShader = new Shader("light_cube.vs", "light_cube.fs");
     m_SkyboxShader = new Shader("skybox.vs", "skybox.fs");
+    m_WaterShader = new Shader("water.vs", "water.fs");
     // planeShader.setTessellationShader("TessellationControlShader.tcs", "TessellationEvaluationShader.tes");
     //Shader skeletalModel("skeletal.vs", "skeletal.fs", "skeletal.gs");
 }
@@ -83,6 +84,9 @@ void Renderer::start() {
     m_LightCube->initialize();
 
     m_Skybox = new Skybox();
+
+    m_Water = new Water();
+    m_Water->initialize(32, 32);
 }
 //nanti dipindahin ke class model
 
@@ -127,4 +131,6 @@ void Renderer::render(float currentTime) {
     m_LightCube->draw(m_LightCubeShader, projection, view);
 
     m_Skybox->draw(m_SkyboxShader, projection, glm::mat4(glm::mat3(m_Camera->GetViewMatrix())));
+
+    m_Water->draw(m_WaterShader, projection, view, currentTime);
 }

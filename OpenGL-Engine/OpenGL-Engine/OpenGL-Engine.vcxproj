@@ -155,6 +155,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\renderer.cpp" />
     <ClCompile Include="src\scene.cpp" />
+    <ClCompile Include="src\water.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\animator.h" />
@@ -181,6 +182,7 @@
     <ClInclude Include="src\scene.h" />
     <ClInclude Include="src\shader_m.h" />
     <ClInclude Include="src\skybox.h" />
+    <ClInclude Include="src\water.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\shader\cube.fs" />
@@ -202,6 +204,8 @@
     <None Include="src\shader\skybox.vs" />
     <None Include="src\shader\TessellationControlShader.tcs" />
     <None Include="src\shader\TessellationEvaluationShader.tes" />
+    <None Include="src\shader\water.fs" />
+    <None Include="src\shader\water.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

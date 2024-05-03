@@ -9,6 +9,7 @@
 
 #include "cube.h"
 #include "plane.h"
+#include "water.h"
 
 #include <vector>
 #include <map>
@@ -33,12 +34,14 @@ private:
     Skybox* m_Skybox;
     Plane* m_Plane;
     Cube* m_LightCube;
+    Water* m_Water;
 
     Shader* m_ModelShader;
     Shader* m_GrassShader;
     Shader* m_PlaneShader;
     Shader* m_LightCubeShader;
     Shader* m_SkyboxShader;
+    Shader* m_WaterShader;
 
     void configureGlobalState();
     void setupLights();

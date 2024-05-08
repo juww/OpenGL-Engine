@@ -6,9 +6,10 @@ Renderer* Renderer::instance = nullptr;
 
 GUI::TerrainParam tp(4, 27.9f, 4, 0.5f, 2.0f, {0.0f, 0.0f}, 5.0f);
 GUI::GrassParam gp(3.0f, 0.5f, 1.12f, 0.7f);
+GUI::WaterParam wp(1.0f, 1.0f, 1.0f, 0.0f, 1234.0f, 1);
 
 Renderer::Renderer() {
-    m_Camera = new Camera(glm::vec3(0.0f, 0.0f, 5.0f));
+    m_Camera = new Camera(glm::vec3(0.0f, 10.0f, 5.0f));
     m_Lights.clear();
     m_Shaders.clear();
     m_Skybox = new Skybox();
@@ -86,7 +87,7 @@ void Renderer::start() {
     m_Skybox = new Skybox();
 
     m_Water = new Water();
-    m_Water->initialize(32, 32);
+    m_Water->initialize(256, 256);
 }
 //nanti dipindahin ke class model
 
@@ -130,7 +131,11 @@ void Renderer::render(float currentTime) {
 
     m_LightCube->draw(m_LightCubeShader, projection, view);
 
+    GUI::waterParam(wp.m_Amplitude, wp.m_Frequency, wp.m_Speed, wp.m_WaveCount);
+
+    m_Water->setParameter(m_WaterShader, wp.m_Amplitude, wp.m_Frequency, currentTime, wp.m_Speed, wp.m_Seed, wp.m_SeedIter, wp.m_WaveCount, m_Camera->Position);
+    m_Water->draw(m_WaterShader, projection, view);
+
     m_Skybox->draw(m_SkyboxShader, projection, glm::mat4(glm::mat3(m_Camera->GetViewMatrix())));
 
-    m_Water->draw(m_WaterShader, projection, view, currentTime);
 }

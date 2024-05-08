@@ -10,16 +10,68 @@ uniform float _amplitude;
 uniform float _frequency;
 uniform float _time;
 uniform float _speed;
+uniform float _seed;
+uniform float _iter;
+uniform int _waveCount;
 
 out vec3 FragPos;
+out vec3 Normal;
+
+vec4 calculateWave(vec3 v) {
+    float h = 0.0f;
+    float sumdx = 0.0f;
+    float sumdz = 0.0f;
+    float a = 1.0f;
+    float sumAmp = 0.0f;
+    float f = 1.0f;
+    float s = _speed;
+    float seed = 0.0f;
+    vec2 norm = vec2(0.0f);
+    for(int i = 0; i < _waveCount; i++) {
+        vec2 d = vec2(cos(seed),sin(seed));
+        d= normalize(d);
+        float xz = dot(d,v.xz);
+
+        float dirx = dot(vec2(d.x, 0), v.xz);
+        float dirz = dot(vec2(0, d.y), v.xz);
+
+        float w = a * sin((xz * f) + (_time * s));
+        float eulerWave = exp(w - 1);
+
+        float dx = dirx * f * a * cos((xz * f) + (_time * s)) * eulerWave;
+        float dz = dirz * f * a * cos((xz * f) + (_time * s)) * eulerWave;
+        vec2 derivative = d * f * a * cos((xz * f) + (_time * s)) * eulerWave;
+
+
+        s *= 1.07;
+
+        h += eulerWave;
+        norm += derivative;
+        sumdx += dx;
+        sumdz += dz;
+
+        sumAmp += a;
+        a *= _amplitude;
+        f *= _frequency;
+        seed += 4.3;
+    }
+    
+    vec3 Tangent = vec3(1,sumdx,0);
+    vec3 BiNormal = vec3(0,sumdz,1);
+    vec3 Norm = cross(Tangent, BiNormal);
+    Norm = normalize(Norm);
+    vec4 ret = vec4(Norm.xyz, h);
+    return ret;
+}
 
 void main () {
     
     FragPos = vec3(model * vec4(aPos, 1.0));
-    FragPos.y += sin(((aPos.x + aPos.z) * _frequency) + (_time * _speed)) * _amplitude;
-    FragPos.y += sin(((aPos.x + aPos.z) * (_frequency * 1.5)) + (_time * _speed)) * (_amplitude * 0.7);
-    FragPos.y += sin(((aPos.x) * (_frequency * 1.1)) + (_time * _speed * 0.5)) * (_amplitude * 0.5);
-    FragPos.y += sin(((aPos.z) * (_frequency * 1.7)) + (_time * _speed * 0.6)) * (_amplitude);
+
+    vec4 res = calculateWave(FragPos);
+
+    FragPos.y += res.w;
+    Normal = vec3(res.xyz);
 
     gl_Position = projection * view * vec4(FragPos, 1.0);
 }

@@ -23,7 +23,8 @@ public:
     ~Water();
 
     void update();
-    void draw(Shader *shader, glm::mat4 projection, glm::mat4 view, const float &currentTime);
+    void setParameter(Shader* shader, float& _a, float& _f, float& _t, float& _s, float &seed, float &iter, int &waveCount, glm::vec3& cameraPos);
+    void draw(Shader *shader, glm::mat4 projection, glm::mat4 view);
 
     void initialize(const int& width, const int & height);
     

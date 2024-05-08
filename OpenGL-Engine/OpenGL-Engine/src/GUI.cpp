@@ -102,6 +102,13 @@ namespace GUI {
         ImGui::DragFloat("_Droop", &drop, 0.01f, 0.01f);
     }
 
+    void waterParam(float& a, float& f, float& s, int& waveCount) {
+        ImGui::DragFloat("waterAmplitude", &a, 0.01f, 0.0f,1.0f);
+        ImGui::DragFloat("waterFrequency", &f, 0.01f, 1.0f);
+        ImGui::DragFloat("waterSpeed", &s, 0.01f, 0.01f);
+        ImGui::DragInt("WaterWaveCount", &waveCount);
+    }
+
     void renderUI() {
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

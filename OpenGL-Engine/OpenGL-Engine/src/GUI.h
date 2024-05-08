@@ -44,6 +44,24 @@ namespace GUI {
         }
     };
     
+    class WaterParam {
+    public:
+        float m_Frequency = 1.0f;
+        float m_Amplitude = 1.0f;
+        float m_Speed = 1.0f;
+        float m_Seed = 1;
+        float m_SeedIter = 1234.0f;
+        int m_WaveCount = 1;
+
+        WaterParam(const float &f, const float &a, const float &s, const float &seed, const float &iter, const int& waveCount) {
+            m_Frequency = f;
+            m_Amplitude = a;
+            m_Speed = s;
+            m_Seed = seed;
+            m_SeedIter = iter;
+            m_WaveCount = waveCount;
+        }
+    };
 
     void initialize(GLFWwindow* w);
     void GUIFrame();
@@ -52,6 +70,9 @@ namespace GUI {
     void modelAnimation(int animation, int n);
     bool proceduralTerrainParam(int& seed, float& scale, int& octaves, float& persistence, float& lacunarity, glm::vec2& offset, float& heightMultiplier);
     void grassParam(float& frequency, float& amplitude, float& scale, float& drop);
+
+    //water
+    void waterParam(float& a, float& f, float& s, int &waveCount);
     void renderUI();
     void shutDown();
 };

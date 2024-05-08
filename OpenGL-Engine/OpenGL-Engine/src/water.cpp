@@ -10,8 +10,9 @@ Water::~Water() {
 
 void Water::initialize(const int& width, const int& height) {
     m_Model = glm::mat4(1.0f);
-    m_Model = glm::translate(m_Model, { 5.0,0.0,0.0 });
-
+    m_Model = glm::translate(m_Model, { -width * 0.25f, 10.0, -height * 0.25f});
+    m_Model = glm::scale(m_Model, glm::vec3(0.25));
+    
     m_Width = width;
     m_Height = height;
 
@@ -25,7 +26,20 @@ void Water::initialize(const int& width, const int& height) {
     glBindVertexArray(0);
 }
 
-void Water::draw(Shader* shader, glm::mat4 projection, glm::mat4 view, const float &_time) {
+void Water::setParameter(Shader *shader, float& _a, float& _f, float& _t, float& _s, float& seed, float& iter, int& waveCount, glm::vec3 &cameraPos) {
+    shader->use();
+    shader->setFloat("_amplitude", _a);
+    shader->setFloat("_frequency", 2.0f/_f);
+    shader->setFloat("_time", _t);
+    shader->setFloat("_speed", _s);
+    shader->setFloat("_seed", seed);
+    shader->setFloat("_iter", 1.234f);
+    shader->setInt("_waveCount", waveCount);
+    shader->setVec3("lightDirection", glm::vec3(-0.2f, -1.0f, -0.3f));
+    shader->setVec3("viewPos", cameraPos);
+}
+
+void Water::draw(Shader* shader, glm::mat4 projection, glm::mat4 view) {
 
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     shader->use();
@@ -33,10 +47,6 @@ void Water::draw(Shader* shader, glm::mat4 projection, glm::mat4 view, const flo
     shader->setMat4("model", m_Model);
     shader->setMat4("projection", projection);
     shader->setMat4("view", view);
-    shader->setFloat("_amplitude", 1.0f);
-    shader->setFloat("_frequency", 2 / 3.0f);
-    shader->setFloat("_time", _time);
-    shader->setFloat("_speed", 2.0f);
 
     glBindVertexArray(m_Vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_Ebo);

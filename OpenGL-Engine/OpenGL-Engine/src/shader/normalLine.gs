@@ -1,31 +1,24 @@
 #version 430 core
 
-layout (triangles) in;
-layout (line_strip, max_vertices = 6) out;
+layout (points) in;
+layout (line_strip, max_vertices = 2) out;
 
-in geom_data {
-	vec3 Normal;
-	vec2 texCoord;
-	mat4 projection;
-} data_in[];
+in VS_OUT {
+    vec3 FragPos;
+    vec3 Normal;
+} vs_in[];
+
+uniform mat4 projection;
+
+out vec3 FragPos;
+out vec3 Normal;
 
 void main()
 {
-    gl_Position = gl_in[0].gl_Position;
+    gl_Position = projection * gl_in[0].gl_Position;
     EmitVertex();
-    gl_Position = (gl_in[0].gl_Position + 1.0f * vec4(data_in[0].Normal, 0.0f));
-    EmitVertex();
-    EndPrimitive();
-
-    gl_Position = gl_in[1].gl_Position;
-    EmitVertex();
-    gl_Position = (gl_in[1].gl_Position + 1.0f * vec4(data_in[1].Normal, 0.0f));
+    gl_Position = projection * (gl_in[0].gl_Position + 0.5f * vec4(vs_in[0].Normal, 0.0f));
     EmitVertex();
     EndPrimitive();
 
-    gl_Position = gl_in[2].gl_Position;
-    EmitVertex();
-    gl_Position = (gl_in[2].gl_Position + 1.0f * vec4(data_in[2].Normal, 0.0f));
-    EmitVertex();
-    EndPrimitive();
 }

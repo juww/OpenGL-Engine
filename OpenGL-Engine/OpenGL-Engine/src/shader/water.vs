@@ -19,59 +19,56 @@ out vec3 Normal;
 
 vec4 calculateWave(vec3 v) {
     float h = 0.0f;
-    float sumdx = 0.0f;
-    float sumdz = 0.0f;
     float a = 1.0f;
     float sumAmp = 0.0f;
     float f = 1.0f;
     float s = _speed;
     float seed = 0.0f;
-    vec2 norm = vec2(0.0f);
+    vec2 sumDeriv = vec2(0.0f);
+    vec2 p = vec2(v.xz);
     for(int i = 0; i < _waveCount; i++) {
         vec2 d = vec2(cos(seed),sin(seed));
-        d= normalize(d);
-        float xz = dot(d,v.xz);
-
-        float dirx = dot(vec2(d.x, 0), v.xz);
-        float dirz = dot(vec2(0, d.y), v.xz);
+        d = normalize(d);
+        float xz = dot(d, p);
 
         float w = a * sin((xz * f) + (_time * s));
         float eulerWave = exp(w - 1);
 
-        float dx = dirx * f * a * cos((xz * f) + (_time * s)) * eulerWave;
-        float dz = dirz * f * a * cos((xz * f) + (_time * s)) * eulerWave;
         vec2 derivative = d * f * a * cos((xz * f) + (_time * s)) * eulerWave;
 
+        p+= -derivative.x * d * a * 0.5;
 
-        s *= 1.07;
 
         h += eulerWave;
-        norm += derivative;
-        sumdx += dx;
-        sumdz += dz;
+        sumDeriv += derivative;
 
         sumAmp += a;
         a *= _amplitude;
         f *= _frequency;
+        s *= 1.07;
         seed += 4.3;
     }
-    
-    vec3 Tangent = vec3(1,sumdx,0);
-    vec3 BiNormal = vec3(0,sumdz,1);
+    vec3 Tangent = vec3(1,sumDeriv.x/ sumAmp,0);
+    vec3 BiNormal = vec3(0,sumDeriv.y/ sumAmp,1);
     vec3 Norm = cross(Tangent, BiNormal);
-    Norm = normalize(Norm);
-    vec4 ret = vec4(Norm.xyz, h);
+    
+    Norm = normalize(-Norm);
+    vec4 ret = vec4(Norm.xyz, h / sumAmp);
     return ret;
 }
 
 void main () {
     
-    FragPos = vec3(model * vec4(aPos, 1.0));
+    vec3 pos = aPos;
+    vec4 res = calculateWave(pos);
 
-    vec4 res = calculateWave(FragPos);
+    pos.y += res.w;
 
-    FragPos.y += res.w;
     Normal = vec3(res.xyz);
+    mat4 normalMatrix = transpose(inverse(view * model));
+    vec4 norm = normalMatrix * vec4(Normal, 1.0);
 
-    gl_Position = projection * view * vec4(FragPos, 1.0);
+    Normal = vec3(normalize(norm));
+    FragPos = vec3(model * vec4(pos, 1.0));
+    gl_Position = projection * view * model * vec4(pos, 1.0);
 }

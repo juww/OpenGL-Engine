@@ -43,6 +43,8 @@ private:
     Shader* m_SkyboxShader;
     Shader* m_WaterShader;
 
+    Shader* m_NormalLineShader;
+
     void configureGlobalState();
     void setupLights();
     void setupShaders();

@@ -10,8 +10,8 @@ Water::~Water() {
 
 void Water::initialize(const int& width, const int& height) {
     m_Model = glm::mat4(1.0f);
-    m_Model = glm::translate(m_Model, { -width * 0.25f, 10.0, -height * 0.25f});
-    m_Model = glm::scale(m_Model, glm::vec3(0.25));
+    //m_Model = glm::scale(m_Model, glm::vec3(0.1));
+    m_Model = glm::translate(m_Model, { -width / 64.0f, 10.0, -height / 64.0f});
     
     m_Width = width;
     m_Height = height;
@@ -35,9 +35,10 @@ void Water::setParameter(Shader *shader, float& _a, float& _f, float& _t, float&
     shader->setFloat("_seed", seed);
     shader->setFloat("_iter", 1.234f);
     shader->setInt("_waveCount", waveCount);
-    shader->setVec3("lightDirection", glm::vec3(-0.2f, -1.0f, -0.3f));
+    shader->setVec3("lightDirection", glm::vec3(-1.0f, -1.0f, -1.0f));
     shader->setVec3("viewPos", cameraPos);
 }
+
 
 void Water::draw(Shader* shader, glm::mat4 projection, glm::mat4 view) {
 
@@ -56,6 +57,25 @@ void Water::draw(Shader* shader, glm::mat4 projection, glm::mat4 view) {
 
     //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
+
+void Water::drawNormalLine(Shader* shader, glm::mat4 projection, glm::mat4 view) {
+
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    shader->use();
+
+    shader->setMat4("model", m_Model);
+    shader->setMat4("projection", projection);
+    shader->setMat4("view", view);
+
+    glBindVertexArray(m_Vao);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_Ebo);
+    glDrawElements(GL_POINTS, m_Indices.size(), GL_UNSIGNED_INT, (void*)0);
+
+    glBindVertexArray(0);
+
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
 
 void Water::setupIndexMap() {
     m_IndexMap.clear();
@@ -97,12 +117,11 @@ void Water::setupVectices() {
             m_Vertices.push_back(glm::vec3(j - 1, 0.0, i));
             if (j == 0) {
                 m_Vertices[m_Vertices.size() - 1].x = j;
-                continue;
             }
             if (j == m_Width + 1) {
                 m_Vertices[m_Vertices.size() - 1] = glm::vec3(j - 2, 0.0, i + 1);
-                continue;
             }
+            m_Vertices[m_Vertices.size() - 1] = m_Vertices[m_Vertices.size() - 1] / 32.0f;
         }
     }
     unsigned int vbo;

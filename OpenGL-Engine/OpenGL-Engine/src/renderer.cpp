@@ -56,6 +56,8 @@ void Renderer::setupShaders() {
     m_LightCubeShader = new Shader("light_cube.vs", "light_cube.fs");
     m_SkyboxShader = new Shader("skybox.vs", "skybox.fs");
     m_WaterShader = new Shader("water.vs", "water.fs");
+
+    m_NormalLineShader = new Shader("normalLine.vs", "normalLine.fs", "normalLine.gs");
     // planeShader.setTessellationShader("TessellationControlShader.tcs", "TessellationEvaluationShader.tes");
     //Shader skeletalModel("skeletal.vs", "skeletal.fs", "skeletal.gs");
 }
@@ -84,10 +86,11 @@ void Renderer::start() {
     m_LightCube = new Cube();
     m_LightCube->initialize();
 
+    m_Water = new Water();
+    m_Water->initialize(1024, 1024);
+
     m_Skybox = new Skybox();
 
-    m_Water = new Water();
-    m_Water->initialize(256, 256);
 }
 //nanti dipindahin ke class model
 

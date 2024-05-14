@@ -6,7 +6,7 @@ Renderer* Renderer::instance = nullptr;
 
 GUI::TerrainParam tp(4, 27.9f, 4, 0.5f, 2.0f, {0.0f, 0.0f}, 5.0f);
 GUI::GrassParam gp(3.0f, 0.5f, 1.12f, 0.7f);
-GUI::WaterParam wp(1.0f, 1.0f, 1.0f, 0.0f, 1234.0f, 1);
+GUI::WaterParam wp(1.73f, 0.83f, 2.0f, 0.0f, 4.3f, 32);
 
 Renderer::Renderer() {
     m_Camera = new Camera(glm::vec3(0.0f, 10.0f, 5.0f));
@@ -15,6 +15,8 @@ Renderer::Renderer() {
     m_Skybox = new Skybox();
     m_Plane = nullptr;
     m_LightCube = nullptr;
+
+    FBManager = FBManager->getInstance();
 }
 
 Renderer::~Renderer() {
@@ -87,7 +89,7 @@ void Renderer::start() {
     m_LightCube->initialize();
 
     m_Water = new Water();
-    m_Water->initialize(1024, 1024);
+    m_Water->initialize(1024, 1024, 8.0f);
 
     m_Skybox = new Skybox();
 

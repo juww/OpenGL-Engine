@@ -8,13 +8,14 @@ Water::~Water() {
 
 }
 
-void Water::initialize(const int& width, const int& height) {
+void Water::initialize(const int& width, const int& height, const float& scale) {
     m_Model = glm::mat4(1.0f);
     //m_Model = glm::scale(m_Model, glm::vec3(0.1));
-    m_Model = glm::translate(m_Model, { -width / 64.0f, 10.0, -height / 64.0f});
+    m_Model = glm::translate(m_Model, { -width / (scale * 2.0f), 5.0f, -height / (scale * 2.0f) });
     
     m_Width = width;
     m_Height = height;
+    m_Scale = scale;
 
     glGenVertexArrays(1, &m_Vao);
     glBindVertexArray(m_Vao);
@@ -35,7 +36,7 @@ void Water::setParameter(Shader *shader, float& _a, float& _f, float& _t, float&
     shader->setFloat("_seed", seed);
     shader->setFloat("_iter", 1.234f);
     shader->setInt("_waveCount", waveCount);
-    shader->setVec3("lightDirection", glm::vec3(-1.0f, -1.0f, -1.0f));
+    shader->setVec3("lightDirection", glm::vec3(1.0f, -1.0f, 1.0f));
     shader->setVec3("viewPos", cameraPos);
 }
 
@@ -60,7 +61,6 @@ void Water::draw(Shader* shader, glm::mat4 projection, glm::mat4 view) {
 
 void Water::drawNormalLine(Shader* shader, glm::mat4 projection, glm::mat4 view) {
 
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     shader->use();
 
     shader->setMat4("model", m_Model);
@@ -73,7 +73,6 @@ void Water::drawNormalLine(Shader* shader, glm::mat4 projection, glm::mat4 view)
 
     glBindVertexArray(0);
 
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 
@@ -121,7 +120,7 @@ void Water::setupVectices() {
             if (j == m_Width + 1) {
                 m_Vertices[m_Vertices.size() - 1] = glm::vec3(j - 2, 0.0, i + 1);
             }
-            m_Vertices[m_Vertices.size() - 1] = m_Vertices[m_Vertices.size() - 1] / 32.0f;
+            m_Vertices[m_Vertices.size() - 1] = m_Vertices[m_Vertices.size() - 1] / m_Scale;
         }
     }
     unsigned int vbo;

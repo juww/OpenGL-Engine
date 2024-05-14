@@ -143,6 +143,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="external\glad\src\glad.c" />
+    <ClCompile Include="src\FramebufferManager.cpp" />
     <ClCompile Include="src\GUI.cpp" />
     <ClCompile Include="src\imGui\imgui.cpp" />
     <ClCompile Include="src\imGui\imgui_demo.cpp" />
@@ -161,6 +162,7 @@
     <ClInclude Include="src\animator.h" />
     <ClInclude Include="src\camera.h" />
     <ClInclude Include="src\cube.h" />
+    <ClInclude Include="src\FramebufferManager.h" />
     <ClInclude Include="src\grass.h" />
     <ClInclude Include="src\GUI.h" />
     <ClInclude Include="src\imGui\imconfig.h" />

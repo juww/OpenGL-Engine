@@ -18,6 +18,7 @@ public:
 
     glm::mat4 m_Model;
     int m_Width, m_Height;
+    float m_Scale;
 
     Water();
     ~Water();
@@ -27,7 +28,7 @@ public:
     void draw(Shader *shader, glm::mat4 projection, glm::mat4 view);
     void drawNormalLine(Shader* shader, glm::mat4 projection, glm::mat4 view);
 
-    void initialize(const int& width, const int & height);
+    void initialize(const int& width, const int& height, const float& scale);
     
 private:
 

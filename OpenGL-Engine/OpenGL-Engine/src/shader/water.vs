@@ -36,7 +36,7 @@ vec4 calculateWave(vec3 v) {
 
         vec2 derivative = d * f * a * cos((xz * f) + (_time * s)) * eulerWave;
 
-        p+= -derivative.x * d * a * 0.5;
+        p += -derivative.x * d * a * 0.5;
 
 
         h += eulerWave;
@@ -48,11 +48,11 @@ vec4 calculateWave(vec3 v) {
         s *= 1.07;
         seed += 4.3;
     }
-    vec3 Tangent = vec3(1,sumDeriv.x/ sumAmp,0);
-    vec3 BiNormal = vec3(0,sumDeriv.y/ sumAmp,1);
+    vec3 Tangent = vec3(1,sumDeriv.x / sumAmp,0);
+    vec3 BiNormal = vec3(0,sumDeriv.y / sumAmp,1);
     vec3 Norm = cross(Tangent, BiNormal);
     
-    Norm = normalize(-Norm);
+    Norm = normalize(Norm);
     vec4 ret = vec4(Norm.xyz, h / sumAmp);
     return ret;
 }
@@ -65,10 +65,9 @@ void main () {
     pos.y += res.w;
 
     Normal = vec3(res.xyz);
-    mat4 normalMatrix = transpose(inverse(view * model));
-    vec4 norm = normalMatrix * vec4(Normal, 1.0);
+    mat4 normalMatrix = transpose(inverse(model));
 
-    Normal = vec3(normalize(norm));
+    Normal = vec3(normalMatrix * vec4(-Normal, 1.0));
     FragPos = vec3(model * vec4(pos, 1.0));
     gl_Position = projection * view * model * vec4(pos, 1.0);
 }

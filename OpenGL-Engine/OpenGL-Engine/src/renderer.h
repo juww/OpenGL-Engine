@@ -6,6 +6,7 @@
 #include "shader_m.h"
 #include "skybox.h"
 #include "loadModel.h"
+#include "FramebufferManager.h"
 
 #include "cube.h"
 #include "plane.h"
@@ -28,6 +29,7 @@ private:
 
     static Renderer* instance;
     Camera* m_Camera;
+    FramebufferManager *FBManager;
 
     std::vector<Light> m_Lights;
     loadModel* m_Model;

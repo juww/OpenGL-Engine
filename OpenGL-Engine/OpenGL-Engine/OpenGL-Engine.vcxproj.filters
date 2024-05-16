@@ -229,5 +229,11 @@
     <None Include="src\shader\water.vs">
       <Filter>Resource Files\VertexShader</Filter>
     </None>
+    <None Include="src\shader\framebufferShader.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="src\shader\framebufferShader.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
   </ItemGroup>
 </Project>

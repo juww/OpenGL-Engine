@@ -29,7 +29,7 @@ private:
 
     static Renderer* instance;
     Camera* m_Camera;
-    FramebufferManager *FBManager;
+    FramebufferManager* m_FBManager;
 
     std::vector<Light> m_Lights;
     loadModel* m_Model;
@@ -46,6 +46,8 @@ private:
     Shader* m_WaterShader;
 
     Shader* m_NormalLineShader;
+
+    Shader* m_FramebufferShader;
 
     void configureGlobalState();
     void setupLights();

@@ -16,7 +16,7 @@ Renderer::Renderer() {
     m_Plane = nullptr;
     m_LightCube = nullptr;
 
-    FBManager = FBManager->getInstance();
+    m_FBManager = m_FBManager->getInstance();
 }
 
 Renderer::~Renderer() {
@@ -62,6 +62,9 @@ void Renderer::setupShaders() {
     m_NormalLineShader = new Shader("normalLine.vs", "normalLine.fs", "normalLine.gs");
     // planeShader.setTessellationShader("TessellationControlShader.tcs", "TessellationEvaluationShader.tes");
     //Shader skeletalModel("skeletal.vs", "skeletal.fs", "skeletal.gs");
+
+    // framebuffer shader
+    m_FramebufferShader = new Shader("framebufferShader.vs", "framebufferShader.fs");
 }
 
 void Renderer::initModel() {
@@ -93,6 +96,9 @@ void Renderer::start() {
 
     m_Skybox = new Skybox();
 
+    m_FBManager->setScreenSpace();
+    m_FBManager->createDepthStencilFramebuffer();
+    m_FBManager->shaderConfig(m_FramebufferShader);
 }
 //nanti dipindahin ke class model
 
@@ -114,6 +120,8 @@ void Renderer::setModelShader(const glm::mat4& projection, const glm::mat4& view
 }
 
 void Renderer::render(float currentTime) {
+
+    m_FBManager->bindFramebuffers();
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -142,5 +150,7 @@ void Renderer::render(float currentTime) {
     m_Water->draw(m_WaterShader, projection, view);
 
     m_Skybox->draw(m_SkyboxShader, projection, glm::mat4(glm::mat3(m_Camera->GetViewMatrix())));
+
+    m_FBManager->draw(m_FramebufferShader);
 
 }

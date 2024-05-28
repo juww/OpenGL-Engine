@@ -92,7 +92,7 @@ void Renderer::start() {
     m_LightCube->initialize();
 
     m_Water = new Water();
-    m_Water->initialize(1024, 1024, 8.0f);
+    m_Water->initialize(1536, 1024, 8.0f);
 
     m_Skybox = new Skybox();
 
@@ -127,7 +127,7 @@ void Renderer::render(float currentTime) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // view/projection transformations
-    glm::mat4 projection = glm::perspective(glm::radians(m_Camera->Zoom), m_Camera->Aspect, 0.1f, 100.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(m_Camera->Zoom), m_Camera->Aspect, 0.1f, 150.0f);
     glm::mat4 view = m_Camera->GetViewMatrix();
 
     setModelShader(projection, view);

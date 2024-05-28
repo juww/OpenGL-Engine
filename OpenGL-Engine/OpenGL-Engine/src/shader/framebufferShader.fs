@@ -60,7 +60,7 @@ vec3 Kernel(){
 void main()
 {
     vec3 col = texture(screenTexture, TexCoords).rgb;
-    FragColor = vec4(col, 1.0);
+    FragColor = texture(screenTexture, TexCoords);
     //inversion;
     //FragColor = vec4(inversion(), 1.0);
     //grayscale;

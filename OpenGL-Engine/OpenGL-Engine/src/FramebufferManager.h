@@ -30,6 +30,7 @@ private:
     static FramebufferManager* instance;
 
     unsigned int m_Texture;
+    unsigned int m_DepthTex;
     unsigned int m_Vao, m_Rbo;
 };
 

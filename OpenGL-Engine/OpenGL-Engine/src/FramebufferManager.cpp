@@ -56,15 +56,23 @@ void FramebufferManager::createDepthStencilFramebuffer() {
 
     glGenTextures(1, &m_Texture);
     glBindTexture(GL_TEXTURE_2D, m_Texture);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_ScreenWidth, m_ScreenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, m_ScreenWidth, m_ScreenHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_ScreenWidth, m_ScreenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
-    //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_Texture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_Texture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_Texture, 0);
+
+    glGenTextures(1, &m_DepthTex);
+    glBindTexture(GL_TEXTURE_2D, m_DepthTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, m_ScreenWidth, m_ScreenHeight, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_DepthTex, 0);
 
     glGenRenderbuffers(1, &m_Rbo);
     glBindRenderbuffer(GL_RENDERBUFFER, m_Rbo);
@@ -81,6 +89,7 @@ void FramebufferManager::createDepthStencilFramebuffer() {
 void FramebufferManager::shaderConfig(Shader* shader) {
     shader->use();
     shader->setInt("screenTexture", 0);
+    shader->setInt("depthTexture", 1);
 }
 
 
@@ -94,12 +103,15 @@ void FramebufferManager::draw(Shader* shader) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST);
     // clear all relevant buffers
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
     glClear(GL_COLOR_BUFFER_BIT);
 
     shader->use();
     glBindVertexArray(m_Vao);
-    glBindTexture(GL_TEXTURE_2D, m_Texture);	// use the color attachment texture as the texture of the quad plane
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_Texture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_DepthTex);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 //do not forget to delete

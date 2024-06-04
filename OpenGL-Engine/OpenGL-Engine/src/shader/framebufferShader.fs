@@ -4,8 +4,15 @@ out vec4 FragColor;
 in vec2 TexCoords;
 
 uniform sampler2D screenTexture;
+uniform sampler2D depthTexture;
+
+// make this uniform;
+float near = 0.1;
+float far = 100.0;
+float density = 0.1;
 
 const float offset = 1.0 / 300.0;
+const vec3 fogColor = vec3(1.0);
 
 vec3 inversion(){
     return vec3(1.0 - texture(screenTexture, TexCoords));
@@ -57,10 +64,43 @@ vec3 Kernel(){
     return col;
 }
 
+float calculateFogFactor(float depth, float st, float ed){
+    
+    //linear
+    float fog = (ed - depth) / (ed - st);
+    //return fog;
+
+    //exponential 
+    float sq = depth * density;
+    fog = 1 / pow(2, sq);
+    //return fog;
+
+    // exponential squared;
+    fog = 1 / pow(2, pow(sq, 2));
+    return fog;
+}
+
+vec3 lerp(vec3 a, vec3 b, float t){
+    return a + (t * (b - a));
+}
+
 void main()
 {
     vec3 col = texture(screenTexture, TexCoords).rgb;
-    FragColor = texture(screenTexture, TexCoords);
+    vec3 baseColor = col;
+
+    float depth = texture(depthTexture, TexCoords).r;
+    depth = (1 - (far/near)) * depth + (far/near);
+    depth = 1.0 / depth;
+    depth = depth * far;
+
+    float fog = calculateFogFactor(depth, near, far);
+    vec3 outcolor = lerp(fogColor, baseColor, fog);
+
+    FragColor = vec4(depth ,depth, depth, 1.0);
+    FragColor = vec4(outcolor, 1.0);
+
+
     //inversion;
     //FragColor = vec4(inversion(), 1.0);
     //grayscale;

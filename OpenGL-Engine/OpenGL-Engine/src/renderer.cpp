@@ -7,6 +7,7 @@ Renderer* Renderer::instance = nullptr;
 GUI::TerrainParam tp(4, 27.9f, 4, 0.5f, 2.0f, {0.0f, 0.0f}, 5.0f);
 GUI::GrassParam gp(3.0f, 0.5f, 1.12f, 0.7f);
 GUI::WaterParam wp(1.73f, 0.83f, 2.0f, 0.0f, 4.3f, 32);
+GUI::FogDistanceParam fdp(0.03f, 150.0f, 0.1f, glm::vec3(1.0f));
 
 Renderer::Renderer() {
     m_Camera = new Camera(glm::vec3(0.0f, 10.0f, 5.0f));
@@ -151,6 +152,8 @@ void Renderer::render(float currentTime) {
 
     m_Skybox->draw(m_SkyboxShader, projection, glm::mat4(glm::mat3(m_Camera->GetViewMatrix())));
 
+    GUI::fogDistanceParam(fdp.m_Near, fdp.m_Far, fdp.m_Density);
+    m_FBManager->setFogDistance(m_FramebufferShader, fdp.m_Near, fdp.m_Far, fdp.m_Density, fdp.m_Color);
     m_FBManager->draw(m_FramebufferShader);
 
 }

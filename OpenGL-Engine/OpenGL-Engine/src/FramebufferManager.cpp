@@ -98,6 +98,14 @@ void FramebufferManager::bindFramebuffers() {
     glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
 }
 
+void FramebufferManager::setFogDistance(Shader* shader, float& near, float& far, float& density, glm::vec3 &fogColor) {
+    shader->use();
+    shader->setFloat("near", near);
+    shader->setFloat("far", far);
+    shader->setFloat("density", density);
+    shader->setVec3("fogColor", fogColor);
+}
+
 void FramebufferManager::draw(Shader* shader) {
     
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

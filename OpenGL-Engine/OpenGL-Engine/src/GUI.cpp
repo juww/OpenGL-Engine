@@ -109,6 +109,12 @@ namespace GUI {
         ImGui::DragInt("WaterWaveCount", &waveCount);
     }
 
+    void fogDistanceParam(float& pNear, float& pFar, float& pDensity) {
+        ImGui::DragFloat("fogNear", &pNear, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("fogfar", &pFar, 0.001f);
+        ImGui::DragFloat("fogDensity", &pDensity, 0.001f);
+    }
+
     void renderUI() {
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

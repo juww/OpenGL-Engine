@@ -6,13 +6,13 @@ in vec2 TexCoords;
 uniform sampler2D screenTexture;
 uniform sampler2D depthTexture;
 
-// make this uniform;
-float near = 0.1;
-float far = 100.0;
-float density = 0.1;
+uniform float near;
+uniform float far;
+uniform float density;
+uniform vec3 fogColor;
 
 const float offset = 1.0 / 300.0;
-const vec3 fogColor = vec3(1.0);
+
 
 vec3 inversion(){
     return vec3(1.0 - texture(screenTexture, TexCoords));
@@ -66,17 +66,21 @@ vec3 Kernel(){
 
 float calculateFogFactor(float depth, float st, float ed){
     
+    float fog = 0.0;
     //linear
-    float fog = (ed - depth) / (ed - st);
+    //fog = (ed - depth) / (ed - st);
     //return fog;
 
     //exponential 
     float sq = depth * density;
-    fog = 1 / pow(2, sq);
+    //fog = 1 / pow(2, sq);
     //return fog;
 
     // exponential squared;
     fog = 1 / pow(2, pow(sq, 2));
+    fog = exp(-(sq * sq));
+    fog = clamp(fog, 0.0, 1.0);
+
     return fog;
 }
 

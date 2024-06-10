@@ -20,6 +20,7 @@ public:
     void createDepthStencilFramebuffer();
     void shaderConfig(Shader* shader);
     void bindFramebuffers();
+    void setFogDistance(Shader* shader, float& near, float& far, float& density, glm::vec3& fogColor);
     void draw(Shader* shader);
     void deleteFramebuffer(unsigned int& fbo);
 

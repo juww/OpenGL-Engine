@@ -63,6 +63,20 @@ namespace GUI {
         }
     };
 
+    class FogDistanceParam {
+    public:
+        float m_Near = 0.0f;
+        float m_Far = 0.0f;
+        float m_Density = 0.0f;
+        glm::vec3 m_Color = glm::vec3(1.0f);
+        FogDistanceParam(const float& pNear, const float& pFar, const float& pDensity, const glm::vec3 &pColor) {
+            m_Near = pNear;
+            m_Far = pFar;
+            m_Density = pDensity;
+            m_Color = pColor;
+        }
+    };
+
     void initialize(GLFWwindow* w);
     void GUIFrame();
     void modelTransform(glm::vec3& pos, glm::vec3& rot, float& angle, glm::vec3& scale);
@@ -73,6 +87,7 @@ namespace GUI {
 
     //water
     void waterParam(float& a, float& f, float& s, int &waveCount);
+    void fogDistanceParam(float& pNear, float& pFar, float& pDensity);
     void renderUI();
     void shutDown();
 };

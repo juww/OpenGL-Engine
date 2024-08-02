@@ -16,6 +16,7 @@ Renderer::Renderer() {
     m_Skybox = new Skybox();
     m_Plane = nullptr;
     m_LightCube = nullptr;
+    m_Sphere = nullptr;
 
     m_FBManager = m_FBManager->getInstance();
 }
@@ -92,6 +93,8 @@ void Renderer::start() {
     m_LightCube = new Cube();
     m_LightCube->initialize();
 
+    m_Sphere = new Sphere(100, 5.0f);
+
     m_Water = new Water();
     m_Water->initialize(1536, 1024, 8.0f);
 
@@ -144,6 +147,8 @@ void Renderer::render(float currentTime) {
     m_Plane->drawGrass(m_GrassShader, projection, view, currentTime, gp.m_Frequency, gp.m_Amplitude, gp.m_Scale, gp.m_Drop);
 
     m_LightCube->draw(m_LightCubeShader, projection, view);
+
+    m_Sphere->draw(m_LightCubeShader, projection, view);
 
     GUI::waterParam(wp.m_Amplitude, wp.m_Frequency, wp.m_Speed, wp.m_WaveCount);
 

@@ -9,6 +9,7 @@
 #include "FramebufferManager.h"
 
 #include "cube.h"
+#include "sphere.h"
 #include "plane.h"
 #include "water.h"
 
@@ -36,6 +37,7 @@ private:
     Skybox* m_Skybox;
     Plane* m_Plane;
     Cube* m_LightCube;
+    Sphere* m_Sphere;
     Water* m_Water;
 
     Shader* m_ModelShader;

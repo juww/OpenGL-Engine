@@ -38,7 +38,6 @@ vec4 calculateWave(vec3 v) {
 
         p += -derivative.x * d * a * 0.5;
 
-
         h += eulerWave;
         sumDeriv += derivative;
 

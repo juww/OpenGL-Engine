@@ -184,6 +184,7 @@
     <ClInclude Include="src\scene.h" />
     <ClInclude Include="src\shader_m.h" />
     <ClInclude Include="src\skybox.h" />
+    <ClInclude Include="src\sphere.h" />
     <ClInclude Include="src\water.h" />
   </ItemGroup>
   <ItemGroup>

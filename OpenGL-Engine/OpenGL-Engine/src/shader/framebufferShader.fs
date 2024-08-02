@@ -13,7 +13,6 @@ uniform vec3 fogColor;
 
 const float offset = 1.0 / 300.0;
 
-
 vec3 inversion(){
     return vec3(1.0 - texture(screenTexture, TexCoords));
 }
@@ -103,7 +102,6 @@ void main()
 
     FragColor = vec4(depth ,depth, depth, 1.0);
     FragColor = vec4(outcolor, 1.0);
-
 
     //inversion;
     //FragColor = vec4(inversion(), 1.0);

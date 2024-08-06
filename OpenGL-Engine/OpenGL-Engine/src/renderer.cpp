@@ -60,6 +60,7 @@ void Renderer::setupShaders() {
     m_LightCubeShader = new Shader("light_cube.vs", "light_cube.fs");
     m_SkyboxShader = new Shader("skybox.vs", "skybox.fs");
     m_WaterShader = new Shader("water.vs", "water.fs");
+    m_SphereShader = new Shader("sphere.vs", "sphere.fs");
 
     m_NormalLineShader = new Shader("normalLine.vs", "normalLine.fs", "normalLine.gs");
     // planeShader.setTessellationShader("TessellationControlShader.tcs", "TessellationEvaluationShader.tes");
@@ -93,7 +94,8 @@ void Renderer::start() {
     m_LightCube = new Cube();
     m_LightCube->initialize();
 
-    m_Sphere = new Sphere(100, 5.0f);
+    m_Sphere = new Sphere(50, 3.0f);
+    m_Sphere->createHemisphere();
 
     m_Water = new Water();
     m_Water->initialize(1536, 1024, 8.0f);
@@ -148,7 +150,7 @@ void Renderer::render(float currentTime) {
 
     m_LightCube->draw(m_LightCubeShader, projection, view);
 
-    m_Sphere->draw(m_LightCubeShader, projection, view);
+    m_Sphere->draw(m_SphereShader, projection, view, m_Camera->Position, currentTime);
 
     GUI::waterParam(wp.m_Amplitude, wp.m_Frequency, wp.m_Speed, wp.m_WaveCount);
 

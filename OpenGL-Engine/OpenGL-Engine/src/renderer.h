@@ -46,6 +46,7 @@ private:
     Shader* m_LightCubeShader;
     Shader* m_SkyboxShader;
     Shader* m_WaterShader;
+    Shader* m_SphereShader;
 
     Shader* m_NormalLineShader;
 

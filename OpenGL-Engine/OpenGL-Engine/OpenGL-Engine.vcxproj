@@ -207,6 +207,8 @@
     <None Include="src\shader\skeletal.vs" />
     <None Include="src\shader\skybox.fs" />
     <None Include="src\shader\skybox.vs" />
+    <None Include="src\shader\sphere.fs" />
+    <None Include="src\shader\sphere.vs" />
     <None Include="src\shader\TessellationControlShader.tcs" />
     <None Include="src\shader\TessellationEvaluationShader.tes" />
     <None Include="src\shader\water.fs" />

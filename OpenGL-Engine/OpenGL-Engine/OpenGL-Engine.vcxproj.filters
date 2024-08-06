@@ -238,5 +238,11 @@
     <None Include="src\shader\framebufferShader.vs">
       <Filter>Resource Files\VertexShader</Filter>
     </None>
+    <None Include="src\shader\sphere.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="src\shader\sphere.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
   </ItemGroup>
 </Project>

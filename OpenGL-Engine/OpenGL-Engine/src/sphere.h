@@ -11,6 +11,7 @@ public:
     int length;
     float radius;
     float lengthInv;
+    int countVertex;
     glm::vec3 pos, rot, scale;
     glm::mat4 model;
     unsigned int vao = 0, ebo = 0;
@@ -28,7 +29,7 @@ public:
         vertices.clear();
         indices.clear();
         lengthInv = 1.0f / radius;
-
+        countVertex = 0;
         pos = glm::vec3(3.0f);
 
         model = glm::translate(model, pos);
@@ -37,60 +38,102 @@ public:
     void createHemisphere() {
         for (int i = 0; i <= length; i++) {
             float ph = (PI / 2.0f) - (PI * (float)((float)i / (float)length));
+            float xz = radius * glm::cos(ph);
+            float y = radius * glm::sin(ph);
             for (int j = 0; j <= length; j++) {
                 float th = 2.0f * PI * (float)((float)j / (float)length);
 
-                float x = (radius * glm::cos(ph)) * glm::cos(th);
-                float y = (radius * glm::sin(ph));
-                float z = (radius * glm::cos(ph)) * glm::sin(th);
-                //pos
-                vertices.push_back(x);
-                vertices.push_back(y);
-                vertices.push_back(z);
-                //normal
-                vertices.push_back(x * lengthInv);
-                vertices.push_back(y * lengthInv);
-                vertices.push_back(z * lengthInv);
-                //texcoord
+                float x = xz * glm::cos(th);
+                float z = xz * glm::sin(th);
+                
                 float tx = (float)j / length;
                 float ty = (float)i / length;
-                vertices.push_back(tx);
-                vertices.push_back(ty);
-
-                if (i == 0 || i == length) break;
+                addVertex(x, y, z, tx, ty);
             }
         }
         printf("total = %d\n", vertices.size());
         printf("vertices = %d\n", vertices.size() / 8);
-        for (int i = 0; i < length - 1; i++) {
+        for (int i = 0; i < length; i++) {
             int k1 = i * (length + 1);
             int k2 = (i + 1) * (length + 1);
-            for (int j = 1; j <= length + 1; j++) {
-                //int next = (j + 1 > length + 1 ? 1 : j + 1);
+            for (int j = 0; j < length; j++) {
                 int next = j + 1;
-                if (i == 0) {
-                    //printf("%d %d %d\n", 0, j + k1, next + k1);
-                    indices.push_back(0);
+                if (i != 0) {
                     indices.push_back(j + k1);
+                    indices.push_back(j + k2);
                     indices.push_back(next + k1);
                 }
-                if (i == length - 2) {
-                    //printf("%d %d %d\n", j + k1, (vertices.size() / 8) - 1, next + k1);
-                    indices.push_back(j + k1);
-                    indices.push_back((vertices.size() / 8) - 1);
+                if (i != length - 1) {
                     indices.push_back(next + k1);
-                    continue;
+                    indices.push_back(j + k2);
+                    indices.push_back(next + k2);
                 }
-                printf("%d %d %d\n", j + k1, j + k2, next + k1);
-                indices.push_back(j + k1);
-                indices.push_back(j + k2);
-                indices.push_back(next + k1);
-
-                indices.push_back(next + k1);
-                indices.push_back(j + k2);
-                indices.push_back(next + k2);
             }
         }
+        setbuffer();
+    }
+
+    void icosphere(const int& lvl) {
+        const float atn = glm::atan(1.0f / 2.0f);
+        const float hAngle = PI / 180.0f * 72.0f;
+
+        float h1 = -PI / 2.0f - hAngle / 2.0f;
+        float h2 = -PI / 2.0f;
+
+        std::vector<unsigned int> tempIndices;
+
+        float x = 0.0f;
+        float y = radius;
+        float z = 0.0f;
+        
+        addVertex(x, y, z, 0.0f, 0.0f);
+        for (int i = 1; i <= 5; i++) {
+            float xz = radius * glm::cos(atn);
+            int next = i + 1 > 5 ? 1 : i + 1;
+            x = xz * glm::cos(h1);
+            y = radius * glm::sin(atn);
+            z = xz * glm::sin(h1);
+            addVertex(x, y, z, 0.0f, 0.0f);
+            tempIndices.push_back(0);
+            tempIndices.push_back(i);
+            tempIndices.push_back(next);
+
+            tempIndices.push_back(i);
+            tempIndices.push_back(i + 5);
+            tempIndices.push_back(next);
+            h1 += hAngle;
+        }
+        for (int i = 1; i <= 5; i++) {
+            float xz = radius * glm::cos(atn);
+            int next = i + 1 > 5 ? 1 : i + 1;
+            x = xz * glm::cos(h2);
+            y = -radius * glm::sin(atn);
+            z = xz * glm::sin(h2);
+            addVertex(x, y, z, 0.0f, 0.0f);
+
+            tempIndices.push_back(i + 5);
+            tempIndices.push_back(next + 5);
+            tempIndices.push_back(next);
+
+            tempIndices.push_back(i + 5);
+            tempIndices.push_back(11);
+            tempIndices.push_back(next + 5);
+            h2 += hAngle;
+        }
+        x = 0.0f;
+        y = -radius;
+        z = 0.0f;
+        addVertex(x, y, z, 0.0f, 0.0f);
+
+        int baseIndexSize = tempIndices.size();
+        for (int i = 0; i < baseIndexSize; i+=3 ) {   
+            subDivisionTriangle(lvl, tempIndices[i], tempIndices[i + 1], tempIndices[i + 2]);
+        }
+        printf("count Vertex: %d\n", countVertex);
+        printf("size vertices = %d\n", vertices.size());
+        printf("%d\n", vertices.size()/8);
+        printf("size indices = %d\n", indices.size());
+        printf("count triangle = %d\n", indices.size() / 3);
         setbuffer();
     }
 
@@ -99,7 +142,7 @@ public:
 
         glm::mat4 m = glm::rotate(model, _time, glm::vec3(0.0f, 1.0f, 0.0f));
 
-        shader->setMat4("model", m);
+        shader->setMat4("model", model);
         shader->setMat4("projection", projection);
         shader->setMat4("view", view);
 
@@ -124,6 +167,68 @@ public:
 
     }
 private:
+
+    int addVertex(const float &x, const float &y, const float &z, const float tx = 0.0f, const float ty = 0.0f) {
+        //pos
+        vertices.push_back(x);
+        vertices.push_back(y);
+        vertices.push_back(z);
+        //normal
+        vertices.push_back(x * lengthInv);
+        vertices.push_back(y * lengthInv);
+        vertices.push_back(z * lengthInv);
+        //texcoord
+        vertices.push_back(tx);
+        vertices.push_back(ty);
+        countVertex++;
+
+        return countVertex - 1;
+    }
+
+    void subDivisionTriangle(int lvl, int indx1, int indx2, int indx3) {
+        if (lvl == 0) {
+            indices.push_back(indx1);
+            indices.push_back(indx2);
+            indices.push_back(indx3);
+            return;
+        }
+        int p1 = indx1 * 8;
+        int p2 = indx2 * 8;
+        int p3 = indx3 * 8;
+
+        float v1[3] = { vertices[p1],vertices[p1 + 1], vertices[p1 + 2] };
+        float v2[3] = { vertices[p2],vertices[p2 + 1], vertices[p2 + 2] };
+        float v3[3] = { vertices[p3],vertices[p3 + 1], vertices[p3 + 2] };
+
+        float newV1[3] = { 0.0f, 0.0f, 0.0f };
+        float newV2[3] = { 0.0f, 0.0f, 0.0f };
+        float newV3[3] = { 0.0f, 0.0f, 0.0f };
+
+        computeHalfVertex(v1, v2, newV1);
+        computeHalfVertex(v2, v3, newV2);
+        computeHalfVertex(v3, v1, newV3);
+
+        int idx1 = addVertex(newV1[0], newV1[1], newV1[2]);
+        int idx2 = addVertex(newV2[0], newV2[1], newV2[2]);
+        int idx3 = addVertex(newV3[0], newV3[1], newV3[2]);
+
+        subDivisionTriangle(lvl - 1, indx1, idx1, idx3);
+        subDivisionTriangle(lvl - 1, indx2, idx2, idx1);
+        subDivisionTriangle(lvl - 1, indx3, idx3, idx2);
+        subDivisionTriangle(lvl - 1, idx1, idx2, idx3);
+    }
+
+    void computeHalfVertex(const float v1[3], const float v2[3], float newV[3])
+    {
+        newV[0] = v1[0] + v2[0];    // x
+        newV[1] = v1[1] + v2[1];    // y
+        newV[2] = v1[2] + v2[2];    // z
+        float scale = radius / sqrtf((newV[0] * newV[0]) + (newV[1] * newV[1]) + (newV[2] * newV[2]));
+        newV[0] *= scale;
+        newV[1] *= scale;
+        newV[2] *= scale;
+    }
+
     void setbuffer() {
 
         glGenVertexArrays(1, &vao);

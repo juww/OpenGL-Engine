@@ -89,13 +89,14 @@ void Renderer::start() {
     m_Plane->InitTerrainChunk(1, 64.0f, m_Camera->Position);
     m_Plane->initGrass(50);
     m_Plane->setAllUniform(m_PlaneShader);
-    m_Plane->grass.generateNoiseMap(m_GrassShader, 1, 10.0f, 4, 1.5f, 2.0f, { 0.0f,0.0f }); 
+    m_Plane->grass.generateNoiseMap(m_GrassShader, 1, 10.0f, 4, 1.5f, 2.0f, { 0.0f,0.0f });
 
     m_LightCube = new Cube();
     m_LightCube->initialize();
 
-    m_Sphere = new Sphere(50, 3.0f);
-    m_Sphere->createHemisphere();
+    m_Sphere = new Sphere(50, 2.0f);
+    //m_Sphere->createHemisphere();
+    m_Sphere->icosphere(5);
 
     m_Water = new Water();
     m_Water->initialize(1536, 1024, 8.0f);

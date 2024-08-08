@@ -14,7 +14,7 @@ out vec4 FragColor;
 void main(){
     
     vec3 color = vec3(1.0, 0.0, 0.0);
-    color = texture(Textures, vec2(TexCoords)).rgb;
+    //color = texture(Textures, vec2(TexCoords)).rgb;
     //color = normalize(color);
     float ambientStrength = 0.1;
     vec3 ambient = ambientStrength * vec3(1.0);
@@ -32,4 +32,5 @@ void main(){
     vec3 specular = specularStrength * spec * vec3(1.0);
 
     FragColor = vec4(diffuse + ambient + specular, 1.0);
+    //FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 }

@@ -162,10 +162,6 @@ public:
                 }
             }
         }
-        unsigned int baseTriangle[6] = {
-            4, 6, 0, 2, 0, 6
-
-        };
 
         unsigned int baseRectangle[24] = {
             0, 4, 6, 2,
@@ -175,8 +171,8 @@ public:
             4, 5, 7, 6,
             5, 1, 3, 7
         };
-        for (int i = 0; i < 24; i += 4) {            
-            subDivisionRectangle(0, baseRectangle[i], baseRectangle[i + 1], baseRectangle[i + 2], baseRectangle[i + 3]);
+        for (int i = 0; i < 24; i += 4) {
+            subDivisionRectangle(lvl, baseRectangle[i], baseRectangle[i + 1], baseRectangle[i + 2], baseRectangle[i + 3]);
         }
         setbuffer();
     }
@@ -273,6 +269,38 @@ private:
             indices.push_back(indx2);
             return;
         }
+        int p1 = indx1 * 8;
+        int p2 = indx2 * 8;
+        int p3 = indx3 * 8;
+        int p4 = indx4 * 8;
+
+        float v1[3] = { vertices[p1],vertices[p1 + 1], vertices[p1 + 2] };
+        float v2[3] = { vertices[p2],vertices[p2 + 1], vertices[p2 + 2] };
+        float v3[3] = { vertices[p3],vertices[p3 + 1], vertices[p3 + 2] };
+        float v4[3] = { vertices[p4],vertices[p4 + 1], vertices[p4 + 2] };
+
+        float newV1[3] = { 0.0f, 0.0f, 0.0f };
+        float newV2[3] = { 0.0f, 0.0f, 0.0f };
+        float newV3[3] = { 0.0f, 0.0f, 0.0f };
+        float newV4[3] = { 0.0f, 0.0f, 0.0f };
+        float newV5[3] = { 0.0f, 0.0f, 0.0f };
+
+        computeHalfVertex(v1, v2, newV1);
+        computeHalfVertex(v2, v3, newV2);
+        computeHalfVertex(v3, v4, newV3);
+        computeHalfVertex(v4, v1, newV4);
+        computeHalfVertex(newV1, newV3, newV5);
+
+        int idx1 = addVertex(newV1[0], newV1[1], newV1[2]);
+        int idx2 = addVertex(newV2[0], newV2[1], newV2[2]);
+        int idx3 = addVertex(newV3[0], newV3[1], newV3[2]);
+        int idx4 = addVertex(newV4[0], newV4[1], newV4[2]);
+        int idx5 = addVertex(newV5[0], newV5[1], newV5[2]);
+
+        subDivisionRectangle(lvl - 1, indx1, idx1, idx5, idx4);
+        subDivisionRectangle(lvl - 1, idx1, indx2, idx2, idx5);
+        subDivisionRectangle(lvl - 1, idx5, idx2, indx3, idx3);
+        subDivisionRectangle(lvl - 1, idx4, idx5, idx3, indx4);
     }
 
     void computeHalfVertex(const float v1[3], const float v2[3], float newV[3])

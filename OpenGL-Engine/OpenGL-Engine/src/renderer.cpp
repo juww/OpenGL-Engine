@@ -94,10 +94,10 @@ void Renderer::start() {
     m_LightCube = new Cube();
     m_LightCube->initialize();
 
-    m_Sphere = new Sphere(50, 2.0f);
+    m_Sphere = new Sphere(50, 3.0f);
     //m_Sphere->createHemisphere();
     //m_Sphere->icosphere(5);
-    m_Sphere->cubesphere(0);
+    m_Sphere->cubesphere(5);
 
     m_Water = new Water();
     m_Water->initialize(1536, 1024, 8.0f);

@@ -137,6 +137,50 @@ public:
         setbuffer();
     }
 
+    void cubesphere(const int& lvl) {
+        const float rad = acos(-1) / 180.0f;
+
+        glm::vec3 n1 = glm::vec3(-glm::sin(rad * 45.0f), 0.0f, glm::cos(rad * 45.0f));
+        glm::vec3 n2 = glm::vec3(-glm::sin(rad * -45.0f), -glm::cos(rad * -45.0f), 0.0f);
+
+        glm::vec3 v = glm::cross(n1, n2);
+        float scale = radius / sqrtf((v.x * v.x) + (v.y * v.y) + (v.z * v.z));
+        v *= scale;
+        float inv[2] = { 1.0f, -1.0f };
+        printf("%f %f %f\n", n1.x, n1.y, n1.z);
+        printf("%f %f %f\n", n2.x, n2.y, n2.z);
+        printf("v = %f %f %f\n", v.x, v.y, v.z);
+        int indx = 0;
+        for (int i = 0; i < 2; i++) {
+            float x = v.x * inv[i];
+            for (int j = 0; j < 2; j++) {
+                float y = v.y * inv[j];
+                for (int k = 0; k < 2; k++) {
+                    float z = v.z * inv[k];
+                    addVertex(x, y, z);
+                    printf("%d ---  %f %f %f\n", indx++, x, y, z);
+                }
+            }
+        }
+        unsigned int baseTriangle[6] = {
+            4, 6, 0, 2, 0, 6
+
+        };
+
+        unsigned int baseRectangle[24] = {
+            0, 4, 6, 2,
+            1, 0, 2, 3,
+            5, 4, 0, 1,
+            2, 6, 7, 3,
+            4, 5, 7, 6,
+            5, 1, 3, 7
+        };
+        for (int i = 0; i < 24; i += 4) {            
+            subDivisionRectangle(0, baseRectangle[i], baseRectangle[i + 1], baseRectangle[i + 2], baseRectangle[i + 3]);
+        }
+        setbuffer();
+    }
+
     void draw(Shader* shader, const glm::mat4& projection, const glm::mat4& view, glm::vec3& cameraPos, const float &_time) {
         shader->use();
 
@@ -185,7 +229,7 @@ private:
         return countVertex - 1;
     }
 
-    void subDivisionTriangle(int lvl, int indx1, int indx2, int indx3) {
+    void subDivisionTriangle(int lvl, unsigned int indx1, unsigned int indx2, unsigned int indx3) {
         if (lvl == 0) {
             indices.push_back(indx1);
             indices.push_back(indx2);
@@ -216,6 +260,19 @@ private:
         subDivisionTriangle(lvl - 1, indx2, idx2, idx1);
         subDivisionTriangle(lvl - 1, indx3, idx3, idx2);
         subDivisionTriangle(lvl - 1, idx1, idx2, idx3);
+    }
+
+    void subDivisionRectangle(int lvl, unsigned int indx1, unsigned int indx2, unsigned int indx3, unsigned int indx4) {
+        if (lvl == 0) {
+            indices.push_back(indx1);
+            indices.push_back(indx2);
+            indices.push_back(indx4);
+            
+            indices.push_back(indx3);
+            indices.push_back(indx4);
+            indices.push_back(indx2);
+            return;
+        }
     }
 
     void computeHalfVertex(const float v1[3], const float v2[3], float newV[3])

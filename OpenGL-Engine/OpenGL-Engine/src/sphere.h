@@ -15,6 +15,7 @@ public:
     glm::vec3 pos, rot, scale;
     glm::mat4 model;
     unsigned int vao = 0, ebo = 0;
+    float widthTex, heightTex;
     unsigned int tex;
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
@@ -28,11 +29,15 @@ public:
         pos = rot = scale = glm::vec3(0.0f);
         vertices.clear();
         indices.clear();
+        widthTex = heightTex = 0.0f;
         lengthInv = 1.0f / radius;
         countVertex = 0;
         pos = glm::vec3(3.0f);
 
         model = glm::translate(model, pos);
+
+        loadTexture();
+
     }
 
     void createHemisphere() {
@@ -51,8 +56,7 @@ public:
                 addVertex(x, y, z, tx, ty);
             }
         }
-        printf("total = %d\n", vertices.size());
-        printf("vertices = %d\n", vertices.size() / 8);
+
         for (int i = 0; i < length; i++) {
             int k1 = i * (length + 1);
             int k2 = (i + 1) * (length + 1);
@@ -80,60 +84,68 @@ public:
         float h1 = -PI / 2.0f - hAngle / 2.0f;
         float h2 = -PI / 2.0f;
 
-        std::vector<unsigned int> tempIndices;
+        float invS = widthTex / 11.0f;
+        float invT = heightTex / 3.0f;
+        float s = 186.0f / widthTex;
+        float t = 322.0f / heightTex;
+
+        std::vector<unsigned int> baseTriangle;
 
         float x = 0.0f;
         float y = radius;
         float z = 0.0f;
         
-        addVertex(x, y, z, 0.0f, 0.0f);
-        for (int i = 1; i <= 5; i++) {
+        for (int i = 0; i < 5; i++) {
             float xz = radius * glm::cos(atn);
-            int next = i + 1 > 5 ? 1 : i + 1;
-            x = xz * glm::cos(h1);
-            y = radius * glm::sin(atn);
-            z = xz * glm::sin(h1);
-            addVertex(x, y, z, 0.0f, 0.0f);
-            tempIndices.push_back(0);
-            tempIndices.push_back(i);
-            tempIndices.push_back(next);
+            float yy = radius * glm::sin(atn);
 
-            tempIndices.push_back(i);
-            tempIndices.push_back(i + 5);
-            tempIndices.push_back(next);
-            h1 += hAngle;
+            float hor1 = h1 + (hAngle * i);
+            glm::vec3 v1(xz * glm::cos(hor1), yy, xz * glm::sin(hor1));
+            hor1 = h1 + (hAngle * (i + 1));
+            glm::vec3 v2(xz * glm::cos(hor1), yy, xz * glm::sin(hor1));
+
+            float hor2 = h2 + (hAngle * i);
+            glm::vec3 v3(xz * glm::cos(hor2), -yy, xz * glm::sin(hor2));
+            hor2 = h2 + (hAngle * (i + 1));
+            int cur = i * 2;
+            int mid = (i * 2 + 1);
+            int next = ((i + 1) * 2);
+            int next2 = ((i + 1) * 2 + 1);
+            glm::vec3 v4(xz * glm::cos(hor2), -yy, xz * glm::sin(hor2));
+            unsigned int p1 = addVertex(x, y, z, float((i * 2) + 1) * s, 0.0f);
+            unsigned int p2 = addVertex(v1.x, v1.y, v1.z, float(i * 2) * s, t);
+            unsigned int p3 = addVertex(v2.x, v2.y, v2.z, float((i + 1) * 2) * s, t);
+            baseTriangle.push_back(p1);
+            baseTriangle.push_back(p2);
+            baseTriangle.push_back(p3);
+
+            p1 = addVertex(v3.x, v3.y, v3.z, float((i * 2) + 1) * s, 2.0f * t);
+            p2 = addVertex(v2.x, v2.y, v2.z, float((i + 1) * 2) * s, t);
+            p3 = addVertex(v1.x, v1.y, v1.z, float(i * 2) * s, t);
+            baseTriangle.push_back(p1);
+            baseTriangle.push_back(p2);
+            baseTriangle.push_back(p3);
+
+            p1 = addVertex(v2.x, v2.y, v2.z, float((i + 1) * 2) * s, t);
+            p2 = addVertex(v3.x, v3.y, v3.z, float((i * 2) + 1) * s, 2.0f * t);
+            p3 = addVertex(v4.x, v4.y, v4.z, float(((i + 1) * 2) + 1) * s, 2.0f * t);
+            baseTriangle.push_back(p1);
+            baseTriangle.push_back(p2);
+            baseTriangle.push_back(p3);
+
+            p1 = addVertex(x, -y, z, float((i + 1) * 2) * s, 3.0f * t);
+            p2 = addVertex(v4.x, v4.y, v4.z, float(((i + 1) * 2) + 1) * s, 2.0f * t);
+            p3 = addVertex(v3.x, v3.y, v3.z, float((i * 2) + 1) * s, 2.0f * t);
+            baseTriangle.push_back(p1);
+            baseTriangle.push_back(p2);
+            baseTriangle.push_back(p3);
         }
-        for (int i = 1; i <= 5; i++) {
-            float xz = radius * glm::cos(atn);
-            int next = i + 1 > 5 ? 1 : i + 1;
-            x = xz * glm::cos(h2);
-            y = -radius * glm::sin(atn);
-            z = xz * glm::sin(h2);
-            addVertex(x, y, z, 0.0f, 0.0f);
 
-            tempIndices.push_back(i + 5);
-            tempIndices.push_back(next + 5);
-            tempIndices.push_back(next);
-
-            tempIndices.push_back(i + 5);
-            tempIndices.push_back(11);
-            tempIndices.push_back(next + 5);
-            h2 += hAngle;
-        }
-        x = 0.0f;
-        y = -radius;
-        z = 0.0f;
-        addVertex(x, y, z, 0.0f, 0.0f);
-
-        int baseIndexSize = tempIndices.size();
+        int baseIndexSize = baseTriangle.size();
         for (int i = 0; i < baseIndexSize; i+=3 ) {   
-            subDivisionTriangle(lvl, tempIndices[i], tempIndices[i + 1], tempIndices[i + 2]);
+            subDivisionTriangle(lvl, baseTriangle[i], baseTriangle[i + 1], baseTriangle[i + 2]);
         }
-        printf("count Vertex: %d\n", countVertex);
-        printf("size vertices = %d\n", vertices.size());
-        printf("%d\n", vertices.size()/8);
-        printf("size indices = %d\n", indices.size());
-        printf("count triangle = %d\n", indices.size() / 3);
+
         setbuffer();
     }
 
@@ -147,9 +159,6 @@ public:
         float scale = radius / sqrtf((v.x * v.x) + (v.y * v.y) + (v.z * v.z));
         v *= scale;
         float inv[2] = { 1.0f, -1.0f };
-        printf("%f %f %f\n", n1.x, n1.y, n1.z);
-        printf("%f %f %f\n", n2.x, n2.y, n2.z);
-        printf("v = %f %f %f\n", v.x, v.y, v.z);
         int indx = 0;
         for (int i = 0; i < 2; i++) {
             float x = v.x * inv[i];
@@ -158,7 +167,6 @@ public:
                 for (int k = 0; k < 2; k++) {
                     float z = v.z * inv[k];
                     addVertex(x, y, z);
-                    printf("%d ---  %f %f %f\n", indx++, x, y, z);
                 }
             }
         }
@@ -244,13 +252,25 @@ private:
         float newV2[3] = { 0.0f, 0.0f, 0.0f };
         float newV3[3] = { 0.0f, 0.0f, 0.0f };
 
+        float ts1[2] = { vertices[p1 + 6], vertices[p1 + 7] };
+        float ts2[2] = { vertices[p2 + 6], vertices[p2 + 7] };
+        float ts3[2] = { vertices[p3 + 6], vertices[p3 + 7] };
+
+        float newt1[2] = { 0.0f, 0.0f };
+        float newt2[2] = { 0.0f, 0.0f };
+        float newt3[2] = { 0.0f, 0.0f };
+
         computeHalfVertex(v1, v2, newV1);
         computeHalfVertex(v2, v3, newV2);
         computeHalfVertex(v3, v1, newV3);
 
-        int idx1 = addVertex(newV1[0], newV1[1], newV1[2]);
-        int idx2 = addVertex(newV2[0], newV2[1], newV2[2]);
-        int idx3 = addVertex(newV3[0], newV3[1], newV3[2]);
+        computeHalfTexcoord(ts1, ts2, newt1);
+        computeHalfTexcoord(ts2, ts3, newt2);
+        computeHalfTexcoord(ts3, ts1, newt3);
+
+        int idx1 = addVertex(newV1[0], newV1[1], newV1[2], newt1[0], newt1[1]);
+        int idx2 = addVertex(newV2[0], newV2[1], newV2[2], newt2[0], newt2[1]);
+        int idx3 = addVertex(newV3[0], newV3[1], newV3[2], newt3[0], newt3[1]);
 
         subDivisionTriangle(lvl - 1, indx1, idx1, idx3);
         subDivisionTriangle(lvl - 1, indx2, idx2, idx1);
@@ -303,6 +323,11 @@ private:
         subDivisionRectangle(lvl - 1, idx4, idx5, idx3, indx4);
     }
 
+    void computeHalfTexcoord(const float t1[2], const float t2[2], float newTex[2]) {
+        newTex[0] = (t1[0] + t2[0]) / 2.0f;
+        newTex[1] = (t1[1] + t2[1]) / 2.0f;
+    }
+
     void computeHalfVertex(const float v1[3], const float v2[3], float newV[3])
     {
         newV[0] = v1[0] + v2[0];    // x
@@ -340,7 +365,7 @@ private:
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * VSIZE, (void*)(sizeof(float) * 6));
         glEnableVertexAttribArray(2);
 
-        loadTexture();
+        //loadTexture();
 
         glBindVertexArray(0);
     }
@@ -356,12 +381,12 @@ private:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         int w, h, nrChannels;
-        unsigned char* data = stbi_load(FileSystem::getPath("res/textures/earth2048.bmp").c_str(), &w, &h, &nrChannels, 4);
-        printf("check data\n");
+        unsigned char* data = stbi_load(FileSystem::getPath("res/textures/icosa_earth.bmp").c_str(), &w, &h, &nrChannels, 4);
         if (data) {
-            printf("data exist\n");
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         }
+        widthTex = (float)w;
+        heightTex = (float)h;
         stbi_image_free(data);
     }
 };

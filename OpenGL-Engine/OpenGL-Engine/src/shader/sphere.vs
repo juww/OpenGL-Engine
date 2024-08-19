@@ -18,8 +18,9 @@ void main (){
     TexCoords = aTexCoords;
 
     Normal = aNormal;
-    mat4 normalMatrix = transpose(inverse(model));
+    mat4 normalMatrix = transpose(inverse(view * model));
     Normal = vec3(normalMatrix * vec4(Normal, 1.0));
+    Normal = normalize(Normal);
 
     FragPos = vec3(model * vec4(aPos, 1.0));
 

@@ -18,6 +18,7 @@ public:
     float widthTex, heightTex;
     unsigned int tex;
     std::vector<float> vertices;
+    std::vector<std::string> texturePaths;
     std::vector<unsigned int> indices;
 
     const float PI = 3.14159265359;
@@ -29,24 +30,24 @@ public:
         pos = rot = scale = glm::vec3(0.0f);
         vertices.clear();
         indices.clear();
+        texturePaths.clear();
         widthTex = heightTex = 0.0f;
         lengthInv = 1.0f / radius;
         countVertex = 0;
         pos = glm::vec3(3.0f);
 
         model = glm::translate(model, pos);
-
-        loadTexture();
-
+        getTexturePath();
     }
 
     void createHemisphere() {
+        loadTexture(texturePaths[2]);
         for (int i = 0; i <= length; i++) {
             float ph = (PI / 2.0f) - (PI * (float)((float)i / (float)length));
             float xz = radius * glm::cos(ph);
             float y = radius * glm::sin(ph);
             for (int j = 0; j <= length; j++) {
-                float th = 2.0f * PI * (float)((float)j / (float)length);
+                float th = 2.0f * PI * (float)((float)j / (float)length) * -1.0f;
 
                 float x = xz * glm::cos(th);
                 float z = xz * glm::sin(th);
@@ -54,6 +55,7 @@ public:
                 float tx = (float)j / length;
                 float ty = (float)i / length;
                 addVertex(x, y, z, tx, ty);
+                //if (j == length / 2) break;
             }
         }
 
@@ -83,6 +85,8 @@ public:
 
         float h1 = -PI / 2.0f - hAngle / 2.0f;
         float h2 = -PI / 2.0f;
+
+        loadTexture(texturePaths[1]);
 
         float invS = widthTex / 11.0f;
         float invT = heightTex / 3.0f;
@@ -145,7 +149,6 @@ public:
         for (int i = 0; i < baseIndexSize; i+=3 ) {   
             subDivisionTriangle(lvl, baseTriangle[i], baseTriangle[i + 1], baseTriangle[i + 2]);
         }
-
         setbuffer();
     }
 
@@ -154,6 +157,8 @@ public:
 
         glm::vec3 n1 = glm::vec3(-glm::sin(rad * 45.0f), 0.0f, glm::cos(rad * 45.0f));
         glm::vec3 n2 = glm::vec3(-glm::sin(rad * -45.0f), -glm::cos(rad * -45.0f), 0.0f);
+
+        loadTexture(texturePaths[3]);
 
         glm::vec3 v = glm::cross(n1, n2);
         float scale = radius / sqrtf((v.x * v.x) + (v.y * v.y) + (v.z * v.z));
@@ -167,6 +172,7 @@ public:
                 for (int k = 0; k < 2; k++) {
                     float z = v.z * inv[k];
                     addVertex(x, y, z);
+                    printf("%d: %f %f %f\n", indx++, x, y, z);
                 }
             }
         }
@@ -179,8 +185,20 @@ public:
             4, 5, 7, 6,
             5, 1, 3, 7
         };
+        bool vis[8];
+        memset(vis, false, sizeof(vis));
         for (int i = 0; i < 24; i += 4) {
-            subDivisionRectangle(lvl, baseRectangle[i], baseRectangle[i + 1], baseRectangle[i + 2], baseRectangle[i + 3]);
+            int indx1 = baseRectangle[i], indx2 = baseRectangle[i + 1], indx3 = baseRectangle[i + 2], indx4 = baseRectangle[i + 3];
+            indx1 = isDublicateVertex(indx1, vis);
+            indx2 = isDublicateVertex(indx2, vis);
+            indx3 = isDublicateVertex(indx3, vis);
+            indx4 = isDublicateVertex(indx4, vis);
+            printf("%d %d %d %d\n", indx1, indx2, indx3, indx4);
+            vertices[(indx1 * 8) + 6] = 1.0f; vertices[(indx1 * 8) + 7] = 0.0f;
+            vertices[(indx2 * 8) + 6] = 0.0f; vertices[(indx2 * 8) + 7] = 0.0f;
+            vertices[(indx3 * 8) + 6] = 0.0f; vertices[(indx3 * 8) + 7] = 1.0f;
+            vertices[(indx4 * 8) + 6] = 1.0f; vertices[(indx4 * 8) + 7] = 1.0f;
+            subDivisionRectangle(lvl, indx1, indx2, indx3, indx4);
         }
         setbuffer();
     }
@@ -299,6 +317,11 @@ private:
         float v3[3] = { vertices[p3],vertices[p3 + 1], vertices[p3 + 2] };
         float v4[3] = { vertices[p4],vertices[p4 + 1], vertices[p4 + 2] };
 
+        float ts1[2] = { vertices[p1 + 6], vertices[p1 + 7] };
+        float ts2[2] = { vertices[p2 + 6], vertices[p2 + 7] };
+        float ts3[2] = { vertices[p3 + 6], vertices[p3 + 7] };
+        float ts4[2] = { vertices[p4 + 6], vertices[p4 + 7] };
+
         float newV1[3] = { 0.0f, 0.0f, 0.0f };
         float newV2[3] = { 0.0f, 0.0f, 0.0f };
         float newV3[3] = { 0.0f, 0.0f, 0.0f };
@@ -311,16 +334,38 @@ private:
         computeHalfVertex(v4, v1, newV4);
         computeHalfVertex(newV1, newV3, newV5);
 
-        int idx1 = addVertex(newV1[0], newV1[1], newV1[2]);
-        int idx2 = addVertex(newV2[0], newV2[1], newV2[2]);
-        int idx3 = addVertex(newV3[0], newV3[1], newV3[2]);
-        int idx4 = addVertex(newV4[0], newV4[1], newV4[2]);
-        int idx5 = addVertex(newV5[0], newV5[1], newV5[2]);
+        float newt1[2] = { 0.0f, 0.0f };
+        float newt2[2] = { 0.0f, 0.0f };
+        float newt3[2] = { 0.0f, 0.0f };
+        float newt4[2] = { 0.0f, 0.0f };
+        float newt5[2] = { 0.0f, 0.0f };
+
+        computeHalfTexcoord(ts1, ts2, newt1);
+        computeHalfTexcoord(ts2, ts3, newt2);
+        computeHalfTexcoord(ts3, ts4, newt3);
+        computeHalfTexcoord(ts4, ts1, newt4);
+        computeHalfTexcoord(newt1, newt3, newt5);
+
+        int idx1 = addVertex(newV1[0], newV1[1], newV1[2], newt1[0], newt1[1]);
+        int idx2 = addVertex(newV2[0], newV2[1], newV2[2], newt2[0], newt2[1]);
+        int idx3 = addVertex(newV3[0], newV3[1], newV3[2], newt3[0], newt3[1]);
+        int idx4 = addVertex(newV4[0], newV4[1], newV4[2], newt4[0], newt4[1]);
+        int idx5 = addVertex(newV5[0], newV5[1], newV5[2], newt5[0], newt5[1]);
 
         subDivisionRectangle(lvl - 1, indx1, idx1, idx5, idx4);
         subDivisionRectangle(lvl - 1, idx1, indx2, idx2, idx5);
         subDivisionRectangle(lvl - 1, idx5, idx2, indx3, idx3);
         subDivisionRectangle(lvl - 1, idx4, idx5, idx3, indx4);
+    }
+
+    int isDublicateVertex(int indx, bool vis[]) {
+        if(vis[indx]==false){
+            vis[indx] = true;
+            return indx;
+        }
+        int idx = indx * 8;
+        int ret = addVertex(vertices[idx], vertices[idx + 1], vertices[idx + 2]);
+        return ret;
     }
 
     void computeHalfTexcoord(const float t1[2], const float t2[2], float newTex[2]) {
@@ -365,12 +410,17 @@ private:
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * VSIZE, (void*)(sizeof(float) * 6));
         glEnableVertexAttribArray(2);
 
-        //loadTexture();
-
         glBindVertexArray(0);
     }
 
-    void loadTexture() {
+    void getTexturePath() {
+        texturePaths.push_back("res/textures/earth2048.bmp");
+        texturePaths.push_back("res/textures/icosa_earth.bmp");
+        texturePaths.push_back("res/textures/nzrzP.png");
+        texturePaths.push_back("res/textures/grid512.bmp");
+    }
+
+    void loadTexture(std::string &path) {
         glGenTextures(1, &tex);
         glBindTexture(GL_TEXTURE_2D, tex);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -381,8 +431,10 @@ private:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         int w, h, nrChannels;
-        unsigned char* data = stbi_load(FileSystem::getPath("res/textures/icosa_earth.bmp").c_str(), &w, &h, &nrChannels, 4);
+        unsigned char* data = stbi_load(FileSystem::getPath(path).c_str(), &w, &h, &nrChannels, 4);
+        printf("get data\n");
         if (data) {
+            printf("gakglskflakd data\n");
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         }
         widthTex = (float)w;

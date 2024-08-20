@@ -3,18 +3,21 @@
 in vec3 Normal;
 in vec2 TexCoords;
 in vec3 FragPos;
+in float FaceCube;
 
 uniform vec3 lightDirection;
 uniform vec3 viewPos;
 
 uniform sampler2D Textures;
+uniform sampler2DArray CubeTextures;
 
 out vec4 FragColor;
 
 void main(){
     
     vec3 color = vec3(1.0, 0.0, 0.0);
-    color = texture(Textures, vec2(TexCoords)).rgb;
+    //color = texture(Textures, vec2(TexCoords)).rgb;
+    color = texture(CubeTextures, vec3(TexCoords, FaceCube)).rgb;
     //color = normalize(color);
     float ambientStrength = 0.1;
     vec3 ambient = ambientStrength * vec3(1.0);

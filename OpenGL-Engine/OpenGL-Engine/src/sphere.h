@@ -16,10 +16,11 @@ public:
     glm::mat4 model;
     unsigned int vao = 0, ebo = 0;
     float widthTex, heightTex;
-    unsigned int tex;
+    unsigned int tex, cubeTex;
     std::vector<float> vertices;
     std::vector<std::string> texturePaths;
     std::vector<unsigned int> indices;
+    std::vector<float> faces;
 
     const float PI = 3.14159265359;
 
@@ -34,6 +35,7 @@ public:
         widthTex = heightTex = 0.0f;
         lengthInv = 1.0f / radius;
         countVertex = 0;
+        tex = 0, cubeTex = 0;
         pos = glm::vec3(3.0f);
 
         model = glm::translate(model, pos);
@@ -55,7 +57,6 @@ public:
                 float tx = (float)j / length;
                 float ty = (float)i / length;
                 addVertex(x, y, z, tx, ty);
-                //if (j == length / 2) break;
             }
         }
 
@@ -146,7 +147,7 @@ public:
         }
 
         int baseIndexSize = baseTriangle.size();
-        for (int i = 0; i < baseIndexSize; i+=3 ) {   
+        for (int i = 0; i < baseIndexSize; i+=3) {   
             subDivisionTriangle(lvl, baseTriangle[i], baseTriangle[i + 1], baseTriangle[i + 2]);
         }
         setbuffer();
@@ -158,8 +159,8 @@ public:
         glm::vec3 n1 = glm::vec3(-glm::sin(rad * 45.0f), 0.0f, glm::cos(rad * 45.0f));
         glm::vec3 n2 = glm::vec3(-glm::sin(rad * -45.0f), -glm::cos(rad * -45.0f), 0.0f);
 
-        loadTexture(texturePaths[3]);
-
+        // loadTexture(texturePaths[3]);
+        loadTextureCubemap("res/textures/cubemap/");
         glm::vec3 v = glm::cross(n1, n2);
         float scale = radius / sqrtf((v.x * v.x) + (v.y * v.y) + (v.z * v.z));
         v *= scale;
@@ -172,33 +173,36 @@ public:
                 for (int k = 0; k < 2; k++) {
                     float z = v.z * inv[k];
                     addVertex(x, y, z);
+                    faces.push_back(0);
                     printf("%d: %f %f %f\n", indx++, x, y, z);
                 }
             }
         }
 
         unsigned int baseRectangle[24] = {
-            0, 4, 6, 2,
-            1, 0, 2, 3,
-            5, 4, 0, 1,
-            2, 6, 7, 3,
-            4, 5, 7, 6,
-            5, 1, 3, 7
+            1, 0, 2, 3,         // right
+            4, 5, 7, 6,         // left
+            1, 5, 4, 0,         // top
+            2, 6, 7, 3,         // bottom
+            0, 4, 6, 2,         // front
+            5, 1, 3, 7,         // back
         };
         bool vis[8];
         memset(vis, false, sizeof(vis));
         for (int i = 0; i < 24; i += 4) {
             int indx1 = baseRectangle[i], indx2 = baseRectangle[i + 1], indx3 = baseRectangle[i + 2], indx4 = baseRectangle[i + 3];
-            indx1 = isDublicateVertex(indx1, vis);
-            indx2 = isDublicateVertex(indx2, vis);
-            indx3 = isDublicateVertex(indx3, vis);
-            indx4 = isDublicateVertex(indx4, vis);
+            int face = i / 4;
+            indx1 = isDublicateVertex(indx1, vis, face);
+            indx2 = isDublicateVertex(indx2, vis, face);
+            indx3 = isDublicateVertex(indx3, vis, face);
+            indx4 = isDublicateVertex(indx4, vis, face);
+            faces[indx1] = faces[indx2] = faces[indx3] = faces[indx4] = face;
             printf("%d %d %d %d\n", indx1, indx2, indx3, indx4);
             vertices[(indx1 * 8) + 6] = 1.0f; vertices[(indx1 * 8) + 7] = 0.0f;
             vertices[(indx2 * 8) + 6] = 0.0f; vertices[(indx2 * 8) + 7] = 0.0f;
             vertices[(indx3 * 8) + 6] = 0.0f; vertices[(indx3 * 8) + 7] = 1.0f;
             vertices[(indx4 * 8) + 6] = 1.0f; vertices[(indx4 * 8) + 7] = 1.0f;
-            subDivisionRectangle(lvl, indx1, indx2, indx3, indx4);
+            subDivisionRectangle(lvl, indx1, indx2, indx3, indx4, face);
         }
         setbuffer();
     }
@@ -214,12 +218,22 @@ public:
 
         shader->setVec3("lightDirection", glm::vec3(1.0f, -1.0f, 1.0f));
         shader->setVec3("viewPos", cameraPos);
-        shader->setInt("Textures", 0);
+
+        glBindVertexArray(vao);
+
+        if (tex) {
+            shader->setInt("Textures", 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, tex);
+        }
+
+        if (cubeTex) {
+            shader->setInt("CubeTextures", 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D_ARRAY, cubeTex);
+        }
 
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        glBindVertexArray(vao);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, tex);
         //glPointSize(10);
         //glDrawArrays(GL_POINTS, 0, vertices.size() / 8);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
@@ -296,7 +310,7 @@ private:
         subDivisionTriangle(lvl - 1, idx1, idx2, idx3);
     }
 
-    void subDivisionRectangle(int lvl, unsigned int indx1, unsigned int indx2, unsigned int indx3, unsigned int indx4) {
+    void subDivisionRectangle(int lvl, unsigned int indx1, unsigned int indx2, unsigned int indx3, unsigned int indx4, unsigned int face) {
         if (lvl == 0) {
             indices.push_back(indx1);
             indices.push_back(indx2);
@@ -346,25 +360,26 @@ private:
         computeHalfTexcoord(ts4, ts1, newt4);
         computeHalfTexcoord(newt1, newt3, newt5);
 
-        int idx1 = addVertex(newV1[0], newV1[1], newV1[2], newt1[0], newt1[1]);
-        int idx2 = addVertex(newV2[0], newV2[1], newV2[2], newt2[0], newt2[1]);
-        int idx3 = addVertex(newV3[0], newV3[1], newV3[2], newt3[0], newt3[1]);
-        int idx4 = addVertex(newV4[0], newV4[1], newV4[2], newt4[0], newt4[1]);
-        int idx5 = addVertex(newV5[0], newV5[1], newV5[2], newt5[0], newt5[1]);
+        int idx1 = addVertex(newV1[0], newV1[1], newV1[2], newt1[0], newt1[1]); faces.push_back(face);
+        int idx2 = addVertex(newV2[0], newV2[1], newV2[2], newt2[0], newt2[1]); faces.push_back(face);
+        int idx3 = addVertex(newV3[0], newV3[1], newV3[2], newt3[0], newt3[1]); faces.push_back(face);
+        int idx4 = addVertex(newV4[0], newV4[1], newV4[2], newt4[0], newt4[1]); faces.push_back(face);
+        int idx5 = addVertex(newV5[0], newV5[1], newV5[2], newt5[0], newt5[1]); faces.push_back(face);
 
-        subDivisionRectangle(lvl - 1, indx1, idx1, idx5, idx4);
-        subDivisionRectangle(lvl - 1, idx1, indx2, idx2, idx5);
-        subDivisionRectangle(lvl - 1, idx5, idx2, indx3, idx3);
-        subDivisionRectangle(lvl - 1, idx4, idx5, idx3, indx4);
+        subDivisionRectangle(lvl - 1, indx1, idx1, idx5, idx4, face);
+        subDivisionRectangle(lvl - 1, idx1, indx2, idx2, idx5, face);
+        subDivisionRectangle(lvl - 1, idx5, idx2, indx3, idx3, face);
+        subDivisionRectangle(lvl - 1, idx4, idx5, idx3, indx4, face);
     }
 
-    int isDublicateVertex(int indx, bool vis[]) {
+    int isDublicateVertex(int indx, bool vis[], int face) {
         if(vis[indx]==false){
             vis[indx] = true;
             return indx;
         }
         int idx = indx * 8;
         int ret = addVertex(vertices[idx], vertices[idx + 1], vertices[idx + 2]);
+        faces.push_back(face);
         return ret;
     }
 
@@ -394,6 +409,9 @@ private:
 
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices.at(0), GL_STATIC_DRAW);
 
+        printf("vertex count: %d\n", countVertex);
+        printf("indices size: %d\n", indices.size());
+
         unsigned int vbo;
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -409,6 +427,16 @@ private:
 
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * VSIZE, (void*)(sizeof(float) * 6));
         glEnableVertexAttribArray(2);
+
+        unsigned int vboFace;
+        glGenBuffers(1, &vboFace);
+        glBindBuffer(GL_ARRAY_BUFFER, vboFace);
+        glBufferData(GL_ARRAY_BUFFER, faces.size() * sizeof(unsigned int), &faces.at(0), GL_STATIC_DRAW);
+
+        glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
+        glEnableVertexAttribArray(3);
+
+        printf("face size: %d\n", faces.size());
 
         glBindVertexArray(0);
     }
@@ -432,14 +460,37 @@ private:
 
         int w, h, nrChannels;
         unsigned char* data = stbi_load(FileSystem::getPath(path).c_str(), &w, &h, &nrChannels, 4);
-        printf("get data\n");
         if (data) {
-            printf("gakglskflakd data\n");
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         }
         widthTex = (float)w;
         heightTex = (float)h;
         stbi_image_free(data);
+    }
+
+    void loadTextureCubemap(std::string prefixPath) {
+        glGenTextures(1, &cubeTex);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, cubeTex);
+
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA, 512, 512, 6);
+        glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 512, 512, 6, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+
+        for (int i = 0; i < 6; i++) {
+            int w, h, nrChannels;
+            std::string texturePath = prefixPath + "cubemap" + std::to_string(i) + ".bmp";
+            unsigned char* data = stbi_load(FileSystem::getPath(texturePath).c_str(), &w, &h, &nrChannels, 4);
+            if (data) {
+                printf("asd\n");
+                glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, w, h, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
+            }
+            stbi_image_free(data);
+        }
     }
 };
 

@@ -14,17 +14,18 @@ out vec3 Normal;
 out vec2 TexCoords;
 out vec3 FragPos;
 out float FaceCube;
+out mat4 invNormalM;
 
 void main (){
     
     TexCoords = aTexCoords;
 
-    Normal = aNormal;
     FaceCube = aFaces;
-    mat4 normalMatrix = transpose(inverse(view * model));
-    Normal = vec3(normalMatrix * vec4(Normal, 1.0));
+    mat4 normalMatrix = transpose(inverse(model));
+    Normal = vec3(normalMatrix * vec4(aNormal, 1.0));
     Normal = normalize(Normal);
 
+    invNormalM = normalMatrix;
     FragPos = vec3(model * vec4(aPos, 1.0));
 
     gl_Position = projection * view * model * vec4(aPos, 1.0);

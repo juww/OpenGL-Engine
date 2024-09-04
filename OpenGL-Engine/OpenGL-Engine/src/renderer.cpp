@@ -96,8 +96,8 @@ void Renderer::start() {
 
     m_Sphere = new Sphere(50, 3.0f);
     //m_Sphere->createHemisphere();
-    //m_Sphere->icosphere(5);
-    m_Sphere->cubesphere(5);
+    m_Sphere->icosphere(5);
+    //m_Sphere->cubesphere(5);
 
     m_Water = new Water();
     m_Water->initialize(1536, 1024, 8.0f);
@@ -152,14 +152,14 @@ void Renderer::render(float currentTime) {
 
     m_LightCube->draw(m_LightCubeShader, projection, view);
 
-    m_Sphere->draw(m_SphereShader, projection, view, m_Camera->Position, currentTime);
-
     GUI::waterParam(wp.m_Amplitude, wp.m_Frequency, wp.m_Speed, wp.m_WaveCount);
 
     m_Water->setParameter(m_WaterShader, wp.m_Amplitude, wp.m_Frequency, currentTime, wp.m_Speed, wp.m_Seed, wp.m_SeedIter, wp.m_WaveCount, m_Camera->Position);
     m_Water->draw(m_WaterShader, projection, view);
 
     m_Skybox->draw(m_SkyboxShader, projection, glm::mat4(glm::mat3(m_Camera->GetViewMatrix())));
+
+    m_Sphere->draw(m_SphereShader, projection, view, m_Camera->Position, currentTime, m_Skybox->cubemapTexture);
 
     GUI::fogDistanceParam(fdp.m_Near, fdp.m_Far, fdp.m_Density);
     m_FBManager->setFogDistance(m_FramebufferShader, fdp.m_Near, fdp.m_Far, fdp.m_Density, fdp.m_Color);

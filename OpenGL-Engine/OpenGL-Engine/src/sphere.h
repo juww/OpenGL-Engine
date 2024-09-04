@@ -36,7 +36,7 @@ public:
         lengthInv = 1.0f / radius;
         countVertex = 0;
         tex = 0, cubeTex = 0;
-        pos = glm::vec3(3.0f);
+        pos = glm::vec3(10.0f);
 
         model = glm::translate(model, pos);
         getTexturePath();
@@ -207,12 +207,12 @@ public:
         setbuffer();
     }
 
-    void draw(Shader* shader, const glm::mat4& projection, const glm::mat4& view, glm::vec3& cameraPos, const float &_time) {
+    void draw(Shader* shader, const glm::mat4& projection, const glm::mat4& view, glm::vec3& cameraPos, const float &_time, const unsigned int skybox) {
         shader->use();
 
         glm::mat4 m = glm::rotate(model, _time, glm::vec3(0.0f, 1.0f, 0.0f));
 
-        shader->setMat4("model", model);
+        shader->setMat4("model", m);
         shader->setMat4("projection", projection);
         shader->setMat4("view", view);
 
@@ -232,6 +232,10 @@ public:
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D_ARRAY, cubeTex);
         }
+
+        shader->setInt("skybox", 1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
 
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         //glPointSize(10);
@@ -428,11 +432,13 @@ private:
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * VSIZE, (void*)(sizeof(float) * 6));
         glEnableVertexAttribArray(2);
 
-        unsigned int vboFace;
-        glGenBuffers(1, &vboFace);
-        glBindBuffer(GL_ARRAY_BUFFER, vboFace);
-        glBufferData(GL_ARRAY_BUFFER, faces.size() * sizeof(unsigned int), &faces.at(0), GL_STATIC_DRAW);
-
+        if (faces.size() != 0) {
+            unsigned int vboFace;
+            glGenBuffers(1, &vboFace);
+            glBindBuffer(GL_ARRAY_BUFFER, vboFace);
+            glBufferData(GL_ARRAY_BUFFER, faces.size() * sizeof(unsigned int), &faces.at(0), GL_STATIC_DRAW);
+        }
+        
         glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
         glEnableVertexAttribArray(3);
 

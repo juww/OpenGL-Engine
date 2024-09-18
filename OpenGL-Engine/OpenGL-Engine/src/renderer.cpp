@@ -101,6 +101,8 @@ void Renderer::start() {
 
     m_Water = new Water();
     m_Water->initialize(1536, 1024, 8.0f);
+    
+    m_Water->createSpectrum(128);
 
     m_Skybox = new Skybox();
 
@@ -150,12 +152,13 @@ void Renderer::render(float currentTime) {
     m_Plane->draw(m_PlaneShader, projection, view);
     m_Plane->drawGrass(m_GrassShader, projection, view, currentTime, gp.m_Frequency, gp.m_Amplitude, gp.m_Scale, gp.m_Drop);
 
-    m_LightCube->draw(m_LightCubeShader, projection, view);
+    //m_LightCube->draw(m_LightCubeShader, projection, view);
 
     GUI::waterParam(wp.m_Amplitude, wp.m_Frequency, wp.m_Speed, wp.m_WaveCount);
 
     m_Water->setParameter(m_WaterShader, wp.m_Amplitude, wp.m_Frequency, currentTime, wp.m_Speed, wp.m_Seed, wp.m_SeedIter, wp.m_WaveCount, m_Camera->Position);
-    m_Water->draw(m_WaterShader, projection, view);
+    //m_Water->draw(m_WaterShader, projection, view);
+    m_Water->drawSpectrum(m_LightCubeShader, projection, view);
 
     m_Skybox->draw(m_SkyboxShader, projection, glm::mat4(glm::mat3(m_Camera->GetViewMatrix())));
 

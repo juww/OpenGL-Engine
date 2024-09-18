@@ -19,6 +19,10 @@ public:
     glm::mat4 m_Model;
     int m_Width, m_Height;
     float m_Scale;
+    
+    unsigned int tvao, tebo;
+    unsigned int tsizeIndices;
+    unsigned int ttex;
 
     Water();
     ~Water();
@@ -27,6 +31,8 @@ public:
     void setParameter(Shader* shader, float& _a, float& _f, float& _t, float& _s, float &seed, float &iter, int &waveCount, glm::vec3& cameraPos);
     void draw(Shader *shader, glm::mat4 projection, glm::mat4 view);
     void drawNormalLine(Shader* shader, glm::mat4 projection, glm::mat4 view);
+    void createSpectrum(int N);
+    void drawSpectrum(Shader* shader, glm::mat4 projection, glm::mat4 view);
 
     void initialize(const int& width, const int& height, const float& scale);
     
@@ -37,6 +43,9 @@ private:
     void setupIndexMap();
     void setupIndices();
     void setupVectices();
+
+    void JONSWAPSpectrum();
+    float PhillipsSpectrum(float k, float L);
 };
 
 #endif // !WATER_H

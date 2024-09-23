@@ -1,5 +1,5 @@
 #include "water.h"
-
+#include "interpolate.h"
 #define PI 3.14159265358979323846
 
 Water::Water() {
@@ -79,12 +79,40 @@ void Water::drawNormalLine(Shader* shader, glm::mat4 projection, glm::mat4 view)
 
 }
 ////////////////////////////////////////////////////////////////////////////////
+//buat di GUI
+float _Gravity = 9.81f;
+float _Depth = 20.0f;
+float _swell = 0.5f;
+float _peakOmega = 10.0f;
+float _angle = 3.14f;
+float _spreadBlend = 0.5f;
+
+float _fetch = 800.0f;
+float _windSpeed = 800.0f;
+float _gamma = 3.3f;
+float _scale = 1.0f;
+//
+float JonswapAlpha(float fetch, float windSpeed) {
+    return 0.076f * std::pow(_Gravity * fetch / windSpeed / windSpeed, -0.22f);
+}
+
+
+float JonswapPeakFrequency(float fetch, float windSpeed) {
+    return 22.0f * std::pow(windSpeed * fetch / _Gravity / _Gravity, -0.33f);
+}
+
+float min(float a, float b) {
+    return a <= b ? a : b;
+}
+
+
 float hash(unsigned int n) {
     // integer hash copied from Hugo Elias
     n = (n << 13U) ^ n;
     n = n * (n * n * 15731U + 0x789221U) + 0x1376312589U;
     return float(n & unsigned int(0x7fffffffU)) / float(0x7fffffff);
 }
+
 
 glm::vec2 UniformToGaussian(float u1, float u2) {
     float R = sqrt(-2.0f * log(u1));
@@ -93,54 +121,112 @@ glm::vec2 UniformToGaussian(float u1, float u2) {
     return glm::vec2(R * cos(theta), R * sin(theta));
 }
 
+float NormalizationFactor(float s) {
+    float s2 = s * s;
+    float s3 = s2 * s;
+    float s4 = s3 * s;
+    if (s < 5) return -0.000564f * s4 + 0.00776f * s3 - 0.044f * s2 + 0.192f * s + 0.163f;
+    else return -4.80e-08f * s4 + 1.07e-05f * s3 - 9.53e-04f * s2 + 5.90e-02f * s + 3.93e-01f;
+}
+
+float Cosine2s(float theta, float s) {
+    return NormalizationFactor(s) * pow(abs(cos(0.5f * theta)), 2.0f * s);
+}
+
+float SpreadPower(float omega, float peakOmega) {
+    if (omega > peakOmega)
+        return 9.77f * pow(abs(omega / peakOmega), -2.5f);
+    else
+        return 6.97f * pow(abs(omega / peakOmega), 5.0f);
+}
+
+float DirectionSpectrum(float theta, float omega) {
+    float s = SpreadPower(omega, _peakOmega) + 16 * tanh(min(omega / _peakOmega, 20)) * _swell * _swell;
+    return interpolate::lerp(2.0f / 3.1415f * cos(theta) * cos(theta), Cosine2s(theta - _angle, s), _spreadBlend);
+}
+
 float ShortWavesFade(float kLength, float shortWavesFade) {
     return exp(-shortWavesFade * shortWavesFade * kLength * kLength);
 }
-
-float min(float a, float b) {
-    return a <= b ? a : b;
-}
-
-float _Gravity = 9.81f;
-float _Depth = 20.0f;
 
 float Dispersion(float kMag) {
     return sqrt(_Gravity * kMag * tanh(min(kMag * _Depth, 20)));
 }
 
-glm::vec3 spectra2D[129 * 129];
+float DispersionDerivative(float kMag) {
+    float th = tanh(min(kMag * _Depth, 20));
+    float ch = cosh(kMag * _Depth);
+    return _Gravity * (_Depth * kMag / ch / ch + th) / Dispersion(kMag) / 2.0f;
+}
+
+const int MAPSIZE = 257 * 257;
+glm::vec3 spectra2D[MAPSIZE];
+float heigthMap[MAPSIZE];
+
 void Water::createSpectrum(int N) {
     float halfN = (float)N * 0.5f;
     int n = (N + 1);
 
     std::vector<glm::vec3> tpos(n*n);
     std::vector<unsigned int> tIndices;
+    
+    for (int i = 0; i <= N; i++) {
+        for (int j = 0; j <= N; j++) {
+            float x = (j - halfN);
+            float z = (i - halfN);
 
+            float deltaK = 2.0f * PI / 512.0f;
+
+            float kLength = glm::length(glm::vec2(z, x)) * deltaK;
+            float kAngle = std::atan2(z, x);
+
+            float omega = Dispersion(kLength);
+            float dOmegadk = DispersionDerivative(kLength);
+
+            _peakOmega = JonswapPeakFrequency(_fetch, _windSpeed);
+
+            //float V = 200.0f;
+            //float spectrum = PhillipsSpectrum(omega, (V * V) / _Gravity) * ShortWavesFade(kLength, 0.01f) * DirectionSpectrum(kAngle, omega);
+            float spectrum = JONSWAPSpectrum(omega) * ShortWavesFade(kLength, 0.001f) * DirectionSpectrum(kAngle, omega);
+
+            unsigned int seed = x + N * z + N;
+            seed += 72637;
+            glm::vec4 uniformRandSamples = glm::vec4(hash(seed), hash(seed * 2), hash(seed * 3), hash(seed * 4));
+            glm::vec2 gauss1 = UniformToGaussian(uniformRandSamples.x, uniformRandSamples.y);
+            glm::vec2 gauss2 = UniformToGaussian(uniformRandSamples.z, uniformRandSamples.w);
+            float g = gauss1.y + gauss2.x;
+            glm::vec2 ht = glm::vec2(gauss2.x, gauss1.y);
+            ht *= sqrt(2 * spectrum * abs(dOmegadk) / kLength * deltaK * deltaK);
+            float h = 1 / sqrt(2) * g * sqrt(spectrum);
+            if (0.0001f > kLength || kLength > 9000.0f) {
+                printf("lel\n");
+                h = 0.0f;
+                ht = glm::vec2(0.0f);
+            }
+            //printf("spectrum - %f\n", spectrum);
+            //printf("h - %f\n", h);
+            //
+            //printf("ht - %f %f\n", ht.x, ht.y);
+            spectra2D[i * n + j] = glm::vec3(ht.x, 0.0f, 0.0f);
+        }
+    }
+
+    int nn = n * n;
     for (int i = 0; i <= N; i++) {
         for (int j = 0; j <= N; j++) {
             float x = j - halfN;
             float z = i - halfN;
 
-            float kLength = glm::length(glm::vec2(x, z));
-            float kAngle = std::atan2(x, z);
-            float omega = Dispersion(kLength);
-            float V = 200.0f;
-            float spectrum = PhillipsSpectrum(omega, (V * V) / _Gravity) * ShortWavesFade(kLength, 0.001f);
+            float y = 0.0f;
 
-            unsigned int seed = x + N * z + N;
-            seed += 1234;
-            glm::vec4 uniformRandSamples = glm::vec4(hash(seed), hash(seed * 2), hash(seed * 3), hash(seed * 4));
-            glm::vec2 gauss1 = UniformToGaussian(uniformRandSamples.x, uniformRandSamples.y);
-            glm::vec2 gauss2 = UniformToGaussian(uniformRandSamples.z, uniformRandSamples.w);
-            float g = gauss1.y + gauss2.x;
-            float h = 1 / sqrt(2) * g * sqrt(spectrum);
-            if (0.0001f > kLength || kLength > 9000.0f) {
-                printf("lel\n");
-                h = 0.0f;
-            }
-            h = glm::max(h, 0.0f) * 10.0f;
-            printf("h - %f\n", h);
-            spectra2D[i * n + j] = glm::vec3(h, 0.0f , 0.0f);
+            //for (int k = 0; k < nn; k++) {
+            //    float tx = spectra2D[k].g;
+            //    float tz = spectra2D[k].b;
+            //    float kLength = glm::length(glm::vec2(tx, tz));
+            //    float kAngle = std::atan2(tx, tz);
+
+            //}
+            heigthMap[i * n + j] = y;
             tpos[i * n + j] = { x, 0.0f, z };
         }
     }
@@ -191,7 +277,7 @@ void Water::createSpectrum(int N) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 129, 129, 0, GL_RGB, GL_FLOAT, spectra2D);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 257, 257, 0, GL_RGB, GL_FLOAT, spectra2D);
 
     glBindVertexArray(0);
 }
@@ -222,15 +308,37 @@ void Water::drawSpectrum(Shader* shader, glm::mat4 projection, glm::mat4 view) {
     //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
+float TMACorrection(float omega) {
+    float omegaH = omega * sqrt(_Depth / _Gravity);
+    if (omegaH <= 1.0f)
+        return 0.5f * omegaH * omegaH;
+    if (omegaH < 2.0f)
+        return 1.0f - 0.5f * (2.0f - omegaH) * (2.0f - omegaH);
+
+    return 1.0f;
+}
 
 
-//void Water::JONSWAPSpectrum(float alpha, float beta, float wpeak, float gamma, float g, float rho) {
-//
-//}
+float Water::JONSWAPSpectrum(float omega) {
+    
+    float _alpha = JonswapAlpha(_fetch, _windSpeed);
+
+    float sigma = (omega <= _peakOmega) ? 0.07f : 0.09f;
+
+    float r = exp(-(omega - _peakOmega) * (omega - _peakOmega) / 2.0f / sigma / sigma / _peakOmega / _peakOmega);
+
+    float oneOverOmega = 1.0f / omega;
+    float peakOmegaOverOmega = _peakOmega / omega;
+    float TMA = _scale * TMACorrection(omega);
+    return TMA * _alpha * _Gravity * _Gravity
+        * oneOverOmega * oneOverOmega * oneOverOmega * oneOverOmega * oneOverOmega
+        * exp(-1.25f * peakOmegaOverOmega * peakOmegaOverOmega * peakOmegaOverOmega * peakOmegaOverOmega)
+        * pow(abs(_gamma), r);
+}
 
 float Water::PhillipsSpectrum(float k, float L) {
     float kL = (k * L);
-    return glm::exp(-1 / (kL * kL)) / std::pow(k, 4);
+    return glm::exp(-1 / (kL * kL)) / (k * k * k * k);
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void Water::setupIndexMap() {

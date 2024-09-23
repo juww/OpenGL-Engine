@@ -44,7 +44,7 @@ private:
     void setupIndices();
     void setupVectices();
 
-    void JONSWAPSpectrum();
+    float JONSWAPSpectrum(float omega);
     float PhillipsSpectrum(float k, float L);
 };
 

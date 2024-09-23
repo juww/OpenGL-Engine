@@ -102,7 +102,7 @@ void Renderer::start() {
     m_Water = new Water();
     m_Water->initialize(1536, 1024, 8.0f);
     
-    m_Water->createSpectrum(128);
+    m_Water->createSpectrum(256);
 
     m_Skybox = new Skybox();
 

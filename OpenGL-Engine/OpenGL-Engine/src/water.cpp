@@ -158,8 +158,8 @@ float DispersionDerivative(float kMag) {
     float ch = cosh(kMag * _Depth);
     return _Gravity * (_Depth * kMag / ch / ch + th) / Dispersion(kMag) / 2.0f;
 }
-
-const int MAPSIZE = 257 * 257;
+const int N_SIZE = 64;
+const int MAPSIZE = N_SIZE * N_SIZE;
 glm::vec3 spectra2D[MAPSIZE];
 float heigthMap[MAPSIZE];
 
@@ -175,7 +175,7 @@ void Water::createSpectrum(int N) {
             float x = (j - halfN);
             float z = (i - halfN);
 
-            float deltaK = 2.0f * PI / 512.0f;
+            float deltaK = 2.0f * PI / N_SIZE;
 
             float kLength = glm::length(glm::vec2(z, x)) * deltaK;
             float kAngle = std::atan2(z, x);
@@ -195,8 +195,7 @@ void Water::createSpectrum(int N) {
             glm::vec2 gauss1 = UniformToGaussian(uniformRandSamples.x, uniformRandSamples.y);
             glm::vec2 gauss2 = UniformToGaussian(uniformRandSamples.z, uniformRandSamples.w);
             float g = gauss1.y + gauss2.x;
-            glm::vec2 ht = glm::vec2(gauss2.x, gauss1.y);
-            ht *= sqrt(2 * spectrum * abs(dOmegadk) / kLength * deltaK * deltaK);
+            glm::vec2 ht = glm::vec2(gauss2.x, gauss1.y) * sqrt(2 * spectrum * abs(dOmegadk) / kLength * deltaK * deltaK);
             float h = 1 / sqrt(2) * g * sqrt(spectrum);
             if (0.0001f > kLength || kLength > 9000.0f) {
                 printf("lel\n");
@@ -207,7 +206,7 @@ void Water::createSpectrum(int N) {
             //printf("h - %f\n", h);
             //
             //printf("ht - %f %f\n", ht.x, ht.y);
-            spectra2D[i * n + j] = glm::vec3(ht.x, 0.0f, 0.0f);
+            spectra2D[i * n + j] = glm::vec3(ht.x, ht.y, 0.0f);
         }
     }
 
@@ -216,16 +215,27 @@ void Water::createSpectrum(int N) {
         for (int j = 0; j <= N; j++) {
             float x = j - halfN;
             float z = i - halfN;
-
+            float xlength = glm::length(glm::vec2(x,z));
             float y = 0.0f;
 
-            //for (int k = 0; k < nn; k++) {
-            //    float tx = spectra2D[k].g;
-            //    float tz = spectra2D[k].b;
-            //    float kLength = glm::length(glm::vec2(tx, tz));
-            //    float kAngle = std::atan2(tx, tz);
+            for (int k = 0; k < nn; k++) {
+                float tx = (k % n) - halfN;
+                float tz = (k / n) - halfN;
 
-            //}
+                float deltaK = 2.0f * PI / N_SIZE;
+
+                float kLength = glm::length(glm::vec2(tx, tz)) * deltaK;
+                float kAngle = std::atan2(tx, tz);
+
+
+                float omega = Dispersion(kLength);
+                float dOmegadk = DispersionDerivative(kLength);
+                float dispersion = floor(sqrt(_Gravity * kMag) / w_0);
+                glm::vec2 expo = EulerFormula(kLength)
+
+                y += (spectra2D[k].r * glm::exp(kLength * xlength));
+            }
+            printf("%f %f -- %f\n", x, z, y);
             heigthMap[i * n + j] = y;
             tpos[i * n + j] = { x, 0.0f, z };
         }
@@ -277,7 +287,7 @@ void Water::createSpectrum(int N) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 257, 257, 0, GL_RGB, GL_FLOAT, spectra2D);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, N_SIZE, N_SIZE, 0, GL_RGB, GL_FLOAT, spectra2D);
 
     glBindVertexArray(0);
 }
@@ -289,10 +299,11 @@ void Water::drawSpectrum(Shader* shader, glm::mat4 projection, glm::mat4 view) {
 
     glm::mat4 m(1.0f);
     m = glm::translate(m, glm::vec3(0.0f, 4.0f, 0.0f));
-    m = glm::scale(m, glm::vec3(0.1f, 0.1f, 0.1f));
+    m = glm::scale(m, glm::vec3(1.0f));
     shader->setMat4("model", m);
     shader->setMat4("projection", projection);
     shader->setMat4("view", view);
+    shader->setFloat("nsize", N_SIZE);
 
     glBindVertexArray(tvao);
 

@@ -105,6 +105,9 @@ float min(float a, float b) {
     return a <= b ? a : b;
 }
 
+float max(float a, float b) {
+    return a >= b ? a : b;
+}
 
 float hash(unsigned int n) {
     // integer hash copied from Hugo Elias
@@ -113,6 +116,9 @@ float hash(unsigned int n) {
     return float(n & unsigned int(0x7fffffffU)) / float(0x7fffffff);
 }
 
+glm::vec2 ComplexMult(glm::vec2 a, glm::vec2 b) {
+    return glm::vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
+}
 
 glm::vec2 UniformToGaussian(float u1, float u2) {
     float R = sqrt(-2.0f * log(u1));
@@ -158,20 +164,28 @@ float DispersionDerivative(float kMag) {
     float ch = cosh(kMag * _Depth);
     return _Gravity * (_Depth * kMag / ch / ch + th) / Dispersion(kMag) / 2.0f;
 }
+
+//float EulerFormula(float w) {
+//    return glm::cos(w) + glm::sin(w);
+//}
+
+glm::vec2 EulerFormula(float w) {
+    return glm::vec2(cos(w), sin(w));
+}
+
 const int N_SIZE = 64;
+const int LOG_SIZE = 6;
 const int MAPSIZE = N_SIZE * N_SIZE;
-glm::vec3 spectra2D[MAPSIZE];
+glm::vec4 spectra2D[MAPSIZE], spectrumTextures[2][MAPSIZE];
+glm::vec4 fourierTarget[2][MAPSIZE];
+glm::vec4 displacementTextures[MAPSIZE], slopeTextures[MAPSIZE];
 float heigthMap[MAPSIZE];
 
 void Water::createSpectrum(int N) {
     float halfN = (float)N * 0.5f;
-    int n = (N + 1);
 
-    std::vector<glm::vec3> tpos(n*n);
-    std::vector<unsigned int> tIndices;
-    
-    for (int i = 0; i <= N; i++) {
-        for (int j = 0; j <= N; j++) {
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
             float x = (j - halfN);
             float z = (i - halfN);
 
@@ -206,48 +220,46 @@ void Water::createSpectrum(int N) {
             //printf("h - %f\n", h);
             //
             //printf("ht - %f %f\n", ht.x, ht.y);
-            spectra2D[i * n + j] = glm::vec3(ht.x, ht.y, 0.0f);
+            spectra2D[i * N + j] = glm::vec4(ht.x, ht.y, 0.0f, 0.0f);
         }
     }
-
-    int nn = n * n;
-    for (int i = 0; i <= N; i++) {
-        for (int j = 0; j <= N; j++) {
-            float x = j - halfN;
-            float z = i - halfN;
-            float xlength = glm::length(glm::vec2(x,z));
-            float y = 0.0f;
-
-            for (int k = 0; k < nn; k++) {
-                float tx = (k % n) - halfN;
-                float tz = (k / n) - halfN;
-
-                float deltaK = 2.0f * PI / N_SIZE;
-
-                float kLength = glm::length(glm::vec2(tx, tz)) * deltaK;
-                float kAngle = std::atan2(tx, tz);
-
-
-                float omega = Dispersion(kLength);
-                float dOmegadk = DispersionDerivative(kLength);
-                float dispersion = floor(sqrt(_Gravity * kMag) / w_0);
-                glm::vec2 expo = EulerFormula(kLength)
-
-                y += (spectra2D[k].r * glm::exp(kLength * xlength));
-            }
-            printf("%f %f -- %f\n", x, z, y);
-            heigthMap[i * n + j] = y;
-            tpos[i * n + j] = { x, 0.0f, z };
-        }
-    }
-
 
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-            unsigned int indx1 = i * n + j;
-            unsigned int indx2 = i * n + j + 1;
-            unsigned int indx3 = (i + 1) * n + j;
-            unsigned int indx4 = (i + 1) * n + j + 1;
+
+            glm::vec2 h0 = glm::vec2(spectra2D[i * N + j].r, spectra2D[i * N + j].g);
+            int invI = (N - i) % N;
+            int invJ = (N - j) % N;
+            glm::vec2 h0conj = glm::vec2(spectra2D[invI * N + invJ].r, spectra2D[invI * N + invJ].g);
+
+            spectra2D[i * N + j] = glm::vec4(h0, h0conj.x, -h0conj.y);
+        }
+    }
+}
+
+void Water::spectrumPlane(int N) {
+    N *= 2;
+    float halfN = (float)N * 0.5f * 0.5f;
+    int nn = N * N;
+
+    std::vector<glm::vec3> tpos(N * N);
+    std::vector<unsigned int> tIndices;
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            float x = (j * 0.5f) - halfN;
+            float z = (i * 0.5f) - halfN;
+
+            tpos[i * N + j] = { x, 0.0f, z };
+        }
+    }
+
+    for (int i = 0; i < N - 1; i++) {
+        for (int j = 0; j < N - 1; j++) {
+            unsigned int indx1 = i * N + j;
+            unsigned int indx2 = i * N + j + 1;
+            unsigned int indx3 = (i + 1) * N + j;
+            unsigned int indx4 = (i + 1) * N + j + 1;
 
             tIndices.push_back(indx1);
             tIndices.push_back(indx2);
@@ -292,6 +304,149 @@ void Water::createSpectrum(int N) {
     glBindVertexArray(0);
 }
 
+void Water::updateSpectrum(int N, float repeatTime, float frameTime) {
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            glm::vec4 initSignal = spectra2D[i * N + j];
+            glm::vec2 h0 = glm::vec2(initSignal.r, initSignal.g);
+            glm::vec2 h0conj = glm::vec2(initSignal.b, initSignal.a);
+
+            float halfN = N / 2.0f;
+            float x = (float)j - halfN;
+            float y = (float)j - halfN;
+            glm::vec2 K = glm::vec2(x, y);
+            K *= (2.0f * PI / N_SIZE);
+            float kMag = glm::length(K);
+            float kMagRcp = 1.0f / kMag;
+
+            if (kMag < 0.0001f) {
+                kMagRcp = 1.0f;
+            }
+
+            float w_0 = 2.0f * PI / repeatTime;
+            float dispersion = floor(sqrt(_Gravity * kMag) / w_0) * w_0 * frameTime;
+
+            glm::vec2 exponent = EulerFormula(dispersion);
+
+            glm::vec2 htilde = ComplexMult(h0, exponent) + ComplexMult(h0conj, glm::vec2(exponent.x, -exponent.y));
+            glm::vec2 ih = glm::vec2(-htilde.y, htilde.x);
+
+            glm::vec2 displacementX = ih * K.x * kMagRcp;
+            glm::vec2 displacementY = htilde;
+            glm::vec2 displacementZ = ih * K.y * kMagRcp;
+
+            glm::vec2 displacementX_dx = -htilde * K.x * K.x * kMagRcp;
+            glm::vec2 displacementY_dx = ih * K.x;
+            glm::vec2 displacementZ_dx = -htilde * K.x * K.y * kMagRcp;
+
+            glm::vec2 displacementY_dz = ih * K.y;
+            glm::vec2 displacementZ_dz = -htilde * K.y * K.y * kMagRcp;
+
+            glm::vec2 htildeDisplacementX = glm::vec2(displacementX.x - displacementZ.y, displacementX.y + displacementZ.x);
+            glm::vec2 htildeDisplacementZ = glm::vec2(displacementY.x - displacementZ_dx.y, displacementY.y + displacementZ_dx.x);
+
+            glm::vec2 htildeSlopeX = glm::vec2(displacementY_dx.x - displacementY_dz.y, displacementY_dx.y + displacementY_dz.x);
+            glm::vec2 htildeSlopeZ = glm::vec2(displacementX_dx.x - displacementZ_dz.y, displacementX_dx.y + displacementZ_dz.x);
+
+            spectrumTextures[0][i * N + j] = glm::vec4(htildeDisplacementX, htildeDisplacementZ);
+            spectrumTextures[1][i * N + j] = glm::vec4(htildeSlopeX, htildeSlopeZ);
+
+            fourierTarget[0][i * N + j] = glm::vec4(htildeDisplacementX, htildeDisplacementZ);
+            fourierTarget[1][i * N + j] = glm::vec4(htildeSlopeX, htildeSlopeZ);
+        }
+    }
+}
+const int SIZE = N_SIZE;
+void Water::ButterflyValues(unsigned int step, unsigned int index, glm::ivec2& indices, glm::vec2& twiddle) {
+    const float twoPi = 6.28318530718;
+    unsigned int b = SIZE >> (step + 1);
+    unsigned int w = b * (index / b);
+    unsigned int i = (w + index) % SIZE;
+
+    twiddle.y = glm::sin(-twoPi / SIZE * w);
+    twiddle.x = glm::cos(-twoPi / SIZE * w);
+
+    //This is what makes it the inverse FFT
+    twiddle.y = -twiddle.y;
+    indices = glm::ivec2(i, i + b);
+}
+glm::vec4 fftGroupBuffer[2][SIZE];
+glm::vec4 Water::FFT(unsigned int Index, glm::vec4 input) {
+    fftGroupBuffer[0][Index] = input;
+    bool flag = false;
+
+    for (int step = 0; step < LOG_SIZE; ++step) {
+        glm::ivec2 inputsIndices;
+        glm::vec2 twiddle;
+        ButterflyValues(step, Index, inputsIndices, twiddle);
+
+        glm::vec4 v = fftGroupBuffer[flag][inputsIndices.y];
+        fftGroupBuffer[!flag][Index] = fftGroupBuffer[flag][inputsIndices.x] + glm::vec4(ComplexMult(twiddle, glm::vec2(v.x,v.y)), ComplexMult(twiddle, glm::vec2(v.z,v.w)));
+
+        flag = !flag;
+    }
+
+    return fftGroupBuffer[flag][Index];
+}
+
+void Water::horizontalFFT(int N) {
+    for (int k = 0; k < 2; k++) {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < j < N; j++) {
+                fourierTarget[k][i * N + j] = FFT(i * N + j, fourierTarget[k][i * N + j]);
+            }
+        }
+    }
+}
+
+void Water::verticalFFT(int N) {
+    for (int k = 0; k < 2; k++) {
+        for (int j = 0; j < N; j++) {
+            for (int i = 0; i < N; i++) {
+                fourierTarget[k][i * N + j] = FFT(j * N + i, fourierTarget[k][i * N + j]);
+            }
+        }
+    }
+}
+
+glm::vec4 Permute(glm::vec4 data, glm::vec3 ids) {
+    float t = (1.0f - 2.0f * fmod((ids.x + ids.y), 2.0));
+    return data * t;
+}
+
+void assembleMaps(int N, glm::vec2 lambda, float foamDecayRate, float foamBias) {
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            glm::vec4 htildeDisplacement = Permute(spectrumTextures[0][i * N + j], glm::vec3(i,j,0.0f));
+            glm::vec4 htildeSlope = Permute(spectrumTextures[1][i * N + j], glm::vec3(i, j, 0.0f));
+
+            glm::vec2 dxdz = glm::vec2(htildeDisplacement.r, htildeDisplacement.g);
+            glm::vec2 dydxz = glm::vec2(htildeDisplacement.b, htildeDisplacement.a);
+            glm::vec2 dyxdyz = glm::vec2(htildeSlope.r, htildeSlope.g);
+            glm::vec2 dxxdzz = glm::vec2(htildeSlope.b, htildeSlope.a);
+
+            float jacobian = (1.0f + lambda.x * dxxdzz.x) * (1.0f + lambda.y * dxxdzz.y) - lambda.x * lambda.y * dydxz.y * dydxz.y;
+
+            glm::vec3 displacement = glm::vec3(lambda.x * dxdz.x, dydxz.x, lambda.y * dxdz.y);
+
+            glm::vec2 slopes = glm::vec2(dyxdyz.x, dyxdyz.y) / (glm::abs(dxxdzz * lambda) + glm::vec2(1.0));
+            float covariance = slopes.x * slopes.y;
+
+            float foam = displacementTextures[i * N + j].a;
+            foam *= exp(-foamDecayRate);
+            foam = max(0.0f, min(1.0f, foam));
+
+            float biasedJacobian = max(0.0f, -(jacobian - foamBias));
+
+            displacementTextures[i * N + j] = glm::vec4(displacement, foam);
+            slopeTextures[i * N + j] = glm::vec4(slopes, 0.0f, 0.0f);
+        }
+    }
+
+}
+
 void Water::drawSpectrum(Shader* shader, glm::mat4 projection, glm::mat4 view) {
 
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -303,7 +458,7 @@ void Water::drawSpectrum(Shader* shader, glm::mat4 projection, glm::mat4 view) {
     shader->setMat4("model", m);
     shader->setMat4("projection", projection);
     shader->setMat4("view", view);
-    shader->setFloat("nsize", N_SIZE);
+    shader->setFloat("nsize", 128);
 
     glBindVertexArray(tvao);
 

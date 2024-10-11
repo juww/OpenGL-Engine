@@ -12,6 +12,7 @@
 #include "sphere.h"
 #include "plane.h"
 #include "water.h"
+#include "waterFFT.h"
 
 #include <vector>
 #include <map>
@@ -39,6 +40,7 @@ private:
     Cube* m_LightCube;
     Sphere* m_Sphere;
     Water* m_Water;
+    WaterFFT* m_WaterFFT;
 
     Shader* m_ModelShader;
     Shader* m_GrassShader;

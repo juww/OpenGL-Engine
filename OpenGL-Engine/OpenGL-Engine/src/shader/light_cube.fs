@@ -5,7 +5,6 @@ out vec4 FragColor;
 uniform sampler2D Textures;
 
 in vec2 texcoord;
-in float asu;
 
 void main()
 {

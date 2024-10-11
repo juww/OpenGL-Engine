@@ -101,11 +101,12 @@ void Renderer::start() {
 
     m_Water = new Water();
     m_Water->initialize(1536, 1024, 8.0f);
-    
-    m_Water->createSpectrum(64);
-    m_Water->updateSpectrum(64, 100.0f, 0.0f);
-    m_Water->spectrumPlane(64);
 
+    m_WaterFFT = new WaterFFT(256);
+    m_WaterFFT->initialSpectrum();
+    m_WaterFFT->conjugateSpectrum();
+    m_WaterFFT->update(0.0f);
+    
     m_Skybox = new Skybox();
 
     m_FBManager->setScreenSpace();
@@ -160,7 +161,7 @@ void Renderer::render(float currentTime) {
 
     m_Water->setParameter(m_WaterShader, wp.m_Amplitude, wp.m_Frequency, currentTime, wp.m_Speed, wp.m_Seed, wp.m_SeedIter, wp.m_WaveCount, m_Camera->Position);
     //m_Water->draw(m_WaterShader, projection, view);
-    m_Water->drawSpectrum(m_LightCubeShader, projection, view);
+    m_WaterFFT->drawTexture(m_LightCubeShader, projection, view);
 
     m_Skybox->draw(m_SkyboxShader, projection, glm::mat4(glm::mat3(m_Camera->GetViewMatrix())));
 

@@ -74,6 +74,8 @@ public:
 	std::queue<int> queueDraw;
 	Grass grass;
 
+    
+
 	Plane(const int& planesize) {
 
 		planeSize = planesize;
@@ -88,6 +90,77 @@ public:
 	
 		glBindVertexArray(0);
 	}
+
+    struct quadPlane {
+        unsigned int vao, ebo;
+        unsigned int tex;
+    } qp;
+
+    void GenerateNoiseMap(Shader* shader, ComputeShader* noiseShader) {
+        createQuad();
+        shader->use();
+        shader->setInt("Textures", 0);
+        Noise noise;
+        noise.generateNoiseMap_Compute(qp.tex, 512, 512);
+
+    }
+
+    void drawNoiseTexture(Shader *shader, ComputeShader *noiseShader, glm::mat4 projection, glm::mat4 view, float frameTime) {
+        noiseShader->use();
+        noiseShader->setFloat("t", frameTime);
+        glDispatchCompute((512 / 8), (512 / 8), 1);
+        // make sure writing to image has finished before read
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+        glBindVertexArray(qp.vao);
+
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, { 0.0f, 3.0f, 0.0f });
+
+        shader->use();
+        shader->setMat4("projection", projection);
+        shader->setMat4("view", view);
+        shader->setMat4("model", m);
+
+
+        //shader->setInt("Textures", 0);
+        //glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, qp.tex);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, qp.ebo);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
+
+        glBindVertexArray(0);
+    }
+
+    void createQuad() {
+        glm::vec3 pos[4] = {
+            {-0.5f, 0.0f, -0.5f},
+            { 0.5f, 0.0f, -0.5f},
+            { 0.5f, 0.0f,  0.5f},
+            {-0.5f, 0.0f,  0.5f},
+        };
+        unsigned int indices[6] = {
+            0,2,3,  1,2,0
+        };
+
+        glGenVertexArrays(1, &qp.vao);
+        glBindVertexArray(qp.vao);
+
+        glGenBuffers(1, &qp.ebo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, qp.ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+
+        unsigned int vbo;
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(glm::vec3), &pos[0], GL_STATIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+        glEnableVertexAttribArray(0);
+
+        glBindVertexArray(0);
+    }
 
 	TerrainChunk GenerateTerrain(int width, int height, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset, const float &heightMultiplier) {
 

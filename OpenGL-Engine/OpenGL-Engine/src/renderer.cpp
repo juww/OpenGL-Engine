@@ -66,6 +66,9 @@ void Renderer::setupShaders() {
     // planeShader.setTessellationShader("TessellationControlShader.tcs", "TessellationEvaluationShader.tes");
     //Shader skeletalModel("skeletal.vs", "skeletal.fs", "skeletal.gs");
 
+    // compute shader
+    m_NoiseShader = new ComputeShader("noise.sc");
+
     // framebuffer shader
     m_FramebufferShader = new Shader("framebufferShader.vs", "framebufferShader.fs");
 }
@@ -90,6 +93,8 @@ void Renderer::start() {
     m_Plane->initGrass(50);
     m_Plane->setAllUniform(m_PlaneShader);
     m_Plane->grass.generateNoiseMap(m_GrassShader, 1, 10.0f, 4, 1.5f, 2.0f, { 0.0f,0.0f });
+
+    m_Plane->GenerateNoiseMap(m_LightCubeShader, m_NoiseShader);
 
     m_LightCube = new Cube();
     m_LightCube->initialize();
@@ -155,13 +160,15 @@ void Renderer::render(float currentTime) {
     m_Plane->draw(m_PlaneShader, projection, view);
     m_Plane->drawGrass(m_GrassShader, projection, view, currentTime, gp.m_Frequency, gp.m_Amplitude, gp.m_Scale, gp.m_Drop);
 
+    m_Plane->drawNoiseTexture(m_LightCubeShader, m_NoiseShader, projection, view, currentTime);
+
     //m_LightCube->draw(m_LightCubeShader, projection, view);
 
     GUI::waterParam(wp.m_Amplitude, wp.m_Frequency, wp.m_Speed, wp.m_WaveCount);
 
     m_Water->setParameter(m_WaterShader, wp.m_Amplitude, wp.m_Frequency, currentTime, wp.m_Speed, wp.m_Seed, wp.m_SeedIter, wp.m_WaveCount, m_Camera->Position);
     //m_Water->draw(m_WaterShader, projection, view);
-    m_WaterFFT->drawTexture(m_LightCubeShader, projection, view);
+    //m_WaterFFT->drawTexture(m_LightCubeShader, projection, view);
 
     m_Skybox->draw(m_SkyboxShader, projection, glm::mat4(glm::mat3(m_Camera->GetViewMatrix())));
 

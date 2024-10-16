@@ -364,7 +364,7 @@ void WaterFFT::assembleMaps(glm::vec2 lambda, float foamDecayRate, float foamBia
 }
 
 void WaterFFT::createQuad(int lod, int k) {
-    glm::vec3 pos[4] = { 
+    glm::vec3 pos[4] = {
         {-0.5f, 0.0f, -0.5f},
         { 0.5f, 0.0f, -0.5f},
         { 0.5f, 0.0f,  0.5f},

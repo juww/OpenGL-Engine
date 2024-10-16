@@ -37,6 +37,9 @@
     <Filter Include="Header Files\utils">
       <UniqueIdentifier>{0c714b53-74ce-4ad6-be78-b47a45238039}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\computeShader">
+      <UniqueIdentifier>{3bb18dae-ca50-4a16-89b4-cbbee634a27b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="external\glad\src\glad.c">
@@ -173,6 +176,9 @@
     <ClInclude Include="src\waterFFT.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\computeShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\shader\cube.vs">
@@ -255,6 +261,9 @@
     </None>
     <None Include="src\shader\waterFFT.vs">
       <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="src\shader\noise.sc">
+      <Filter>Resource Files\computeShader</Filter>
     </None>
   </ItemGroup>
 </Project>

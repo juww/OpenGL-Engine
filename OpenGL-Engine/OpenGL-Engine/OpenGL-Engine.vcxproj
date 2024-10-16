@@ -162,6 +162,7 @@
   <ItemGroup>
     <ClInclude Include="src\animator.h" />
     <ClInclude Include="src\camera.h" />
+    <ClInclude Include="src\computeShader.h" />
     <ClInclude Include="src\cube.h" />
     <ClInclude Include="src\FramebufferManager.h" />
     <ClInclude Include="src\grass.h" />
@@ -198,6 +199,7 @@
     <None Include="src\shader\grass.vs" />
     <None Include="src\shader\light_cube.fs" />
     <None Include="src\shader\light_cube.vs" />
+    <None Include="src\shader\noise.sc" />
     <None Include="src\shader\normalLine.fs" />
     <None Include="src\shader\normalLine.gs" />
     <None Include="src\shader\normalLine.vs" />

@@ -13,6 +13,7 @@
 #include "plane.h"
 #include "water.h"
 #include "waterFFT.h"
+#include "computeShader.h"
 
 #include <vector>
 #include <map>
@@ -51,6 +52,8 @@ private:
     Shader* m_SphereShader;
 
     Shader* m_NormalLineShader;
+
+    ComputeShader* m_NoiseShader;
 
     Shader* m_FramebufferShader;
 

@@ -57,6 +57,7 @@ public:
 
 	int planeSize;
 	int chunkSize;
+    int noiseTextureSize;
 	float fov;
 
 	float minHeight, maxHeight;
@@ -79,6 +80,7 @@ public:
 	Plane(const int& planesize) {
 
 		planeSize = planesize;
+        noiseTextureSize = 256;
 		printf("plane %d\n", planeSize);
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
@@ -94,21 +96,21 @@ public:
     struct quadPlane {
         unsigned int vao, ebo;
         unsigned int tex;
-    } qp;
+    } qp, perlin_cpu;
 
     void GenerateNoiseMap(Shader* shader, ComputeShader* noiseShader) {
         createQuad();
         shader->use();
         shader->setInt("Textures", 0);
         Noise noise;
-        noise.generateNoiseMap_Compute(qp.tex, 512, 512);
+        noise.generateNoiseMap_Compute(qp.tex, noiseTextureSize, noiseTextureSize);
 
     }
 
     void drawNoiseTexture(Shader *shader, ComputeShader *noiseShader, glm::mat4 projection, glm::mat4 view, float frameTime) {
         noiseShader->use();
         noiseShader->setFloat("t", frameTime);
-        glDispatchCompute((512 / 8), (512 / 8), 1);
+        glDispatchCompute((noiseTextureSize / 8), (noiseTextureSize / 8), 1);
         // make sure writing to image has finished before read
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -162,6 +164,157 @@ public:
         glBindVertexArray(0);
     }
 
+    unsigned int vao_patch, ebo_patch;
+    
+    unsigned int patchSize;
+
+    void generatePlaneWithPatch(int width, int heigth) {
+
+        std::vector<glm::vec3> patchPos;
+        int nn = heigth + 1, mm = width + 1;
+        for (int i = 0; i <nn; i++) {
+            for (int j = 0; j < mm; j++) {
+                patchPos.push_back(glm::vec3(j, 0.0f, i));
+            }
+        }
+        
+        std::vector<unsigned int> patchIndx;
+        for (int i = 0; i < heigth; i++) {
+            for (int j = 0; j < width; j++) {
+                //quad
+                patchIndx.push_back(i * mm + j);
+                patchIndx.push_back(i * mm + (j + 1));
+                patchIndx.push_back((i + 1) * mm + (j + 1));
+                patchIndx.push_back((i + 1) * mm + j);
+            }
+        }
+
+        glGenVertexArrays(1, &vao_patch);
+        glBindVertexArray(vao_patch);
+
+        glPatchParameteri(GL_PATCH_VERTICES, 4);
+
+        patchSize = patchIndx.size();
+        glGenBuffers(1, &ebo_patch);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_patch);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, patchIndx.size() * sizeof(unsigned int), &patchIndx[0], GL_STATIC_DRAW);
+
+        unsigned int vbo;
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, patchPos.size() * sizeof(glm::vec3), &patchPos[0], GL_STATIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+        glEnableVertexAttribArray(0);
+
+        glBindVertexArray(0);
+    }
+
+    void drawPatchPlane(Shader *shader, glm::mat4 projection, glm::mat4 view, float width, float heigth) {
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, { 0.0f, 2.0f, 0.0f });
+
+        shader->use();
+        shader->setFloat("width", width);
+        shader->setFloat("heigth", heigth);
+
+        shader->setMat4("projection", projection);
+        shader->setMat4("view", view);
+        shader->setMat4("model", m);
+
+        glBindVertexArray(vao_patch);
+
+        shader->setInt("Textures", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, qp.tex);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_patch);
+        glDrawElements(GL_PATCHES, patchSize, GL_UNSIGNED_INT, (void*)0);
+
+        glBindVertexArray(0);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+
+    void drawNoiseCPU(Shader* shader, glm::mat4 projection, glm::mat4 view, float frameTime) {
+        glBindVertexArray(perlin_cpu.vao);
+
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, { 2.0f, 3.0f, 0.0f });
+
+        shader->use();
+        shader->setMat4("projection", projection);
+        shader->setMat4("view", view);
+        shader->setMat4("model", m);
+
+        shader->setInt("Textures", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, perlin_cpu.tex);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, perlin_cpu.ebo);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
+
+        glBindVertexArray(0);
+    }
+
+
+    void liattextureperlincpu(std::vector<std::vector<float>>& noiseMap) {
+
+        glm::vec3 pos[4] = {
+            {-0.5f, 0.0f, -0.5f},
+            { 0.5f, 0.0f, -0.5f},
+            { 0.5f, 0.0f,  0.5f},
+            {-0.5f, 0.0f,  0.5f},
+        };
+        unsigned int indices[6] = {
+            0,2,3,  1,2,0
+        };
+
+        glGenVertexArrays(1, &perlin_cpu.vao);
+        glBindVertexArray(perlin_cpu.vao);
+
+        glGenBuffers(1, &perlin_cpu.ebo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, perlin_cpu.ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+
+        unsigned int vbo;
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(glm::vec3), &pos[0], GL_STATIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+        glEnableVertexAttribArray(0);
+
+        int nn = noiseMap.size();
+        int mm = noiseMap[0].size();
+        std::vector<float> temp;
+        for (int i = 0; i < nn; i++) {
+            for (int j = 0; j < mm; j++) {
+                temp.push_back(noiseMap[i][j]);
+                temp.push_back(noiseMap[i][j]);
+                temp.push_back(noiseMap[i][j]);
+                temp.push_back(noiseMap[i][j]);
+            }
+        }
+
+        glGenTextures(1, &perlin_cpu.tex);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, perlin_cpu.tex);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mm, nn, 0, GL_RGBA, GL_FLOAT, &temp.at(0));
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, perlin_cpu.tex);
+        glBindVertexArray(0);
+
+    }
+
 	TerrainChunk GenerateTerrain(int width, int height, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset, const float &heightMultiplier) {
 
 		Noise noise;
@@ -184,6 +337,8 @@ public:
 			}
 		}
 		TerrainChunk result;
+
+        liattextureperlincpu(noiseMap);
 
 		glGenVertexArrays(1, &result.vao);
 		glBindVertexArray(result.vao);
@@ -250,7 +405,20 @@ public:
 		fov = visibleDistance;
 	}
 
-	void update(const glm::vec3 &cameraPos, int seed, float scale, int octaves, float persistence, float lacunarity, glm::vec2 offset, const float& heightMultiplier, static bool &changeParam) {
+	void update(const glm::vec3 &cameraPos, int seed, float scale, int octaves, 
+        float persistence, float lacunarity, glm::vec2 offset, 
+        const float& heightMultiplier, static bool &changeParam,
+        ComputeShader* noiseShader
+    ) {
+
+        noiseShader->use();
+        noiseShader->setInt("u_seed", seed);
+        noiseShader->setFloat("u_scale", scale);
+        noiseShader->setInt("u_octaves", octaves);
+        noiseShader->setFloat("u_persistence", persistence);
+        noiseShader->setFloat("u_lacunarity", lacunarity);
+        noiseShader->setVec2("u_size", glm::vec2(noiseTextureSize));
+        noiseShader->setVec2("u_offset", offset);
 
 		std::pair<float, float> pos;
 		for (int i = -chunkSize; i <= chunkSize; i++) {

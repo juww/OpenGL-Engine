@@ -204,6 +204,8 @@
     <None Include="src\shader\normalLine.gs" />
     <None Include="src\shader\normalLine.vs" />
     <None Include="src\shader\normalMapping.gs" />
+    <None Include="src\shader\patchPlane.fs" />
+    <None Include="src\shader\patchPlane.vs" />
     <None Include="src\shader\plane.fs" />
     <None Include="src\shader\plane.vs" />
     <None Include="src\shader\skeletal.fs" />

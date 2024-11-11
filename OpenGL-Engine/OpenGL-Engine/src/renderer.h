@@ -46,6 +46,7 @@ private:
     Shader* m_ModelShader;
     Shader* m_GrassShader;
     Shader* m_PlaneShader;
+    Shader* m_PatchPlaneShader;
     Shader* m_LightCubeShader;
     Shader* m_SkyboxShader;
     Shader* m_WaterShader;

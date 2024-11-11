@@ -62,8 +62,10 @@ void Renderer::setupShaders() {
     m_WaterShader = new Shader("water.vs", "water.fs");
     m_SphereShader = new Shader("sphere.vs", "sphere.fs");
 
+    m_PatchPlaneShader = new Shader("patchPlane.vs", "patchPlane.fs");
+    m_PatchPlaneShader->setTessellationShader("TessellationControlShader.tcs", "TessellationEvaluationShader.tes");
+
     m_NormalLineShader = new Shader("normalLine.vs", "normalLine.fs", "normalLine.gs");
-    // planeShader.setTessellationShader("TessellationControlShader.tcs", "TessellationEvaluationShader.tes");
     //Shader skeletalModel("skeletal.vs", "skeletal.fs", "skeletal.gs");
 
     // compute shader
@@ -95,6 +97,7 @@ void Renderer::start() {
     m_Plane->grass.generateNoiseMap(m_GrassShader, 1, 10.0f, 4, 1.5f, 2.0f, { 0.0f,0.0f });
 
     m_Plane->GenerateNoiseMap(m_LightCubeShader, m_NoiseShader);
+    m_Plane->generatePlaneWithPatch(64, 64);
 
     m_LightCube = new Cube();
     m_LightCube->initialize();
@@ -156,11 +159,14 @@ void Renderer::render(float currentTime) {
     GUI::grassParam(gp.m_Frequency, gp.m_Amplitude, gp.m_Scale, gp.m_Drop);
 
     // draw plane
-    m_Plane->update(m_Camera->Position, tp.m_Seed, tp.m_Scale, tp.m_Octaves, tp.m_Persistence, tp.m_Lacunarity, tp.m_OffsetV, tp.m_Amplitude, changeParam);
+    m_Plane->update(m_Camera->Position, tp.m_Seed, tp.m_Scale, tp.m_Octaves, tp.m_Persistence, tp.m_Lacunarity, tp.m_OffsetV, tp.m_Amplitude, changeParam, m_NoiseShader);
     m_Plane->draw(m_PlaneShader, projection, view);
     m_Plane->drawGrass(m_GrassShader, projection, view, currentTime, gp.m_Frequency, gp.m_Amplitude, gp.m_Scale, gp.m_Drop);
 
     m_Plane->drawNoiseTexture(m_LightCubeShader, m_NoiseShader, projection, view, currentTime);
+    m_Plane->drawNoiseCPU(m_LightCubeShader, projection, view, currentTime);
+
+    m_Plane->drawPatchPlane(m_PatchPlaneShader, projection, view, 65, 65);
 
     //m_LightCube->draw(m_LightCubeShader, projection, view);
 

@@ -94,33 +94,37 @@ public:
 
 	void update(Shader* shader, float deltaTime) {
 
-		if(!animator.update(deltaTime)) return;
+        //std::cout << "update model" << std::endl;
+		//if(!animator.update(deltaTime)) return;
+        for (int k = 0; k < (int)model.skins.size(); k++) {
 
-		for (int i = 0; i < (int)model.skins[0].joints.size(); i++) {
-			int joint = model.skins[0].joints[i];
-			std::map<int, Transformation>::iterator itr = animator.currentPose.find(joint);
-			globalTransform[i] = glm::mat4(1.0f);
-			//globalTransform[i] = localMatrices[joint];
-			if (itr == animator.currentPose.end()) {
-				Transformation tmp;
-				animator.currentPose.insert({ joint, tmp });
-				itr = animator.currentPose.find(joint);
-			}
-			Transformation& temp = itr->second;
+            for (int i = 0; i < (int)model.skins[k].joints.size(); i++) {
+                int joint = model.skins[k].joints[i];
+                std::map<int, Transformation>::iterator itr = animator.currentPose.find(joint);
+                //globalTransform[i] = glm::mat4(1.0f);
+                globalTransform[i] = localMatrices[joint];
+                if (itr == animator.currentPose.end()) {
+                    Transformation tmp;
+                    animator.currentPose.insert({ joint, tmp });
+                    itr = animator.currentPose.find(joint);
+                }
+                Transformation& temp = itr->second;
 
-			globalTransform[i] = glm::scale(globalTransform[i], temp.scalation);
+                globalTransform[i] = glm::scale(globalTransform[i], temp.scalation);
 
-			glm::quat q(temp.rotation[0], temp.rotation[1], temp.rotation[2], temp.rotation[3]);
-			glm::mat4 rot = glm::toMat4(q);
-			globalTransform[i] = rot * globalTransform[i];
+                glm::quat q(temp.rotation[0], temp.rotation[1], temp.rotation[2], temp.rotation[3]);
+                glm::mat4 rot = glm::toMat4(q);
+                globalTransform[i] = rot * globalTransform[i];
 
-			globalTransform[i] = glm::translate(globalTransform[i], temp.translation);
+                globalTransform[i] = glm::translate(globalTransform[i], temp.translation);
 
-			globalTransform[i] = modelMatrices[joint] * globalTransform[i] * inverseMatrices[i];
-			//globalTransform[i] = glm::inverse(inverseMatrices[i]) * globalTransform[i];
+                globalTransform[i] = modelMatrices[joint] * globalTransform[i] * inverseMatrices[joint];
+                globalTransform[i] = glm::inverse(inverseMatrices[i]) * globalTransform[i];
 
-			shader->setMat4("boneTransform[" + std::to_string(i) + "]", globalTransform[i]);
+                shader->setMat4("boneTransform[" + std::to_string(i) + "]", globalTransform[i]);
+            }
 		}
+        //std::cout << "end update" << std::endl;
 	}
 
 	void DrawModel(Shader *shader) {
@@ -202,7 +206,7 @@ public:
 			for (int i = 0; i < node.scale.size(); i++) {
 				s[i] = node.scale[i];
 			}
-			matrix = glm::scale(matrix, s);
+			//matrix = glm::scale(matrix, s);
 		}
 
 		if (!node.rotation.empty()) {
@@ -221,7 +225,7 @@ public:
 		}
 
 
-		std::cout << glm::to_string(matrix) << std::endl;
+		//std::cout << glm::to_string(matrix) << std::endl;
 	}
 
 private:
@@ -451,34 +455,44 @@ private:
 		unsigned int stride = accessor.ByteStride(bufferView);
 		unsigned int lengthOfData = accessor.count * stride;
 
-		int cnt = 0, mi = 0;
-		unsigned char temp[4];
-		for (int i = offsetofData; i < offsetofData + lengthOfData; i++) {
-			//if (cnt > 128) break;
-			temp[cnt % 4] = buffer.data[i];
-			printf("%3d ", buffer.data[i]);
-			if (cnt % 4 == 3) {
-				float a = HexToFloat(temp);
-				inverseMatrices[cnt / 64][mi / 4][mi % 4] = a;
-				printf(" - %f #  ", a);
-				mi++;
-			}
-			if (cnt % 16 == 15) printf("\n");
-			if (cnt % 64 == 63) {
-				mi = 0;
-				printf("indx %d ============================\n", cnt/64);
-				std::cout << to_string(inverseMatrices[(cnt / 64)]) << "\n";
-			}
-			cnt++;
-		};
+        printf("use make_mat4\n");
+        for (size_t j = 0; j < model.skins[indx].joints.size(); ++j) {
+            glm::mat4 mt = glm::make_mat4((float*)(buffer.data.data() + offsetofData + stride * j));
+            int joint = model.skins[indx].joints[j];
+            inverseMatrices[joint] = mt;
+            tinygltf::Node& nodeTemp = model.nodes[joint];
+            printf("joint %d : %s\n", joint, nodeTemp.name.c_str());
+            //std::cout << to_string(mt) << "\n";
+        }
 
-		printf("skin accessor %s\n", accessor.name.c_str());
-		printf("bufferView = %d\n", accessor.bufferView);
-		printf("byteoffset = %d\n", accessor.byteOffset);
-		printf("componentType = %d\n", accessor.componentType);
-		printf("Type = %d\n", accessor.type);
-		printf("bytestride = %d\n", accessor.ByteStride(model.bufferViews[accessor.bufferView]));
-		printf("size count = %d\n", accessor.count);
+		//int cnt = 0, mi = 0;
+		//unsigned char temp[4];
+		//for (int i = offsetofData; i < offsetofData + lengthOfData; i++) {
+		//	//if (cnt > 128) break;
+		//	temp[cnt % 4] = buffer.data[i];
+		//	printf("%3d ", buffer.data[i]);
+		//	if (cnt % 4 == 3) {
+		//		float a = HexToFloat(temp);
+		//		inverseMatrices[cnt / 64][mi / 4][mi % 4] = a;
+		//		printf(" - %f #  ", a);
+		//		mi++;
+		//	}
+		//	if (cnt % 16 == 15) printf("\n");
+		//	if (cnt % 64 == 63) {
+		//		mi = 0;
+		//		printf("indx %d ============================\n", cnt/64);
+		//		std::cout << to_string(inverseMatrices[(cnt / 64)]) << "\n";
+		//	}
+		//	cnt++;
+		//};
+
+		//printf("skin accessor %s\n", accessor.name.c_str());
+		//printf("bufferView = %d\n", accessor.bufferView);
+		//printf("byteoffset = %d\n", accessor.byteOffset);
+		//printf("componentType = %d\n", accessor.componentType);
+		//printf("Type = %d\n", accessor.type);
+		//printf("bytestride = %d\n", accessor.ByteStride(model.bufferViews[accessor.bufferView]));
+		//printf("size count = %d\n", accessor.count);
 
 	}
 
@@ -521,6 +535,11 @@ private:
 		for (int node : scene.nodes) {
 			bindNodes(node);
 		}
+
+        for (int i = 0; i < vp.size(); i++) {
+            //printf("%d %d\n", vp[i].first, vp[i].second);
+            printf("%s %s\n", nameNode[vp[i].first].c_str(), nameNode[vp[i].second].c_str());
+        }
 
 		return ret;
 	}
@@ -659,8 +678,8 @@ private:
 			return;
 		}
 		tinygltf::Node& node = model.nodes[indx];
-		//glm::mat4 mat = modelMatrices[indx];
-		glm::mat4 mat(1.0f);
+		glm::mat4 mat = modelMatrices[indx];
+		//glm::mat4 mat(1.0f);
 		mat = glm::translate(mat, pos);
 		//model = glm::rotate(model, (float)glfwGetTime(), { 1.0f,0.0f,0.0f });
 		mat = glm::rotate(mat, angle, rot);

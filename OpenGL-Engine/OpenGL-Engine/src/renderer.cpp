@@ -76,7 +76,8 @@ void Renderer::setupShaders() {
 }
 
 void Renderer::initModel() {
-    const std::string& pathfile = "res/models/simpleSkin/scene.gltf";
+    //const std::string& pathfile = "res/models/simpleSkin/scene.gltf";
+    const std::string& pathfile = "res/models/model_avatar/model_external.gltf";
     //const std::string& pathfile = "assets/models/phoenix_bird/scene.gltf";
     m_Model = new loadModel(pathfile.c_str());
 
@@ -137,6 +138,7 @@ void Renderer::setModelShader(const glm::mat4& projection, const glm::mat4& view
     m_ModelShader->setVec3("viewPos", m_Camera->Position);
     m_ModelShader->setMat4("projection", projection);
     m_ModelShader->setMat4("view", view);
+    //m_ModelShader->setInt("hasBone", 1);
 
 }
 

@@ -1,0 +1,31 @@
+{
+  "name": "r_handThumb1_JNT",
+  "rotX": 84.0,
+  "rotY": 42.0,
+  "rotZ": 83.0,
+  "nodes": [
+    {
+      "name": "r_handThumb2_JNT",
+      "rotX": 0.0,
+      "rotY": -4.0,
+      "rotZ": 0.0,
+      "nodes": [
+        {
+          "name": "r_handThumb3_JNT",
+          "rotX": -8.00985872047022E-05,
+          "rotY": 0.0,
+          "rotZ": 0.0,
+          "nodes": [
+            {
+              "name": "r_handThumb4_JNT",
+              "rotX": 0.0,
+              "rotY": 0.0,
+              "rotZ": 0.0,
+              "nodes": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

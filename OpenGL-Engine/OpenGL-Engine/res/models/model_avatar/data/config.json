@@ -1,0 +1,292 @@
+{
+   "model":{
+      "base_vectors":{
+         "left":{
+            "hand":[ 1.0, 0.0, 0.0 ]
+         },
+         "right":{
+            "hand":[ -1.0, 0.0, 0.0 ]
+         }
+      },
+      "limbs":{
+         "left":{
+            "arm":[
+               "l_arm_JNT",
+               "l_forearm_JNT",
+               "l_hand_JNT"
+            ]
+         },
+         "right":{
+            "arm":[
+               "r_arm_JNT",
+               "r_forearm_JNT",
+               "r_hand_JNT"
+            ],
+            "finger_index":[
+               "r_arm_JNT",
+               "r_forearm_JNT",
+               "r_handIndex4_JNT"
+            ]
+         },
+         "common":{
+            
+         }
+      },
+      "eyelids":{
+         "left":[
+            {
+               "name":"head_GEO",
+               "weight":0
+            },
+            {
+               "name":"eyelash_GEO",
+               "weight":0
+            }
+         ],
+         "right":[
+            {
+               "name":"head_GEO",
+               "weight":1
+            },
+            {
+               "name":"eyelash_GEO",
+               "weight":1
+            }
+         ]
+      
+   },
+    "hamnosys_nodes": {
+      "left": {
+        "hamfinger2": {
+          "hamfingertip": "l_handIndex4_JNT",
+          "hamfingernail": "l_handIndex3_JNT",
+          "hamfingerpad": "l_handIndex3_JNT",
+          "hamfingermidjoint": "l_handIndex2_JNT",
+          "hamfingerbase": "",
+          "hamfingerside": ""
+        }
+      },
+      "right":{
+         "hamfinger2":{
+          "hamfingertip": "r_handIndex4_JNT",
+          "hamfingernail": "r_handIndex3_JNT",
+          "hamfingerpad": "r_handIndex3_JNT",
+          "hamfingermidjoint": "r_handIndex2_JNT",
+          "hamfingerbase":"",
+          "hamfingerside":""
+         }
+      },
+      "common":{
+         
+      }
+   },
+   "hamnosys_poses":{
+	  "left":{
+		"hamspace":[ { "files":[ "l-pos2.json" ] } ],
+        "hampalmu":[ { "files":[ "l-hampalmu.json" ] } ],
+        "hampalmur":[ { "files":[ "l-hampalmur.json" ] } ],
+        "hampalmr":[ { "files":[ "l-hampalmr.json" ] } ],
+        "hampalmdr":[ { "files":[ "l-hampalmdr.json" ] } ],
+        "hampalmd":[ { "files":[ "l-hampalmd.json" ] } ],
+        "hampalmdl":[ { "files":[ "l-hampalmdl.json" ] } ],
+        "hampalml":[ { "files":[ "l-hampalml.json" ] } ],
+        "hampalmul":[ { "files":[ "l-hampalmul.json" ] } ],
+        "hamfist":[ { "files":[ "l-hamfist.json" ] } ],
+        "hamfinger2":[ { "files":[ "l-hamfinger2.json" ] } ]
+      },
+      "right":{
+        "hamspace":[ { "files":[ "r-pos2.json" ] } ],
+        "hampalmu":[ { "files":[ "r-hampalmu.json" ] } ],
+        "hampalmur":[ { "files":[ "r-hampalmur.json" ] } ],
+        "hampalmr":[ { "files":[ "r-hampalmr.json" ] } ],
+        "hampalmdr":[ { "files":[ "r-hampalmdr.json" ] } ],
+        "hampalmd":[ { "files":[ "r-hampalmd.json" ] } ],
+        "hampalmdl":[ { "files":[ "r-hampalmdl.json" ] } ],
+        "hampalml":[ { "files":[ "r-hampalml.json" ] } ],
+        "hampalmul":[ { "files":[ "r-hampalmul.json" ] } ],
+        "hamfinger2":[ { "files":[ "r-hamfinger2.json" ] } ],
+        "hamfist":[ { "files":[ "r-hamfist.json" ] } ] },
+      "common":{
+         "hamextfingeru":[
+            {
+               "name":"",
+               "pos":[
+                  0.0,
+                  1.0,
+                  0.0
+               ]
+            }
+         ],
+         "hamextfingerur":[
+            {
+               "name":"",
+               "pos":[
+                  -1.0,
+                  1.0,
+                  0.0
+               ]
+            }
+         ],
+         "hamextfingerr":[
+            {
+               "name":"",
+               "pos":[
+                  -1.0,
+                  0.0,
+                  0.0
+               ]
+            }
+         ],
+         "hamextfingerdr":[
+            {
+               "name":"",
+               "pos":[
+                  -1.0,
+                  -1.0,
+                  0.0
+               ]
+            }
+         ],
+         "hamextfingerd":[
+            {
+               "name":"",
+               "pos":[
+                  0.0,
+                  -1.0,
+                  0.0
+               ]
+            }
+         ],
+         "hamextfingerdl":[
+            {
+               "name":"",
+               "pos":[
+                  1.0,
+                  -1.0,
+                  0.0
+               ]
+            }
+         ],
+         "hamextfingerl":[
+            {
+               "name":"",
+               "pos":[
+                  1.0,
+                  0.0,
+                  0.0
+               ]
+            }
+         ],
+         "hamextfingerul":[
+            {
+               "name":"",
+               "pos":[
+                  1.0,
+                  1.0,
+                  0.0
+               ]
+            }
+         ],
+         "hamextfingerol":[
+            {
+               "name":"",
+               "pos":[
+                  1.0,
+                  0.0,
+                  1.0
+               ]
+            }
+         ],
+         "hamextfingero":[
+            {
+               "name":"",
+               "pos":[
+                  0.0,
+                  0.0,
+                  1.0
+               ]
+            }
+         ],
+         "hamextfingeror":[
+            {
+               "name":"",
+               "pos":[
+                  -1.0,
+                  0.0,
+                  1.0
+               ]
+            }
+         ],
+         "hamextfingeril":[
+            {
+               "name":"",
+               "pos":[
+                  1.0,
+                  0.0,
+                  -1.0
+               ]
+            }
+         ],
+         "hamextfingeri":[
+            {
+               "name":"",
+               "pos":[
+                  0.0,
+                  0.0,
+                  -1.0
+               ]
+            }
+         ],
+         "hamextfingerir":[
+            {
+               "name":"",
+               "pos":[
+                  -1.0,
+                  0.0,
+                  -1.0
+               ]
+            }
+         ],
+         "hamextfingerui":[
+            {
+               "name":"",
+               "pos":[
+                  0.0,
+                  1.0,
+                  -1.0
+               ]
+            }
+         ],
+         "hamextfingerdi":[
+            {
+               "name":"",
+               "pos":[
+                  0.0,
+                  -1.0,
+                  -1.0
+               ]
+            }
+         ],
+         "hamextfingerdo":[
+            {
+               "name":"",
+               "pos":[
+                  0.0,
+                  -1.0,
+                  1.0
+               ]
+            }
+         ],
+         "hamextfingeruo":[
+            {
+               "name":"",
+               "pos":[
+                  0.0,
+                  1.0,
+                  1.0
+               ]
+            }
+         ]
+      }
+   }
+}

@@ -1,0 +1,163 @@
+{
+  "name": "l_hand_JNT",
+  "rotX": 0.0,
+  "rotY": 0.0,
+  "rotZ": 0.0,
+  "nodes": [
+    {
+      "name": "l_handThumb1_JNT",
+      "rotX": 84.0,
+      "rotY": -40.0,
+      "rotZ": -12.0,
+      "nodes": [
+        {
+          "name": "l_handThumb2_JNT",
+          "rotX": 0.0,
+          "rotY": -2.0,
+          "rotZ": -21.0,
+          "nodes": [
+            {
+              "name": "l_handThumb3_JNT",
+              "rotX": 0.00085471727652475238,
+              "rotY": 0.0,
+              "rotZ": -49.0,
+              "nodes": [
+                {
+                  "name": "l_handThumb4_JNT",
+                  "rotX": 0.0,
+                  "rotY": 0.0,
+                  "rotZ": 0.0,
+                  "nodes": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "l_handIndex1_JNT",
+      "rotX": 7.0,
+      "rotY": -1.0,
+      "rotZ": 0.0,
+      "nodes": [
+        {
+          "name": "l_handIndex2_JNT",
+          "rotX": 0.0,
+          "rotY": 0.0,
+          "rotZ": 0.0,
+          "nodes": [
+            {
+              "name": "l_handIndex3_JNT",
+              "rotX": 9.6000279881991446E-05,
+              "rotY": -0.00072122609708458185,
+              "rotZ": 0.0,
+              "nodes": [
+                {
+                  "name": "l_handIndex4_JNT",
+                  "rotX": 0.0,
+                  "rotY": 0.0,
+                  "rotZ": 0.0,
+                  "nodes": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "l_handPinky1_JNT",
+      "rotX": 0.0,
+      "rotY": -14.0,
+      "rotZ": -60.0,
+      "nodes": [
+        {
+          "name": "l_handPinky2_JNT",
+          "rotX": 0.0,
+          "rotY": -18.0,
+          "rotZ": -90.0,
+          "nodes": [
+            {
+              "name": "l_handPinky3_JNT",
+              "rotX": 0.000192208171938546,
+              "rotY": 0.00024089407816063613,
+              "rotZ": -60.0,
+              "nodes": [
+                {
+                  "name": "l_handPinky4_JNT",
+                  "rotX": 0.0,
+                  "rotY": 0.0,
+                  "rotZ": 0.0,
+                  "nodes": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "l_handRing1_JNT",
+      "rotX": 0.0,
+      "rotY": -14.0,
+      "rotZ": -60.0,
+      "nodes": [
+        {
+          "name": "l_handRing2_JNT",
+          "rotX": 0.0,
+          "rotY": -11.0,
+          "rotZ": -90.0,
+          "nodes": [
+            {
+              "name": "l_handRing3_JNT",
+              "rotX": -0.00039394048508256674,
+              "rotY": 0.0,
+              "rotZ": -60.0,
+              "nodes": [
+                {
+                  "name": "l_handRing4_JNT",
+                  "rotX": 0.0,
+                  "rotY": 0.0,
+                  "rotZ": 0.0,
+                  "nodes": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "l_handMiddle1_JNT",
+      "rotX": -3.0,
+      "rotY": -3.0,
+      "rotZ": 0.0,
+      "nodes": [
+        {
+          "name": "l_handMiddle2_JNT",
+          "rotX": 0.0,
+          "rotY": 0.0,
+          "rotZ": 0.0,
+          "nodes": [
+            {
+              "name": "l_handMiddle3_JNT",
+              "rotX": -5.1698989409487694E-05,
+              "rotY": -0.0007259231642819941,
+              "rotZ": 0.0,
+              "nodes": [
+                {
+                  "name": "l_handMiddle4_JNT",
+                  "rotX": 0.0,
+                  "rotY": 0.0,
+                  "rotZ": 0.0,
+                  "nodes": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

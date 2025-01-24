@@ -44,7 +44,7 @@ public:
 	std::vector<glm::mat4> localMatrices;
 	std::vector<glm::mat4> modelMatrices;
 	std::vector<glm::mat4> inverseMatrices;
-	std::vector<glm::mat4> globalTransform;
+	std::vector<glm::mat4> animationTransform;
 	std::map<int, unsigned int> ebos;
 	std::map<int, unsigned int> vbos;
 	std::map<int, unsigned int> vaos;
@@ -92,39 +92,57 @@ public:
         glBindVertexArray(0);
 	}
 
+    void updateSkeletalNode(int indx, int parent, Shader* shader) {
+        if (indx < 0 || indx >= (int)model.nodes.size()) {
+            return;
+        }
+        tinygltf::Node& node = model.nodes[indx];
+        animationTransform[indx] = glm::mat4(1.0f);
+
+        std::map<int, Transformation>::iterator itr = animator.currentPose.find(indx);
+        if (itr == animator.currentPose.end()) {
+            Transformation tmp;
+            animator.currentPose.insert({ indx, tmp });
+            itr = animator.currentPose.find(indx);
+        }
+        Transformation& temp = itr->second;
+
+        animationTransform[indx] = glm::scale(animationTransform[indx], temp.scalation);
+
+        glm::quat q(temp.rotation[0], temp.rotation[1], temp.rotation[2], temp.rotation[3]);
+        glm::mat4 rot = glm::toMat4(q);
+        animationTransform[indx] = rot * animationTransform[indx];
+
+        animationTransform[indx] = glm::translate(animationTransform[indx], temp.translation);
+
+        if (parent != -1) {
+            animationTransform[indx] = animationTransform[parent] * animationTransform[indx];
+        }
+        for (int i = 0; i < node.children.size(); i++) {
+            updateSkeletalNode(node.children[i], indx, shader);
+        }
+    }
+
 	void update(Shader* shader, float deltaTime) {
 
-        //std::cout << "update model" << std::endl;
-		//if(!animator.update(deltaTime)) return;
-        for (int k = 0; k < (int)model.skins.size(); k++) {
+        if (!animator.update(deltaTime)) {
+            return;
+        }
 
+        int defaultScene = model.defaultScene < 0 ? 0 : model.defaultScene;
+        tinygltf::Scene& scene = model.scenes[defaultScene];
+        for (int node : scene.nodes) {
+            updateSkeletalNode(node, -1, shader);
+        }
+        for (int k = 0; k < (int)model.skins.size(); k++) {
             for (int i = 0; i < (int)model.skins[k].joints.size(); i++) {
                 int joint = model.skins[k].joints[i];
-                std::map<int, Transformation>::iterator itr = animator.currentPose.find(joint);
-                //globalTransform[i] = glm::mat4(1.0f);
-                globalTransform[i] = localMatrices[joint];
-                if (itr == animator.currentPose.end()) {
-                    Transformation tmp;
-                    animator.currentPose.insert({ joint, tmp });
-                    itr = animator.currentPose.find(joint);
-                }
-                Transformation& temp = itr->second;
+                //animationTransform[joint] = animationTransform[joint] * glm::inverse(modelMatrices[joint]);
+                animationTransform[joint] = animationTransform[joint] * inverseMatrices[joint];
 
-                globalTransform[i] = glm::scale(globalTransform[i], temp.scalation);
-
-                glm::quat q(temp.rotation[0], temp.rotation[1], temp.rotation[2], temp.rotation[3]);
-                glm::mat4 rot = glm::toMat4(q);
-                globalTransform[i] = rot * globalTransform[i];
-
-                globalTransform[i] = glm::translate(globalTransform[i], temp.translation);
-
-                globalTransform[i] = modelMatrices[joint] * globalTransform[i] * inverseMatrices[joint];
-                globalTransform[i] = glm::inverse(inverseMatrices[i]) * globalTransform[i];
-
-                shader->setMat4("boneTransform[" + std::to_string(i) + "]", globalTransform[i]);
+                shader->setMat4("boneTransform[" + std::to_string(i) + "]", animationTransform[joint]);
             }
 		}
-        //std::cout << "end update" << std::endl;
 	}
 
 	void DrawModel(Shader *shader) {
@@ -134,55 +152,6 @@ public:
 		tinygltf::Scene& scene = model.scenes[defaultScene];
 		for (int node : scene.nodes) {
 			drawNodes(node, shader);
-		}
-	}
-
-	std::vector<glm::ivec4> JJ;
-	std::vector<glm::vec4> WW;
-	// WIP: still don't know how to draw the skeletal
-	void DrawSkeleton(Shader& shader) {
-		tinygltf::Skin& skin = model.skins[0];
-		for (int i = 0; i < (int)vp.size(); i++) {
-			int a = 0, b = 0;
-			for (int j = 0; j < (int)skin.joints.size(); j++) {
-				int joint = skin.joints[j];
-				if (vp[i].first == joint) {
-					a = 1;
-				}
-				if (vp[i].second == joint) {
-					b = 1;
-				}
-			}
-			if (a + b == 2) {
-				printf("%d %d\n", vp[i].first, vp[i].second);
-
-			}
-		}
-		int Mn = 1e9, Mx = 0;
-		for (int i = 0; i < (int)JJ.size(); i++) {
-			for (int j = 0; j < 4; j++) {
-				printf("%6d ", JJ[i][j]);
-				if (Mn > JJ[i][j]) {
-					Mn = JJ[i][j];
-				}
-				if (Mx < JJ[i][j]) {
-					Mx = JJ[i][j];
-				}
-			}
-			printf("\n");
-			float asu = 0.0f;
-			for (int j = 0; j < 4; j++) {
-				printf("%f ", WW[i][j]);
-				asu += WW[i][j];
-			}
-			printf(" = %f %s", asu, asu>1.0f?"asu" : " ");
-			printf("\n");
-		}
-		printf("Mx: %d\nMn: %d\n", Mx, Mn);
-
-		for (int j = 0; j < (int)skin.joints.size(); j++) {
-			int joint = skin.joints[j];
-			printf("%d -> %s\n", joint, nameNode[joint].c_str());
 		}
 	}
 
@@ -206,7 +175,7 @@ public:
 			for (int i = 0; i < node.scale.size(); i++) {
 				s[i] = node.scale[i];
 			}
-			//matrix = glm::scale(matrix, s);
+			matrix = glm::scale(matrix, s);
 		}
 
 		if (!node.rotation.empty()) {
@@ -223,8 +192,6 @@ public:
 			}
 			matrix = glm::translate(matrix, t);
 		}
-
-
 		//std::cout << glm::to_string(matrix) << std::endl;
 	}
 
@@ -344,7 +311,7 @@ private:
 			unsigned int vbo;
 			glGenBuffers(1, &vbo);
 			vbos[attr.second] = vbo;
-			printf("vbo %u\n", vbo);
+			//printf("vbo %u\n", vbo);
 
 			unsigned int offsetofData = bufferView.byteOffset + accessor.byteOffset;
 			unsigned int stride = accessor.ByteStride(bufferView);
@@ -355,7 +322,7 @@ private:
 			if (vaa->first == "JOINTS_0") {
 				glVertexAttribIPointer(vaa->second, accessor.type, accessor.componentType,
 					accessor.ByteStride(bufferView), (void*)(0));
-			} else {
+            } else {
 				glVertexAttribPointer(vaa->second, accessor.type, accessor.componentType,
 					accessor.normalized ? GL_TRUE : GL_FALSE, accessor.ByteStride(bufferView), (void*)(0));
 			}
@@ -455,45 +422,14 @@ private:
 		unsigned int stride = accessor.ByteStride(bufferView);
 		unsigned int lengthOfData = accessor.count * stride;
 
-        printf("use make_mat4\n");
         for (size_t j = 0; j < model.skins[indx].joints.size(); ++j) {
             glm::mat4 mt = glm::make_mat4((float*)(buffer.data.data() + offsetofData + stride * j));
             int joint = model.skins[indx].joints[j];
             inverseMatrices[joint] = mt;
             tinygltf::Node& nodeTemp = model.nodes[joint];
             printf("joint %d : %s\n", joint, nodeTemp.name.c_str());
-            //std::cout << to_string(mt) << "\n";
+            std::cout << to_string(mt) << "\n";
         }
-
-		//int cnt = 0, mi = 0;
-		//unsigned char temp[4];
-		//for (int i = offsetofData; i < offsetofData + lengthOfData; i++) {
-		//	//if (cnt > 128) break;
-		//	temp[cnt % 4] = buffer.data[i];
-		//	printf("%3d ", buffer.data[i]);
-		//	if (cnt % 4 == 3) {
-		//		float a = HexToFloat(temp);
-		//		inverseMatrices[cnt / 64][mi / 4][mi % 4] = a;
-		//		printf(" - %f #  ", a);
-		//		mi++;
-		//	}
-		//	if (cnt % 16 == 15) printf("\n");
-		//	if (cnt % 64 == 63) {
-		//		mi = 0;
-		//		printf("indx %d ============================\n", cnt/64);
-		//		std::cout << to_string(inverseMatrices[(cnt / 64)]) << "\n";
-		//	}
-		//	cnt++;
-		//};
-
-		//printf("skin accessor %s\n", accessor.name.c_str());
-		//printf("bufferView = %d\n", accessor.bufferView);
-		//printf("byteoffset = %d\n", accessor.byteOffset);
-		//printf("componentType = %d\n", accessor.componentType);
-		//printf("Type = %d\n", accessor.type);
-		//printf("bytestride = %d\n", accessor.ByteStride(model.bufferViews[accessor.bufferView]));
-		//printf("size count = %d\n", accessor.count);
-
 	}
 
 	void bindNodes(int indx, int parent = -1) {
@@ -527,7 +463,7 @@ private:
 		localMatrices.resize(model.nodes.size(), glm::mat4(1.0));
 		modelMatrices.resize(model.nodes.size(), glm::mat4(1.0));
 		inverseMatrices.resize(model.nodes.size(), glm::mat4(1.0));
-		globalTransform.resize(model.nodes.size(), glm::mat4(1.0));
+		animationTransform.resize(model.nodes.size(), glm::mat4(1.0));
 		materials.resize(model.materials.size(), MaterialModel());
 
 		int defaultScene = model.defaultScene < 0 ? 0 : model.defaultScene;
@@ -535,11 +471,6 @@ private:
 		for (int node : scene.nodes) {
 			bindNodes(node);
 		}
-
-        for (int i = 0; i < vp.size(); i++) {
-            //printf("%d %d\n", vp[i].first, vp[i].second);
-            printf("%s %s\n", nameNode[vp[i].first].c_str(), nameNode[vp[i].second].c_str());
-        }
 
 		return ret;
 	}
@@ -683,9 +614,10 @@ private:
 		mat = glm::translate(mat, pos);
 		//model = glm::rotate(model, (float)glfwGetTime(), { 1.0f,0.0f,0.0f });
 		mat = glm::rotate(mat, angle, rot);
+        scale = glm::vec3(0.01f);
 		mat = glm::scale(mat, scale);
 		 //std::cout << glm::to_string(mat) << "\n";
-		shader->setMat4("model", mat);	
+        shader->setMat4("model", mat);
 
 		drawMesh(node.mesh, shader);
 

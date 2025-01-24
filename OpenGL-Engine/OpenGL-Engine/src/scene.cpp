@@ -122,7 +122,7 @@ int Scene::run() {
         GUI::GUIFrame();
         m_Camera->setAspect(m_SceneWidth, m_SceneHeight);
 
-        m_Renderer->render(m_CurrentTime);
+        m_Renderer->render(m_CurrentTime, m_DeltaTime);
 
         ImGui::End();
         GUI::renderUI();

@@ -1,4 +1,4 @@
-#ifndef SHADER_H
+﻿#ifndef SHADER_H
 #define SHADER_H
 
 #include <glad/glad.h>
@@ -209,6 +209,14 @@ public:
     void setMat4(const std::string& name, const glm::mat4& mat) const
     {
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+    }
+    // ------------------------------------------------------------------------
+    GLuint setUniformBuffers(const std::string& name) const {
+        return glGetUniformBlockIndex(ID, name.c_str());
+    }
+    // ------------------------------------------------------------------------
+    void setBindingUniform(const GLuint uniformBlockIndex​, const GLuint uniformBlockBinding​) const {
+        glUniformBlockBinding(ID, uniformBlockIndex​, uniformBlockBinding​);
     }
 
 private:

@@ -26,14 +26,14 @@ out geom_data {
 
 vec4 applyBoneTransform(vec4 p) {
 
-    vec4 result = vec4(0.0);
+    mat4 result = mat4(1.0);
 
     for (int i = 0; i < 4; ++i) {
-         if(aJoint[i] == -1) continue;
-         vec4 jointTransform = boneTransform[aJoint[i]] * p;
-         result += (jointTransform * aWeight[i]);
+         if(aJoint[i] < 0) continue;
+         result += (boneTransform[aJoint[i]] * aWeight[i]);
     }
-    return result;
+    vec4 res = result * p;
+    return res;
 }
 
 void main() {

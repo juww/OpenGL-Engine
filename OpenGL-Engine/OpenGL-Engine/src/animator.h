@@ -25,7 +25,7 @@ struct Transformation {
 	Transformation() {
 		mat = glm::mat4(1.0f);
 
-		rotation = glm::vec4(0.0f);
+		rotation = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
 		translation = glm::vec3(0.0f);
 		scalation = glm::vec3(1.0f);
 		weight = 0.0f;

@@ -77,8 +77,8 @@ void Renderer::setupShaders() {
 
 void Renderer::initModel() {
     //const std::string& pathfile = "res/models/simpleSkin/scene.gltf";
-    const std::string& pathfile = "res/models/model_avatar/model_external.gltf";
-    //const std::string& pathfile = "assets/models/phoenix_bird/scene.gltf";
+    //const std::string& pathfile = "res/models/model_avatar/model_external.gltf";
+    const std::string& pathfile = "res/models/phoenix_bird/scene.gltf";
     m_Model = new loadModel(pathfile.c_str());
 
     m_Model->animator.doAnimation(0);
@@ -138,11 +138,11 @@ void Renderer::setModelShader(const glm::mat4& projection, const glm::mat4& view
     m_ModelShader->setVec3("viewPos", m_Camera->Position);
     m_ModelShader->setMat4("projection", projection);
     m_ModelShader->setMat4("view", view);
-    //m_ModelShader->setInt("hasBone", 1);
+    m_ModelShader->setInt("hasBone", 1);
 
 }
 
-void Renderer::render(float currentTime) {
+void Renderer::render(float currentTime, float deltaTime) {
 
     m_FBManager->bindFramebuffers();
 
@@ -154,7 +154,7 @@ void Renderer::render(float currentTime) {
     glm::mat4 view = m_Camera->GetViewMatrix();
 
     setModelShader(projection, view);
-    m_Model->update(m_ModelShader, currentTime);
+    m_Model->update(m_ModelShader, deltaTime);
     m_Model->DrawModel(m_ModelShader);
 
     bool changeParam = GUI::proceduralTerrainParam(tp.m_Seed, tp.m_Scale, tp.m_Octaves, tp.m_Persistence, tp.m_Lacunarity, tp.m_OffsetV, tp.m_Amplitude);

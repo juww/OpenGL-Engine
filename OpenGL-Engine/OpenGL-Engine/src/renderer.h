@@ -26,7 +26,7 @@ public:
 
     Camera* getCamera();
     void start();
-    void render(float currentTime);
+    void render(float currentTime, float deltaTime);
 
 private:
 

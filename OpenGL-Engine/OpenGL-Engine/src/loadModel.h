@@ -54,7 +54,7 @@ public:
 	glm::vec3 pos = glm::vec3(0.0f);
 	glm::vec3 rot = glm::vec3(1.0f);
 	float angle = 0.0f;
-	glm::vec3 scale = glm::vec3(1.0f);
+	glm::vec3 scale = glm::vec3(0.01f);
 
 
 	loadModel(const char* filename) {
@@ -366,10 +366,10 @@ private:
 			}
 			tinygltf::Buffer &buffer = model.buffers[bufferView.buffer];
 
-			printf("primitive[%d]\n", i);
-			printf("prim.indices = %d\n", prim.indices);
-			printf("accessor.bufferView = %d\n", accessor.bufferView);
-			printf("bufferView.buffer = %d\n", bufferView.buffer);
+			//printf("primitive[%d]\n", i);
+			//printf("prim.indices = %d\n", prim.indices);
+			//printf("accessor.bufferView = %d\n", accessor.bufferView);
+			//printf("bufferView.buffer = %d\n", bufferView.buffer);
 
 			if (ebos[prim.indices]) {
 				std::cout << "already bind the mesh" << std::endl;
@@ -397,7 +397,7 @@ private:
 		if (indx == -1) return;
 
 		tinygltf::Skin& skin = model.skins[indx];
-		printf("skin name ---- %s\n", skin.name.c_str());
+		//printf("skin name ---- %s\n", skin.name.c_str());
 		if (skin.inverseBindMatrices < 0 || skin.inverseBindMatrices >= model.accessors.size()) {
 			printf("E| Skin Inverse Bind Matrices is not found!\n");
 			return;
@@ -427,8 +427,8 @@ private:
             int joint = model.skins[indx].joints[j];
             inverseMatrices[joint] = mt;
             tinygltf::Node& nodeTemp = model.nodes[joint];
-            printf("joint %d : %s\n", joint, nodeTemp.name.c_str());
-            std::cout << to_string(mt) << "\n";
+            //printf("joint %d : %s\n", joint, nodeTemp.name.c_str());
+            //std::cout << to_string(mt) << "\n";
         }
 	}
 
@@ -439,7 +439,7 @@ private:
 			return;
 		}
 		tinygltf::Node& node = model.nodes[indx];
-		printf("node[%d] name: %s\n", indx, node.name.c_str());
+		//printf("node[%d] name: %s\n", indx, node.name.c_str());
 
 		localTransform(node,localMatrices[indx]);
 		modelMatrices[indx] = localMatrices[indx];
@@ -482,7 +482,7 @@ private:
 		int current_animation = 0;
 		animator.animations.resize(model.animations.size());
 		for (tinygltf::Animation& animation : model.animations) {
-			printf("%d: %s\n", current_animation, animation.name.c_str());
+			//printf("%d: %s\n", current_animation, animation.name.c_str());
 			int sampler_length = animation.samplers.size();
 			int channel_length = animation.channels.size();
 			for (tinygltf::AnimationChannel& channel: animation.channels) {
@@ -491,7 +491,7 @@ private:
 				int indxSampler = channel.sampler;
 				int targetNode = channel.target_node;
 
-				printf("target node animation: %d\n", targetNode);
+				//printf("target node animation: %d\n", targetNode);
 
 				std::string targetPath = channel.target_path;
 				if (indxSampler < 0 || indxSampler >= sampler_length) {
@@ -614,7 +614,7 @@ private:
 		mat = glm::translate(mat, pos);
 		//model = glm::rotate(model, (float)glfwGetTime(), { 1.0f,0.0f,0.0f });
 		mat = glm::rotate(mat, angle, rot);
-        scale = glm::vec3(0.01f);
+        //scale = glm::vec3(0.01f);
 		mat = glm::scale(mat, scale);
 		 //std::cout << glm::to_string(mat) << "\n";
         shader->setMat4("model", mat);

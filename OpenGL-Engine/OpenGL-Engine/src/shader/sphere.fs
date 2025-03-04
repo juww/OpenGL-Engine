@@ -39,9 +39,9 @@ vec3 CalculateRefraction(){
 void main(){
     
     vec3 color = vec3(1.0, 0.0, 0.0);
-    //color = texture(Textures, vec2(TexCoords)).rgb;
-    color = texture(CubeTextures, vec3(TexCoords, FaceCube)).rgb;
-    color = CalculateRefraction();
+    color = texture(Textures, vec2(TexCoords)).rgb;
+    //color = texture(CubeTextures, vec3(TexCoords, FaceCube)).rgb;
+    //color = CalculateRefraction();
 
     //color = normalize(color);
     float ambientStrength = 0.1;

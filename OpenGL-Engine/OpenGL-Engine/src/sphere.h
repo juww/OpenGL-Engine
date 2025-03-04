@@ -5,6 +5,7 @@
 #include <vector>
 #include "shader_m.h"
 #include <math.h>
+#include <algorithm>
 
 class Sphere {
 public:
@@ -36,7 +37,7 @@ public:
         lengthInv = 1.0f / radius;
         countVertex = 0;
         tex = 0, cubeTex = 0;
-        pos = glm::vec3(10.0f);
+        pos = glm::vec3(0.0f, 10.0f, -3.0f);
 
         model = glm::translate(model, pos);
         getTexturePath();
@@ -87,12 +88,7 @@ public:
         float h1 = -PI / 2.0f - hAngle / 2.0f;
         float h2 = -PI / 2.0f;
 
-        loadTexture(texturePaths[1]);
-
-        float invS = widthTex / 11.0f;
-        float invT = heightTex / 3.0f;
-        float s = 186.0f / widthTex;
-        float t = 322.0f / heightTex;
+        loadTexture(texturePaths[2]);
 
         std::vector<unsigned int> baseTriangle;
 
@@ -112,42 +108,57 @@ public:
             float hor2 = h2 + (hAngle * i);
             glm::vec3 v3(xz * glm::cos(hor2), -yy, xz * glm::sin(hor2));
             hor2 = h2 + (hAngle * (i + 1));
-            int cur = i * 2;
-            int mid = (i * 2 + 1);
-            int next = ((i + 1) * 2);
-            int next2 = ((i + 1) * 2 + 1);
             glm::vec3 v4(xz * glm::cos(hor2), -yy, xz * glm::sin(hor2));
-            unsigned int p1 = addVertex(x, y, z, float((i * 2) + 1) * s, 0.0f);
-            unsigned int p2 = addVertex(v1.x, v1.y, v1.z, float(i * 2) * s, t);
-            unsigned int p3 = addVertex(v2.x, v2.y, v2.z, float((i + 1) * 2) * s, t);
+
+            float t0[2] = { 0.0f, 0.0f };
+            float t1[2] = { 0.0f, 0.0f };
+            float t2[2] = { 0.0f, 0.0f };
+            float t3[2] = { 0.0f, 0.0f };
+            float t4[2] = { 0.0f, 0.0f };
+            float pos0[3] = { x, y, z };
+            float pos1[3] = { v1.x, v1.y, v1.z };
+            float pos2[3] = { v2.x, v2.y, v2.z };
+            float pos3[3] = { v3.x, v3.y, v3.z };
+            float pos4[3] = { v4.x, v4.y, v4.z };
+            computeTexcoordByNewPosition(t0, pos0);
+            computeTexcoordByNewPosition(t1, pos1);
+            computeTexcoordByNewPosition(t2, pos2);
+            computeTexcoordByNewPosition(t3, pos3);
+            computeTexcoordByNewPosition(t4, pos4);
+
+            unsigned int p1 = addVertex(x, y, z, t0[0], t0[1]);
+            unsigned int p2 = addVertex(v1.x, v1.y, v1.z, t1[0], t1[1]);
+            unsigned int p3 = addVertex(v2.x, v2.y, v2.z, t2[0], t2[1]);
             baseTriangle.push_back(p1);
             baseTriangle.push_back(p2);
             baseTriangle.push_back(p3);
 
-            p1 = addVertex(v3.x, v3.y, v3.z, float((i * 2) + 1) * s, 2.0f * t);
-            p2 = addVertex(v2.x, v2.y, v2.z, float((i + 1) * 2) * s, t);
-            p3 = addVertex(v1.x, v1.y, v1.z, float(i * 2) * s, t);
+            p1 = addVertex(v3.x, v3.y, v3.z, t3[0], t3[1]);
+            p2 = addVertex(v2.x, v2.y, v2.z, t2[0], t2[1]);
+            p3 = addVertex(v1.x, v1.y, v1.z, t1[0], t1[1]);
             baseTriangle.push_back(p1);
             baseTriangle.push_back(p2);
             baseTriangle.push_back(p3);
 
-            p1 = addVertex(v2.x, v2.y, v2.z, float((i + 1) * 2) * s, t);
-            p2 = addVertex(v3.x, v3.y, v3.z, float((i * 2) + 1) * s, 2.0f * t);
-            p3 = addVertex(v4.x, v4.y, v4.z, float(((i + 1) * 2) + 1) * s, 2.0f * t);
+            p1 = addVertex(v2.x, v2.y, v2.z, t2[0], t2[1]);
+            p2 = addVertex(v3.x, v3.y, v3.z, t3[0], t3[1]);
+            p3 = addVertex(v4.x, v4.y, v4.z, t4[0], t4[1]);
             baseTriangle.push_back(p1);
             baseTriangle.push_back(p2);
             baseTriangle.push_back(p3);
 
-            p1 = addVertex(x, -y, z, float((i + 1) * 2) * s, 3.0f * t);
-            p2 = addVertex(v4.x, v4.y, v4.z, float(((i + 1) * 2) + 1) * s, 2.0f * t);
-            p3 = addVertex(v3.x, v3.y, v3.z, float((i * 2) + 1) * s, 2.0f * t);
+            pos0[0] = x; pos0[1] = -y; pos0[2] = z;
+            computeTexcoordByNewPosition(t0, pos0);
+            p1 = addVertex(x, -y, z, t0[0], t0[1]);
+            p2 = addVertex(v4.x, v4.y, v4.z, t4[0], t4[1]);
+            p3 = addVertex(v3.x, v3.y, v3.z, t3[0], t3[1]);
             baseTriangle.push_back(p1);
             baseTriangle.push_back(p2);
             baseTriangle.push_back(p3);
         }
 
         int baseIndexSize = baseTriangle.size();
-        for (int i = 0; i < baseIndexSize; i+=3) {   
+        for (int i = 0; i < baseIndexSize; i+=3) {
             subDivisionTriangle(lvl, baseTriangle[i], baseTriangle[i + 1], baseTriangle[i + 2]);
         }
         setbuffer();
@@ -210,9 +221,9 @@ public:
     void draw(Shader* shader, const glm::mat4& projection, const glm::mat4& view, glm::vec3& cameraPos, const float &_time, const unsigned int skybox) {
         shader->use();
 
-        glm::mat4 m = glm::rotate(model, _time, glm::vec3(0.0f, 1.0f, 0.0f));
+        //glm::mat4 m = glm::rotate(model, _time, glm::vec3(0.0f, 1.0f, 0.0f));
 
-        shader->setMat4("model", m);
+        shader->setMat4("model", model);
         shader->setMat4("projection", projection);
         shader->setMat4("view", view);
 
@@ -270,10 +281,41 @@ private:
     }
 
     void subDivisionTriangle(int lvl, unsigned int indx1, unsigned int indx2, unsigned int indx3) {
+        sortVertex(indx1, indx2, indx3);
         if (lvl == 0) {
+
+            //fix UV
+            float t1[2] = { vertices[indx1 * 8 + 6], vertices[indx1 * 8 + 7] };
+            float t2[2] = { vertices[indx2 * 8 + 6], vertices[indx2 * 8 + 7] };
+            float t3[2] = { vertices[indx3 * 8 + 6], vertices[indx3 * 8 + 7] };
+
+            float p1[3] = { vertices[indx1 * 8], vertices[indx1 * 8 + 1], vertices[indx1 * 8 + 2] };
+            float p2[3] = { vertices[indx2 * 8], vertices[indx2 * 8 + 1], vertices[indx2 * 8 + 2] };
+            float p3[3] = { vertices[indx3 * 8], vertices[indx3 * 8 + 1], vertices[indx3 * 8 + 2] };
+
+            if (t2[0] - t1[0] >= 0.5f && t1[1] != 1.0f) t2[0] -= 1.0f;
+            if (t3[0] - t2[0] > 0.5f) t3[0] -= 1.0f;
+            if (t1[0] > 0.5f && t1[0] - t3[0] > 0.5f || t1[0] == 1.0f && t3[1] == 0.0f) t1[0] -= 1.0f;
+            if (t2[0] > 0.5f && t2[0] - t1[0] > 0.5f) t2[0] -= 1.0f;
+            if (t1[1] == 0.0f || t1[1] == 1.0f) t1[0] = (t2[0] + t3[0]) / 2.0f;
+            if (t2[1] == 0.0f || t2[1] == 1.0f) t2[0] = (t1[0] + t3[0]) / 2.0f;
+            if (t3[1] == 0.0f || t3[1] == 1.0f) t3[0] = (t1[0] + t2[0]) / 2.0f;
+
+            if (t2[0] - t1[0] < 0.5f && t3[0] - t2[0] < 0.5f && t3[0] - t1[0] > 0.5f) {
+                if (t2[1] == 1.0f || t2[1] == 0.0f) {
+                    t3[0] -= 1.0f;
+                    t2[0] = (t1[0] + t3[0]) / 2.0f;
+                }
+            }
+
+            vertices[indx1 * 8 + 6] = t1[0]; vertices[indx1 * 8 + 7] = t1[1];
+            vertices[indx2 * 8 + 6] = t2[0]; vertices[indx2 * 8 + 7] = t2[1];
+            vertices[indx3 * 8 + 6] = t3[0]; vertices[indx3 * 8 + 7] = t3[1];
+            
             indices.push_back(indx1);
             indices.push_back(indx2);
             indices.push_back(indx3);
+
             return;
         }
         int p1 = indx1 * 8;
@@ -300,9 +342,9 @@ private:
         computeHalfVertex(v2, v3, newV2);
         computeHalfVertex(v3, v1, newV3);
 
-        computeHalfTexcoord(ts1, ts2, newt1);
-        computeHalfTexcoord(ts2, ts3, newt2);
-        computeHalfTexcoord(ts3, ts1, newt3);
+        computeTexcoordByNewPosition(newt1, newV1);
+        computeTexcoordByNewPosition(newt2, newV2);
+        computeTexcoordByNewPosition(newt3, newV3);
 
         int idx1 = addVertex(newV1[0], newV1[1], newV1[2], newt1[0], newt1[1]);
         int idx2 = addVertex(newV2[0], newV2[1], newV2[2], newt2[0], newt2[1]);
@@ -392,6 +434,14 @@ private:
         newTex[1] = (t1[1] + t2[1]) / 2.0f;
     }
 
+    void computeTexcoordByNewPosition(float newTex[2], const float pos[3]) {
+        float length = glm::sqrt((pos[0] * pos[0]) + (pos[1] * pos[1]) + (pos[2] * pos[2]));
+        glm::vec3 n = { pos[0] / length, pos[1] / length, pos[2] / length };
+
+        newTex[0] = (std::atan2(n.x, n.z) / (2.0f * PI)) + 0.5f;
+        newTex[1] = (std::asin(-n.y) / PI) + 0.5f;
+    }
+
     void computeHalfVertex(const float v1[3], const float v2[3], float newV[3])
     {
         newV[0] = v1[0] + v2[0];    // x
@@ -401,6 +451,35 @@ private:
         newV[0] *= scale;
         newV[1] *= scale;
         newV[2] *= scale;
+    }
+
+    void sortVertex(unsigned int& p1, unsigned int& p2, unsigned int& p3) {
+
+        typedef std::pair<std::pair<float, float>, unsigned int> coordMap;
+        coordMap v1 = { {vertices[p1 * 8 + 6], vertices[p1 * 8 + 7]}, p1 };
+        coordMap v2 = { {vertices[p2 * 8 + 6], vertices[p2 * 8 + 7]}, p2 };
+        coordMap v3 = { {vertices[p3 * 8 + 6], vertices[p3 * 8 + 7]}, p3 };
+
+        std::vector<coordMap> sortingVertex;
+        sortingVertex.push_back(v1);
+        sortingVertex.push_back(v2);
+        sortingVertex.push_back(v3);
+
+        std::sort(sortingVertex.begin(), sortingVertex.end(), [](coordMap a, coordMap b) {
+            if (a.first.first < b.first.first) return true;
+            if (a.first.first == b.first.first) {
+                if (a.first.second < b.first.second) return true;
+                if (a.first.second == b.first.second){
+                    if (a.second < b.second) return true;
+                    else return false;
+                }
+            }
+            return false;
+            });
+
+        p1 = sortingVertex[0].second;
+        p2 = sortingVertex[1].second;
+        p3 = sortingVertex[2].second;
     }
 
     void setbuffer() {
@@ -449,7 +528,7 @@ private:
 
     void getTexturePath() {
         texturePaths.push_back("res/textures/earth2048.bmp");
-        texturePaths.push_back("res/textures/icosa_earth.bmp");
+        texturePaths.push_back("res/textures/moon1024.bmp");
         texturePaths.push_back("res/textures/nzrzP.png");
         texturePaths.push_back("res/textures/grid512.bmp");
     }

@@ -179,6 +179,9 @@
     <ClInclude Include="src\computeShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\material.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\shader\cube.vs">
@@ -269,6 +272,12 @@
       <Filter>Resource Files\VertexShader</Filter>
     </None>
     <None Include="src\shader\patchPlane.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="src\shader\pbr.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="src\shader\pbr.fs">
       <Filter>Resource Files\FragmentShader</Filter>
     </None>
   </ItemGroup>

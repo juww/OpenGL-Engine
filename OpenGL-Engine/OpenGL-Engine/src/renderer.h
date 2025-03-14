@@ -51,6 +51,7 @@ private:
     Shader* m_SkyboxShader;
     Shader* m_WaterShader;
     Shader* m_SphereShader;
+    Shader* m_PBRShader;
 
     Shader* m_NormalLineShader;
 

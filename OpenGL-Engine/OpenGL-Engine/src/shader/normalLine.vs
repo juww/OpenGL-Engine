@@ -1,6 +1,7 @@
 #version 430 core
 
 layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aNormal;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -71,12 +72,12 @@ vec4 calculateWave(vec3 v) {
 void main () {
     
     vec3 pos = aPos;
-    vec4 res = calculateWave(pos);
+    //vec4 res = calculateWave(pos);
 
-    pos.y += res.w;
-    vec3 Normal = vec3(res.xyz);
+    //pos.y += res.w;
+    //vec3 Normal = vec3(res.xyz);
     mat4 normalMatrix = transpose(inverse(view * model));
-    vec4 norm = normalMatrix * vec4(Normal, 1.0);
+    vec4 norm = normalMatrix * vec4(aNormal, 1.0);
     vs_out.Normal = vec3(normalize(norm));
     vs_out.FragPos = vec3(model * vec4(pos, 1.0));
     gl_Position = view * model * vec4(pos, 1.0);

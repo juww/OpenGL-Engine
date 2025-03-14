@@ -3,9 +3,11 @@
 
 #include <glm/glm.hpp>
 #include <vector>
-#include "shader_m.h"
 #include <math.h>
 #include <algorithm>
+
+#include "shader_m.h"
+#include "material.h"
 
 class Sphere {
 public:
@@ -22,6 +24,9 @@ public:
     std::vector<std::string> texturePaths;
     std::vector<unsigned int> indices;
     std::vector<float> faces;
+    std::map<unsigned int, bool> duplicatedVertex;
+    unsigned int BUFFER_SIZE;
+    Materials materials;
 
     const float PI = 3.14159265359;
 
@@ -38,13 +43,15 @@ public:
         countVertex = 0;
         tex = 0, cubeTex = 0;
         pos = glm::vec3(0.0f, 10.0f, -3.0f);
-
+        BUFFER_SIZE = 14;
+        duplicatedVertex.clear();
+        
         model = glm::translate(model, pos);
         getTexturePath();
     }
 
     void createHemisphere() {
-        loadTexture(texturePaths[2]);
+        //loadTexture(texturePaths[2]);
         for (int i = 0; i <= length; i++) {
             float ph = (PI / 2.0f) - (PI * (float)((float)i / (float)length));
             float xz = radius * glm::cos(ph);
@@ -70,11 +77,13 @@ public:
                     indices.push_back(j + k1);
                     indices.push_back(j + k2);
                     indices.push_back(next + k1);
-                }
+                    setTangentAndBitangent(j + k1, j + k2, next + k1);
+                } 
                 if (i != length - 1) {
                     indices.push_back(next + k1);
                     indices.push_back(j + k2);
                     indices.push_back(next + k2);
+                    setTangentAndBitangent(next + k1, j + k2, next + k2);
                 }
             }
         }
@@ -88,7 +97,7 @@ public:
         float h1 = -PI / 2.0f - hAngle / 2.0f;
         float h2 = -PI / 2.0f;
 
-        loadTexture(texturePaths[2]);
+        //loadTexture(texturePaths[2]);
 
         std::vector<unsigned int> baseTriangle;
 
@@ -209,16 +218,62 @@ public:
             indx4 = isDublicateVertex(indx4, vis, face);
             faces[indx1] = faces[indx2] = faces[indx3] = faces[indx4] = face;
             printf("%d %d %d %d\n", indx1, indx2, indx3, indx4);
-            vertices[(indx1 * 8) + 6] = 1.0f; vertices[(indx1 * 8) + 7] = 0.0f;
-            vertices[(indx2 * 8) + 6] = 0.0f; vertices[(indx2 * 8) + 7] = 0.0f;
-            vertices[(indx3 * 8) + 6] = 0.0f; vertices[(indx3 * 8) + 7] = 1.0f;
-            vertices[(indx4 * 8) + 6] = 1.0f; vertices[(indx4 * 8) + 7] = 1.0f;
+            vertices[(indx1 * BUFFER_SIZE) + 6] = 1.0f; vertices[(indx1 * BUFFER_SIZE) + 7] = 0.0f;
+            vertices[(indx2 * BUFFER_SIZE) + 6] = 0.0f; vertices[(indx2 * BUFFER_SIZE) + 7] = 0.0f;
+            vertices[(indx3 * BUFFER_SIZE) + 6] = 0.0f; vertices[(indx3 * BUFFER_SIZE) + 7] = 1.0f;
+            vertices[(indx4 * BUFFER_SIZE) + 6] = 1.0f; vertices[(indx4 * BUFFER_SIZE) + 7] = 1.0f;
             subDivisionRectangle(lvl, indx1, indx2, indx3, indx4, face);
         }
         setbuffer();
     }
 
-    void draw(Shader* shader, const glm::mat4& projection, const glm::mat4& view, glm::vec3& cameraPos, const float &_time, const unsigned int skybox) {
+    void loadMaterials() {
+        materials.useMaterial = true;
+        //std::string materialPath = "res/textures/materials/windswept-wasteland-bl/";
+        //std::string albedo = materialPath + "windswept-wasteland_albedo.png";
+        //std::string normal = materialPath + "windswept-wasteland_normal-ogl.png";
+        //std::string roughness = materialPath + "windswept-wasteland_roughness.png";
+        //std::string depth = materialPath + "windswept-wasteland_height.png";
+        //std::string metallic = materialPath + "windswept-wasteland_metallic.png";
+
+        //std::string materialPath = "res/textures/materials/mud/";
+        //std::string albedo = materialPath + "sphere_DefaultMaterial_Albedo.png";
+        //std::string normal = materialPath + "sphere_DefaultMaterial_Normal.png";
+        //std::string roughness = materialPath + "sphere_DefaultMaterial_Roughness.png";
+
+        std::string materialPath = "res/textures/materials/concrete_hexagon/";
+        std::string albedo = materialPath + "albedo.jpg";
+        std::string normal = materialPath + "normal.png";
+        std::string roughness = materialPath + "roughness.jpg";
+        std::string metallic = materialPath + "metallic.jpg";
+        std::string occlusion = materialPath + "ao.jpg";
+        std::string depth = materialPath + "height.png";
+
+        materials.albedoMap = materials.loadTexture(albedo);
+        materials.normalMap = materials.loadTexture(normal);
+        materials.roughnessMap = materials.loadTexture(roughness);
+        materials.depthMap = materials.loadTexture(depth);
+        materials.occlusionMap = materials.loadTexture(occlusion);
+        //materials.metallicMap = materials.loadTexture(metallic);
+    }
+
+    void drawNormalLine(Shader* shader, const glm::mat4& projection, const glm::mat4& view) {
+
+        shader->use();
+
+        shader->setMat4("model", model);
+        shader->setMat4("projection", projection);
+        shader->setMat4("view", view);
+
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glDrawElements(GL_POINTS, indices.size(), GL_UNSIGNED_INT, (void*)0);
+
+        glBindVertexArray(0);
+
+    }
+
+    void draw(Shader* shader, const glm::mat4& projection, const glm::mat4& view, glm::vec3& cameraPos, const float &_time, const unsigned int skybox, glm::vec3& lightPos) {
         shader->use();
 
         //glm::mat4 m = glm::rotate(model, _time, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -227,26 +282,69 @@ public:
         shader->setMat4("projection", projection);
         shader->setMat4("view", view);
 
-        shader->setVec3("lightDirection", glm::vec3(1.0f, -1.0f, 1.0f));
+        shader->setVec3("lightPos", lightPos);
         shader->setVec3("viewPos", cameraPos);
+
+        shader->setVec3("baseColor", glm::vec3(1.0f, 1.0f, 1.0f));
+        shader->setFloat("roughnessFactor", 0.7f);
+        shader->setFloat("subSurface", 0.5f);
+        shader->setFloat("metallicFactor", 0.0f);
+        shader->setFloat("heightScale", 0.05f);
+
+        shader->setFloat("_Specular", 0.5f);
+        shader->setFloat("_SpecularTint", 1.0f);
+        shader->setFloat("_Sheen", 0.0f);
+        shader->setFloat("_SheenTint", 0.5f);
+        shader->setFloat("_Anisotropic", 0.5f);
+        shader->setFloat("_ClearCoatGloss", 0.5f);
+        shader->setFloat("_ClearCoat",0.5f);
 
         glBindVertexArray(vao);
 
-        if (tex) {
-            shader->setInt("Textures", 0);
+        if (materials.useMaterial) {
+            shader->setBool("useAlbedoMapping", true);
+            shader->setInt("albedoMap", 0);
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, tex);
+            glBindTexture(GL_TEXTURE_2D, materials.albedoMap);
+
+            if (materials.normalMap) {
+                shader->setBool("useNormalMapping", true);
+                shader->setInt("normalMap", 1);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, materials.normalMap);
+            }
+
+            if (materials.roughnessMap) {
+                shader->setBool("useRoughnessMapping", true);
+                shader->setInt("roughnessMap", 2);
+                glActiveTexture(GL_TEXTURE2);
+                glBindTexture(GL_TEXTURE_2D, materials.roughnessMap);
+            }
+
+            if (materials.metallicMap) {
+                shader->setBool("useMetallicMapping", true);
+                shader->setInt("metallicMap", 3);
+                glActiveTexture(GL_TEXTURE3);
+                glBindTexture(GL_TEXTURE_2D, materials.metallicMap);
+            }
+
+            if (materials.occlusionMap) {
+                shader->setBool("useOcclusionMapping", true);
+                shader->setInt("occlusionMap", 4);
+                glActiveTexture(GL_TEXTURE4);
+                glBindTexture(GL_TEXTURE_2D, materials.occlusionMap);
+            }
+            if (materials.depthMap) {
+                shader->setBool("useDepthMapping", true);
+                shader->setInt("depthMap", 5);
+                glActiveTexture(GL_TEXTURE5);
+                glBindTexture(GL_TEXTURE_2D, materials.depthMap);
+            }
         }
 
-        if (cubeTex) {
-            shader->setInt("CubeTextures", 0);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D_ARRAY, cubeTex);
-        }
-
-        shader->setInt("skybox", 1);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
+        //shader->setInt("skybox", 1);
+        //glActiveTexture(GL_TEXTURE1);
+        //glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
 
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         //glPointSize(10);
@@ -275,52 +373,104 @@ private:
         //texcoord
         vertices.push_back(tx);
         vertices.push_back(ty);
+        //tangent
+        vertices.push_back(x * lengthInv);
+        vertices.push_back(y * lengthInv);
+        vertices.push_back(z * lengthInv);
+        //bitangent 
+        vertices.push_back(x * lengthInv);
+        vertices.push_back(y * lengthInv);
+        vertices.push_back(z * lengthInv);
         countVertex++;
 
         return countVertex - 1;
     }
 
+    void fixingUVTriangle(unsigned int indx1, unsigned int indx2, unsigned int indx3) {
+        //fix UV
+        float t1[2] = { vertices[indx1 * BUFFER_SIZE + 6], vertices[indx1 * BUFFER_SIZE + 7] };
+        float t2[2] = { vertices[indx2 * BUFFER_SIZE + 6], vertices[indx2 * BUFFER_SIZE + 7] };
+        float t3[2] = { vertices[indx3 * BUFFER_SIZE + 6], vertices[indx3 * BUFFER_SIZE + 7] };
+
+        float p1[3] = { vertices[indx1 * BUFFER_SIZE], vertices[indx1 * BUFFER_SIZE + 1], vertices[indx1 * BUFFER_SIZE + 2] };
+        float p2[3] = { vertices[indx2 * BUFFER_SIZE], vertices[indx2 * BUFFER_SIZE + 1], vertices[indx2 * BUFFER_SIZE + 2] };
+        float p3[3] = { vertices[indx3 * BUFFER_SIZE], vertices[indx3 * BUFFER_SIZE + 1], vertices[indx3 * BUFFER_SIZE + 2] };
+
+        if (t2[0] - t1[0] >= 0.5f && t1[1] != 1.0f) t2[0] -= 1.0f;
+        if (t3[0] - t2[0] > 0.5f) t3[0] -= 1.0f;
+        if (t1[0] > 0.5f && t1[0] - t3[0] > 0.5f || t1[0] == 1.0f && t3[1] == 0.0f) t1[0] -= 1.0f;
+        if (t2[0] > 0.5f && t2[0] - t1[0] > 0.5f) t2[0] -= 1.0f;
+        if (t1[1] == 0.0f || t1[1] == 1.0f) t1[0] = (t2[0] + t3[0]) / 2.0f;
+        if (t2[1] == 0.0f || t2[1] == 1.0f) t2[0] = (t1[0] + t3[0]) / 2.0f;
+        if (t3[1] == 0.0f || t3[1] == 1.0f) t3[0] = (t1[0] + t2[0]) / 2.0f;
+
+        if (t2[0] - t1[0] < 0.5f && t3[0] - t2[0] < 0.5f && t3[0] - t1[0] > 0.5f) {
+            if (t2[1] == 1.0f || t2[1] == 0.0f) {
+                t3[0] -= 1.0f;
+                t2[0] = (t1[0] + t3[0]) / 2.0f;
+            }
+        }
+
+        vertices[indx1 * BUFFER_SIZE + 6] = t1[0]; vertices[indx1 * BUFFER_SIZE + 7] = t1[1];
+        vertices[indx2 * BUFFER_SIZE + 6] = t2[0]; vertices[indx2 * BUFFER_SIZE + 7] = t2[1];
+        vertices[indx3 * BUFFER_SIZE + 6] = t3[0]; vertices[indx3 * BUFFER_SIZE + 7] = t3[1];
+    }
+
+    void setTangentAndBitangent(unsigned int indx1, unsigned int indx2, unsigned int indx3) {
+
+        glm::vec2 t1(vertices[indx1 * BUFFER_SIZE + 6], vertices[indx1 * BUFFER_SIZE + 7]);
+        glm::vec2 t2(vertices[indx2 * BUFFER_SIZE + 6], vertices[indx2 * BUFFER_SIZE + 7]);
+        glm::vec2 t3(vertices[indx3 * BUFFER_SIZE + 6], vertices[indx3 * BUFFER_SIZE + 7]);
+
+        glm::vec3 pos1(vertices[indx1 * BUFFER_SIZE], vertices[indx1 * BUFFER_SIZE + 1], vertices[indx1 * BUFFER_SIZE + 2]);
+        glm::vec3 pos2(vertices[indx2 * BUFFER_SIZE], vertices[indx2 * BUFFER_SIZE + 1], vertices[indx2 * BUFFER_SIZE + 2]);
+        glm::vec3 pos3(vertices[indx3 * BUFFER_SIZE], vertices[indx3 * BUFFER_SIZE + 1], vertices[indx3 * BUFFER_SIZE + 2]);
+
+        std::pair<glm::vec3,glm::vec3> tb = materials.calculateTangentSpace(pos1, pos2, pos3, t1, t2, t3);
+
+        unsigned int stTangent = 8;
+        unsigned int stBitangent = 11;
+        for (int i = 0; i < 3; i++) {
+            vertices[indx1 * BUFFER_SIZE + stTangent + i] = tb.first[i];
+            vertices[indx2 * BUFFER_SIZE + stTangent + i] = tb.first[i];
+            vertices[indx3 * BUFFER_SIZE + stTangent + i] = tb.first[i];
+
+            vertices[indx1 * BUFFER_SIZE + stBitangent + i] = tb.second[i];
+            vertices[indx2 * BUFFER_SIZE + stBitangent + i] = tb.second[i];
+            vertices[indx3 * BUFFER_SIZE + stBitangent + i] = tb.second[i];
+        }
+    }
+
+    unsigned int cloneVertex(unsigned int indx) {
+        unsigned int clone = 0;
+
+        float pos[3] = { vertices[indx * BUFFER_SIZE], vertices[indx * BUFFER_SIZE + 1], vertices[indx * BUFFER_SIZE + 2] };
+        float tex[2] = { vertices[indx * BUFFER_SIZE + 6], vertices[indx * BUFFER_SIZE + 7] };
+        clone = addVertex(pos[0], pos[1], pos[2], tex[0], tex[1]);
+
+        return clone;
+    }
+
     void subDivisionTriangle(int lvl, unsigned int indx1, unsigned int indx2, unsigned int indx3) {
         sortVertex(indx1, indx2, indx3);
         if (lvl == 0) {
-
-            //fix UV
-            float t1[2] = { vertices[indx1 * 8 + 6], vertices[indx1 * 8 + 7] };
-            float t2[2] = { vertices[indx2 * 8 + 6], vertices[indx2 * 8 + 7] };
-            float t3[2] = { vertices[indx3 * 8 + 6], vertices[indx3 * 8 + 7] };
-
-            float p1[3] = { vertices[indx1 * 8], vertices[indx1 * 8 + 1], vertices[indx1 * 8 + 2] };
-            float p2[3] = { vertices[indx2 * 8], vertices[indx2 * 8 + 1], vertices[indx2 * 8 + 2] };
-            float p3[3] = { vertices[indx3 * 8], vertices[indx3 * 8 + 1], vertices[indx3 * 8 + 2] };
-
-            if (t2[0] - t1[0] >= 0.5f && t1[1] != 1.0f) t2[0] -= 1.0f;
-            if (t3[0] - t2[0] > 0.5f) t3[0] -= 1.0f;
-            if (t1[0] > 0.5f && t1[0] - t3[0] > 0.5f || t1[0] == 1.0f && t3[1] == 0.0f) t1[0] -= 1.0f;
-            if (t2[0] > 0.5f && t2[0] - t1[0] > 0.5f) t2[0] -= 1.0f;
-            if (t1[1] == 0.0f || t1[1] == 1.0f) t1[0] = (t2[0] + t3[0]) / 2.0f;
-            if (t2[1] == 0.0f || t2[1] == 1.0f) t2[0] = (t1[0] + t3[0]) / 2.0f;
-            if (t3[1] == 0.0f || t3[1] == 1.0f) t3[0] = (t1[0] + t2[0]) / 2.0f;
-
-            if (t2[0] - t1[0] < 0.5f && t3[0] - t2[0] < 0.5f && t3[0] - t1[0] > 0.5f) {
-                if (t2[1] == 1.0f || t2[1] == 0.0f) {
-                    t3[0] -= 1.0f;
-                    t2[0] = (t1[0] + t3[0]) / 2.0f;
-                }
-            }
-
-            vertices[indx1 * 8 + 6] = t1[0]; vertices[indx1 * 8 + 7] = t1[1];
-            vertices[indx2 * 8 + 6] = t2[0]; vertices[indx2 * 8 + 7] = t2[1];
-            vertices[indx3 * 8 + 6] = t3[0]; vertices[indx3 * 8 + 7] = t3[1];
+            //printf("find %d %d %d ---- ", indx1, indx2, indx3);
+            //if (duplicatedVertex[indx1] == true) indx1 = cloneVertex(indx1);
+            //if (duplicatedVertex[indx2] == true) indx2 = cloneVertex(indx2);
+            //if (duplicatedVertex[indx3] == true) indx3 = cloneVertex(indx3);
+            //printf("%d %d %d\n", indx1, indx2, indx3);
+            fixingUVTriangle(indx1, indx2, indx3);
+            setTangentAndBitangent(indx1, indx2, indx3);
             
-            indices.push_back(indx1);
-            indices.push_back(indx2);
-            indices.push_back(indx3);
+            indices.push_back(indx1); duplicatedVertex[indx1] = true;
+            indices.push_back(indx2); duplicatedVertex[indx2] = true;
+            indices.push_back(indx3); duplicatedVertex[indx3] = true;
 
             return;
         }
-        int p1 = indx1 * 8;
-        int p2 = indx2 * 8;
-        int p3 = indx3 * 8;
+        int p1 = indx1 * BUFFER_SIZE;
+        int p2 = indx2 * BUFFER_SIZE;
+        int p3 = indx3 * BUFFER_SIZE;
 
         float v1[3] = { vertices[p1],vertices[p1 + 1], vertices[p1 + 2] };
         float v2[3] = { vertices[p2],vertices[p2 + 1], vertices[p2 + 2] };
@@ -367,10 +517,10 @@ private:
             indices.push_back(indx2);
             return;
         }
-        int p1 = indx1 * 8;
-        int p2 = indx2 * 8;
-        int p3 = indx3 * 8;
-        int p4 = indx4 * 8;
+        int p1 = indx1 * BUFFER_SIZE;
+        int p2 = indx2 * BUFFER_SIZE;
+        int p3 = indx3 * BUFFER_SIZE;
+        int p4 = indx4 * BUFFER_SIZE;
 
         float v1[3] = { vertices[p1],vertices[p1 + 1], vertices[p1 + 2] };
         float v2[3] = { vertices[p2],vertices[p2 + 1], vertices[p2 + 2] };
@@ -423,7 +573,7 @@ private:
             vis[indx] = true;
             return indx;
         }
-        int idx = indx * 8;
+        int idx = indx * BUFFER_SIZE;
         int ret = addVertex(vertices[idx], vertices[idx + 1], vertices[idx + 2]);
         faces.push_back(face);
         return ret;
@@ -456,9 +606,9 @@ private:
     void sortVertex(unsigned int& p1, unsigned int& p2, unsigned int& p3) {
 
         typedef std::pair<std::pair<float, float>, unsigned int> coordMap;
-        coordMap v1 = { {vertices[p1 * 8 + 6], vertices[p1 * 8 + 7]}, p1 };
-        coordMap v2 = { {vertices[p2 * 8 + 6], vertices[p2 * 8 + 7]}, p2 };
-        coordMap v3 = { {vertices[p3 * 8 + 6], vertices[p3 * 8 + 7]}, p3 };
+        coordMap v1 = { {vertices[p1 * BUFFER_SIZE + 6], vertices[p1 * BUFFER_SIZE + 7]}, p1 };
+        coordMap v2 = { {vertices[p2 * BUFFER_SIZE + 6], vertices[p2 * BUFFER_SIZE + 7]}, p2 };
+        coordMap v3 = { {vertices[p3 * BUFFER_SIZE + 6], vertices[p3 * BUFFER_SIZE + 7]}, p3 };
 
         std::vector<coordMap> sortingVertex;
         sortingVertex.push_back(v1);
@@ -498,18 +648,24 @@ private:
         unsigned int vbo;
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        int VSIZE = (3 + 3 + 2);
+        int VSIZE = BUFFER_SIZE;
         unsigned int sizeBuffer = vertices.size() * sizeof(float);
         glBufferData(GL_ARRAY_BUFFER, sizeBuffer, &vertices.at(0), GL_STATIC_DRAW);
-
+        //pos
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * VSIZE, (void*)0);
         glEnableVertexAttribArray(0);
-        
+        //normal
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * VSIZE, (void*)(sizeof(float) * 3));
         glEnableVertexAttribArray(1);
-
+        //tex coord
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * VSIZE, (void*)(sizeof(float) * 6));
         glEnableVertexAttribArray(2);
+        //tangent
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(float) * VSIZE, (void*)(sizeof(float) * 8));
+        glEnableVertexAttribArray(3);
+        //bitangent
+        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(float) * VSIZE, (void*)(sizeof(float) * 11));
+        glEnableVertexAttribArray(4);
 
         if (faces.size() != 0) {
             unsigned int vboFace;
@@ -517,9 +673,6 @@ private:
             glBindBuffer(GL_ARRAY_BUFFER, vboFace);
             glBufferData(GL_ARRAY_BUFFER, faces.size() * sizeof(unsigned int), &faces.at(0), GL_STATIC_DRAW);
         }
-        
-        glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(float), (void*)0);
-        glEnableVertexAttribArray(3);
 
         printf("face size: %d\n", faces.size());
 

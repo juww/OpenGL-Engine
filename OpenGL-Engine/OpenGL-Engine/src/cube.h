@@ -14,8 +14,8 @@ public:
     void initialize() {
         model = glm::mat4(1.0f);
 
-        model = glm::translate(model, { 1.0f, 0.0f, 0.0f });
-        model = glm::scale(model, glm::vec3(0.2f));
+        pos = glm::vec3(0.0f);
+        scale = glm::vec3(1.0f);
 
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
@@ -35,11 +35,38 @@ public:
 
     }
 
+    void localTransform() {
+        model = glm::translate(model, pos);
+        model = glm::scale(model, scale);
+    }
+
+    void update(const float& currentTime) {
+        const float PI = 3.14159265359;
+
+        glm::vec3 v = glm::vec3(0.0f, 10.0f, -3.0f) - pos;
+        float r = glm::length(v);
+
+        float ph = (PI / 2.0f) - (PI);
+        float xz = r * glm::cos(ph);
+
+        float th = 2.0f * PI * currentTime * -1.0f;
+
+        float update_x = 7.0f * glm::cos(th);
+        float update_z = 7.0f * glm::sin(th);
+        pos = glm::vec3(update_x, 12.0f, update_z);
+    }
+
     void draw(Shader* shader, const glm::mat4& projection, const glm::mat4& view) {
         shader->use();
+
+        glm::mat4 m(1.0f);
+
+        m = glm::translate(m, pos);
+        m = glm::scale(m, scale);
+
         shader->setMat4("projection", projection);
         shader->setMat4("view", view);
-        shader->setMat4("model", model);
+        shader->setMat4("model", m);
 
         glBindVertexArray(vao);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);

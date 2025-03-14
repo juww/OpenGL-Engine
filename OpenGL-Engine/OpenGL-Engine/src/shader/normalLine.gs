@@ -16,8 +16,12 @@ out vec3 Normal;
 void main()
 {
     gl_Position = projection * gl_in[0].gl_Position;
+    FragPos = vs_in[0].FragPos;
+    Normal = vs_in[0].Normal;
     EmitVertex();
     gl_Position = projection * (gl_in[0].gl_Position + 0.5f * vec4(vs_in[0].Normal, 0.0f));
+    FragPos = vs_in[0].FragPos;
+    Normal = vs_in[0].Normal;
     EmitVertex();
     EndPrimitive();
 

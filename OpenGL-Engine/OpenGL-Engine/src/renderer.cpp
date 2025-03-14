@@ -17,6 +17,7 @@ Renderer::Renderer() {
     m_Plane = nullptr;
     m_LightCube = nullptr;
     m_Sphere = nullptr;
+    m_PBRShader = nullptr;
 
     m_FBManager = m_FBManager->getInstance();
 }
@@ -61,6 +62,7 @@ void Renderer::setupShaders() {
     m_SkyboxShader = new Shader("skybox.vs", "skybox.fs");
     m_WaterShader = new Shader("water.vs", "water.fs");
     m_SphereShader = new Shader("sphere.vs", "sphere.fs");
+    m_PBRShader = new Shader("pbr.vs", "pbr.fs"/*, "normalMapping.gs"*/);
 
     m_PatchPlaneShader = new Shader("patchPlane.vs", "patchPlane.fs");
     m_PatchPlaneShader->setTessellationShader("TessellationControlShader.tcs", "TessellationEvaluationShader.tes");
@@ -102,10 +104,14 @@ void Renderer::start() {
 
     m_LightCube = new Cube();
     m_LightCube->initialize();
+    m_LightCube->pos = glm::vec3(5.0f, 10.0f, 5.0f);
+    m_LightCube->scale = glm::vec3(0.2f);
+    //m_LightCube->localTransform();
 
     m_Sphere = new Sphere(50, 2.0f);
     //m_Sphere->createHemisphere();
-    m_Sphere->icosphere(7);
+    m_Sphere->icosphere(5);
+    m_Sphere->loadMaterials();
     //m_Sphere->cubesphere(5);
 
     m_Water = new Water();
@@ -170,7 +176,8 @@ void Renderer::render(float currentTime, float deltaTime) {
 
     m_Plane->drawPatchPlane(m_PatchPlaneShader, projection, view, 65, 65);
 
-    //m_LightCube->draw(m_LightCubeShader, projection, view);
+    m_LightCube->update(currentTime * 0.1f);
+    m_LightCube->draw(m_LightCubeShader, projection, view);
 
     GUI::waterParam(wp.m_Amplitude, wp.m_Frequency, wp.m_Speed, wp.m_WaveCount);
 
@@ -180,7 +187,8 @@ void Renderer::render(float currentTime, float deltaTime) {
 
     m_Skybox->draw(m_SkyboxShader, projection, glm::mat4(glm::mat3(m_Camera->GetViewMatrix())));
 
-    m_Sphere->draw(m_SphereShader, projection, view, m_Camera->Position, currentTime, m_Skybox->cubemapTexture);
+    m_Sphere->draw(m_PBRShader, projection, view, m_Camera->Position, currentTime * 0.1f, m_Skybox->cubemapTexture, m_LightCube->pos);
+    //m_Sphere->drawNormalLine(m_NormalLineShader, projection, view);
 
     GUI::fogDistanceParam(fdp.m_Near, fdp.m_Far, fdp.m_Density);
     m_FBManager->setFogDistance(m_FramebufferShader, fdp.m_Near, fdp.m_Far, fdp.m_Density, fdp.m_Color);

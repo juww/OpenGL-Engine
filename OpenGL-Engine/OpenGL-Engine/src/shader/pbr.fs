@@ -16,6 +16,10 @@ uniform sampler2D metallicMap;
 uniform sampler2D occlusionMap;
 uniform sampler2D depthMap;
 
+uniform samplerCube irradianceMap;
+uniform samplerCube prefilterMap;
+uniform sampler2D brdfLUTTexture;
+
 uniform bool useAlbedoMapping;
 uniform bool useNormalMapping;
 uniform bool useRoughnessMapping;
@@ -23,9 +27,10 @@ uniform bool useMetallicMapping;
 uniform bool useOcclusionMapping;
 uniform bool useDepthMapping;
 
-uniform vec3 baseColor;
-uniform vec3 lightPos;
+//uniform vec3 lightPos;
+uniform vec3 lightPosition[4];
 uniform vec3 viewPos;
+uniform vec4 baseColor;
 
 uniform float subSurface;
 uniform float roughnessFactor;
@@ -37,6 +42,7 @@ uniform float _SheenTint;
 uniform float _Anisotropic;
 uniform float _ClearCoatGloss;
 uniform float _ClearCoat;
+
 uniform float heightScale;
 
 #define PI 3.14159265358979323846
@@ -55,13 +61,13 @@ float DotClamped(vec3 a, vec3 b){
 float lerp(float a, float b, float t){
     //return a * (1.0 - t) + b * t;
     //return a + (t * (b - a));
-    return mix(a,b,t);
+    return mix(a, b, t);
 }
 
 vec3 lerp3(vec3 a, vec3 b, float t){
     //return a * (1.0 - t) + b * t;
     //return a + (t * (b - a));
-    return mix(a,b,t);
+    return mix(a, b, t);
 }
 
 float luminance(vec3 color) {
@@ -75,6 +81,9 @@ float SchlickFresnel(float x) {
     return x2 * x2 * x; // While this is equivalent to pow(1 - x, 5) it is two less mult instructions
 }
 
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
 // Isotropic Generalized Trowbridge Reitz with gamma == 1
 float GTR1(float ndoth, float a) {
     float a2 = a * a;
@@ -127,36 +136,7 @@ float NormalDistributionFunction(float ndoth, vec3 H, float alpha){
     return G;
 }
 
-void main (){
-
-    vec3 N = Normal;
-    vec3 surfaceColor = baseColor;
-    float Roughness = roughnessFactor;
-    float Metallic = metallicFactor;
-    float ao = 1.0f;
-    
-    if(useAlbedoMapping){
-        surfaceColor = texture(albedoMap, TexCoords).rgb;
-    }
-
-    if(useNormalMapping){
-        N = texture(normalMap, TexCoords).rgb;
-        N = N * 2.0 - 1.0;
-        N = normalize(TBN * N);
-    }
-    
-    if(useRoughnessMapping){
-        Roughness = texture(roughnessMap, TexCoords).r;
-    }
-
-    if(useMetallicMapping){
-        Metallic = texture(metallicMap, TexCoords).r;
-    }
-
-    if(useOcclusionMapping){
-        ao = texture(occlusionMap, TexCoords).r;
-        //surfaceColor *= ao;
-    }
+vec3 DisneyBRDF(vec3 N, vec3 surfaceColor, vec3 lightPos, float Roughness, float Metallic){
     vec3 L = normalize(lightPos - FragPos);
     vec3 V = normalize(viewPos - FragPos);
 
@@ -196,20 +176,92 @@ void main (){
     vec3 F = lerp3(Cspec0, vec3(1.0f), FH);
     float G = GeometricAttenuation(Roughness, ndotl, ndotv, L, V);
 
+    vec3 metallicness = lerp3(vec3(1.0), surfaceColor, Metallic);
+
     // Clearcoat (Hard Coded Index Of Refraction -> 1.5f -> F0 -> 0.04)
     float Dr = GTR1(ndoth, lerp(0.1f, 0.001f, _ClearCoatGloss)); // Normalized Isotropic GTR Gamma == 1
     float Fr = lerp(0.04, 1.0f, FH);
     float Gr = SmithGGX(ndotl, ndotv, 0.25f);
 
     //vec3 result = blinnPhong();
-    vec3 FDiffuse = (lerp(Fd, ss, subSurface) * surfaceColor + FSheen) * (1.0 - Metallic) * (1.0 - F);
-    vec3 FSpecular = D * G * F;
+    vec3 FDiffuse = (1.0 / PI) * (lerp(Fd, ss, subSurface) * surfaceColor + FSheen) * (1.0 - Metallic) * (1.0 - F);
+    vec3 FSpecular = (D * G * F) * metallicness;
     vec3 FClearCoat = vec3(0.25f * _ClearCoat * Gr * Fr * Dr);
-    vec3 result = (FDiffuse + FSpecular + FClearCoat) * ndotl * ao;
+
+    vec3 result = (FDiffuse + FSpecular + FClearCoat) * ndotl;
+
+    return result;
+}
+
+void main (){
+
+    vec3 N = Normal;
+    vec3 surfaceColor = baseColor.rgb;
+    float Roughness = roughnessFactor;
+    float Metallic = metallicFactor;
+    float ao = 1.0f;
+    
+    if(useAlbedoMapping){
+        surfaceColor = texture(albedoMap, TexCoords).rgb;
+        surfaceColor *= baseColor.rgb;
+    }
+
+    if(useNormalMapping){
+        N = texture(normalMap, TexCoords).rgb;
+        N = N * 2.0 - 1.0;
+        N = normalize(TBN * N);
+    }
+    
+    if(useRoughnessMapping){
+        Roughness = texture(roughnessMap, TexCoords).r * roughnessFactor;
+    }
+
+    if(useMetallicMapping){
+        Metallic = texture(metallicMap, TexCoords).r * metallicFactor;
+    }
+
+    if(useOcclusionMapping){
+        ao = texture(occlusionMap, TexCoords).r;
+        //surfaceColor *= ao;
+    }
+    vec3 Lo = vec3(0.0);
+
+    for(int i = 0; i < 4; i++) {
+        Lo += DisneyBRDF(N, surfaceColor, lightPosition[i], Roughness, Metallic);
+    }
+    //ambient IBL
+    vec3 V = normalize(viewPos - FragPos);
+    vec3 R = reflect(-V, N); 
+    vec3 F0 = vec3(0.04); 
+    F0 = mix(F0, surfaceColor, Metallic);
+
+    vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, Roughness);
+    
+    vec3 kS = F;
+    vec3 kD = 1.0 - kS;
+    kD *= 1.0 - Metallic;
+
+    vec3 irradiance = texture(irradianceMap, N).rgb;
+    vec3 IBLDiffuse = irradiance * surfaceColor;
+
+    // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
+    const float MAX_REFLECTION_LOD = 4.0;
+    vec3 prefilteredColor = textureLod(prefilterMap, R,  Roughness * MAX_REFLECTION_LOD).rgb;    
+    vec2 brdf  = texture(brdfLUTTexture, vec2(max(dot(N, V), 0.0), Roughness)).rg;
+    vec3 IBLspecular = prefilteredColor * (F * brdf.x + brdf.y);
+
+    vec3 ambient = (kD * IBLDiffuse + IBLspecular);
+
+    // result += ambient * ao;
+    vec3 result = (Lo + ambient) * ao;
+    //result = result/ (result + vec3(1.0));
+    // gamma correct
+    //result= pow(result, vec3(1.0/2.2));
+
     FragColor = vec4(result, 1.0);
 }
 
-vec3 blinnPhong() {
+vec3 blinnPhong(vec3 lightPos) {
     
     vec3 normal = Normal;
     

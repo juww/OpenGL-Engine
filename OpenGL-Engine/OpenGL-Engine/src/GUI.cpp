@@ -21,13 +21,37 @@ namespace GUI {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        //ImGui::ShowDemoWindow(); // Show demo window! :)
+        //ImGui::ShowDemoWindow();
+    }
 
-        ImGui::Begin("Demo window");
-        ImGui::Button("Hello!");
+    void PBRWindow(PBRParam& pbr) {
+        ImGui::Begin("PBR");
+
+        float baseColor[4] = { pbr.m_BaseColor.r, pbr.m_BaseColor.g, pbr.m_BaseColor.b, pbr.m_BaseColor.a};
+        ImGui::ColorEdit4("Color", baseColor);
+        ImGui::DragFloat("roughnessFactor", &pbr.m_RoughnessFactor, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("subSurface", &pbr.m_SubSurface, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("metallicFactor", &pbr.m_MetallicFactor, 0.001f, 0.0f, 1.0f);
+
+        ImGui::DragFloat("Specular", &pbr.m_Specular, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("SpecularTint", &pbr.m_SpecularTint, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("Sheen", &pbr.m_Sheen, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("SheenTint", &pbr.m_SheenTint, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("Anisotropic", &pbr.m_Anisotropic, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("ClearCoatGloss", &pbr.m_ClearCoatGloss, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("ClearCoat", &pbr.m_ClearCoat, 0.001f, 0.0f, 1.0f);
+
+        ImGui::DragFloat("heightScale", &pbr.m_HeightScale, 0.001f, 0.0f, 1.0f);
+
+        pbr.m_BaseColor = glm::vec4(baseColor[0], baseColor[1], baseColor[2], baseColor[3]);
+
+        ImGui::End();
     }
 
     void modelTransform(glm::vec3& pos, glm::vec3& rot, float& angle, glm::vec3& scale) {
+
+        ImGui::Begin("Model Parameter");
+
         float modelPos[3] = { pos.x, pos.y, pos.z };
         ImGui::DragFloat3("position", modelPos, 0.005f);
         pos[0] = modelPos[0];
@@ -46,6 +70,8 @@ namespace GUI {
         scale[0] = modelScale[0];
         scale[1] = modelScale[1];
         scale[2] = modelScale[2];
+
+        ImGui::End();
     }
 
     // later;
@@ -70,6 +96,7 @@ namespace GUI {
     bool proceduralTerrainParam(int& seed, float& scale, int& octaves, float& persistence, float& lacunarity, glm::vec2& offset, float& heightMultiplier) {
 
         bool ret = false;
+        ImGui::Begin("Terrain Parameter");
 
         ImGui::DragInt("seed", &_tp.m_Seed);
         ImGui::DragFloat("scale", &_tp.m_Scale, 0.01f, 0.01f);
@@ -92,27 +119,40 @@ namespace GUI {
         offset.x = _tp.m_Offset[0]; offset.y = _tp.m_Offset[1];
         heightMultiplier = _tp.m_Amplitude;
 
+        ImGui::End();
         return ret;
     }
 
-    void grassParam(float& frequency, float& amplitude, float& scale, float& drop) {
-        ImGui::DragFloat("frequency", &frequency, 0.01f, 0.01f);
-        ImGui::DragFloat("amplitude", &amplitude, 0.01f, 0.01f);
-        ImGui::DragFloat("_Scale", &scale, 0.01f, 0.01f);
-        ImGui::DragFloat("_Droop", &drop, 0.01f, 0.01f);
+    void grassParam(GrassParam& gp) {
+        ImGui::Begin("Grass Parameter");
+
+        ImGui::DragFloat("frequency", &gp.m_Frequency, 0.01f, 0.01f);
+        ImGui::DragFloat("amplitude", &gp.m_Amplitude, 0.01f, 0.01f);
+        ImGui::DragFloat("_Scale", &gp.m_Scale, 0.01f, 0.01f);
+        ImGui::DragFloat("_Droop", &gp.m_Drop, 0.01f, 0.01f);
+
+        ImGui::End();
     }
 
-    void waterParam(float& a, float& f, float& s, int& waveCount) {
-        ImGui::DragFloat("waterAmplitude", &a, 0.01f, 0.0f,1.0f);
-        ImGui::DragFloat("waterFrequency", &f, 0.01f, 1.0f);
-        ImGui::DragFloat("waterSpeed", &s, 0.01f, 0.01f);
-        ImGui::DragInt("WaterWaveCount", &waveCount);
+    void waterParam(WaterParam& wp) {
+        ImGui::Begin("Water Parameter");
+
+        ImGui::DragFloat("waterAmplitude", &wp.m_Amplitude, 0.01f, 0.0f,1.0f);
+        ImGui::DragFloat("waterFrequency", &wp.m_Frequency, 0.01f, 1.0f);
+        ImGui::DragFloat("waterSpeed", &wp.m_Speed, 0.01f, 0.01f);
+        ImGui::DragInt("WaterWaveCount", &wp.m_WaveCount);
+
+        ImGui::End();
     }
 
-    void fogDistanceParam(float& pNear, float& pFar, float& pDensity) {
-        ImGui::DragFloat("fogNear", &pNear, 0.001f, 0.0f, 1.0f);
-        ImGui::DragFloat("fogfar", &pFar, 0.001f);
-        ImGui::DragFloat("fogDensity", &pDensity, 0.001f);
+    void fogDistanceParam(FogDistanceParam& fp) {
+        ImGui::Begin("Fog Parameter");
+
+        ImGui::DragFloat("fogNear", &fp.m_Near, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("fogfar", &fp.m_Far, 0.001f);
+        ImGui::DragFloat("fogDensity", &fp.m_Density, 0.001f);
+
+        ImGui::End();
     }
 
     void renderUI() {

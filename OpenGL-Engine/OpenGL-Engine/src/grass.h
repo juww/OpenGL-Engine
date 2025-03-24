@@ -78,7 +78,6 @@ public:
 		// float = 4 byte
 		// to do: reduce size using unsigned byte = 1 byte
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_FLOAT, &noiseMap.at(0));
-		glGenerateMipmap(GL_TEXTURE_2D);
 
 		shader->use();
 		shader->setInt("noiseMap", 0);

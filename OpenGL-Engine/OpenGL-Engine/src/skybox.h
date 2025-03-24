@@ -58,6 +58,8 @@ const float skyboxVertices[] = {
      1.0f, -1.0f,  1.0f
 };
 
+
+const std::string path = "res/textures/cubemap/SaintPetersBasilica/";
 const std::vector<std::string> faces
 {
     FileSystem::getPath("res/skybox/right.jpg"),
@@ -66,12 +68,27 @@ const std::vector<std::string> faces
     FileSystem::getPath("res/skybox/bottom.jpg"),
     FileSystem::getPath("res/skybox/front.jpg"),
     FileSystem::getPath("res/skybox/back.jpg")
+    
+    //FileSystem::getPath(path + "posx.jpg"),
+    //FileSystem::getPath(path + "negx.jpg"),
+    //FileSystem::getPath(path + "posy.jpg"),
+    //FileSystem::getPath(path + "negy.jpg"),
+    //FileSystem::getPath(path + "posz.jpg"),
+    //FileSystem::getPath(path + "negz.jpg")
+
+    //FileSystem::getPath(path + "cubemap0.bmp"),
+    //FileSystem::getPath(path + "cubemap1.bmp"),
+    //FileSystem::getPath(path + "cubemap2.bmp"),
+    //FileSystem::getPath(path + "cubemap3.bmp"),
+    //FileSystem::getPath(path + "cubemap4.bmp"),
+    //FileSystem::getPath(path + "cubemap5.bmp"),
 };
 
 class Skybox {
 public:
     unsigned int vao, vbo;
     unsigned int cubemapTexture;
+    int width, height, nrChannels;
 
     Skybox() {
         printf("generate skybox\n");
@@ -86,27 +103,26 @@ public:
         glGenTextures(1, &cubemapTexture);
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 
-        int width, height, nrChannels;
-        for (unsigned int i = 0; i < faces.size(); i++)
-        {
-            unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
-            if (data)
-            {
-                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        int _width, _height, _nrChannels;
+        for (unsigned int i = 0; i < faces.size(); i++) {
+            unsigned char* data = stbi_load(faces[i].c_str(), &_width, &_height, &_nrChannels, 0);
+            if (data) {
+                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, _width, _height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
                 stbi_image_free(data);
-            }
-            else
-            {
+            } else {
                 std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
                 stbi_image_free(data);
             }
         }
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        width = _width;
+        height = _height;
+
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
     }
 
     void draw(Shader* shader, const glm::mat4& projection, const glm::mat4& viewStatic) {

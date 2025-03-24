@@ -76,18 +76,40 @@ namespace GUI {
             m_Color = pColor;
         }
     };
+    
+    class PBRParam {
+    public:
+        glm::vec4 m_BaseColor = glm::vec4(1.0f);
+        float m_RoughnessFactor = 0.5f;
+        float m_SubSurface = 0.5f;
+        float m_MetallicFactor = 0.0f;
+
+        float m_Specular = 0.5f;
+        float m_SpecularTint = 1.0f;
+        float m_Sheen = 0.0f;
+        float m_SheenTint = 0.5f;
+        float m_Anisotropic = 0.5f;
+        float m_ClearCoatGloss = 0.5f;
+        float m_ClearCoat = 0.5f;
+
+        float m_HeightScale = 0.05f;
+
+        PBRParam() {
+
+        }
+    };
 
     void initialize(GLFWwindow* w);
     void GUIFrame();
     void modelTransform(glm::vec3& pos, glm::vec3& rot, float& angle, glm::vec3& scale);
     // later;
     void modelAnimation(int animation, int n);
+    void PBRWindow(PBRParam &pbr);
     bool proceduralTerrainParam(int& seed, float& scale, int& octaves, float& persistence, float& lacunarity, glm::vec2& offset, float& heightMultiplier);
-    void grassParam(float& frequency, float& amplitude, float& scale, float& drop);
+    void grassParam(GrassParam& gp);
 
-    //water
-    void waterParam(float& a, float& f, float& s, int &waveCount);
-    void fogDistanceParam(float& pNear, float& pFar, float& pDensity);
+    void waterParam(WaterParam& wp);
+    void fogDistanceParam(FogDistanceParam& fp);
     void renderUI();
     void shutDown();
 };

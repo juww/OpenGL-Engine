@@ -280,5 +280,23 @@
     <None Include="src\shader\pbr.fs">
       <Filter>Resource Files\FragmentShader</Filter>
     </None>
+    <None Include="src\shader\irradianceShader.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="src\shader\irradianceShader.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="src\shader\preFilterShader.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="src\shader\preFilterShader.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="src\shader\LUTShader.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="src\shader\LUTShader.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
   </ItemGroup>
 </Project>

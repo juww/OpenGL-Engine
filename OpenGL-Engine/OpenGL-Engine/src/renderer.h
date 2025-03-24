@@ -38,7 +38,7 @@ private:
     loadModel* m_Model;
     Skybox* m_Skybox;
     Plane* m_Plane;
-    Cube* m_LightCube;
+    std::vector<Cube *> m_LightCube;
     Sphere* m_Sphere;
     Water* m_Water;
     WaterFFT* m_WaterFFT;
@@ -58,6 +58,9 @@ private:
     ComputeShader* m_NoiseShader;
 
     Shader* m_FramebufferShader;
+    Shader* m_IrradianceShader;
+    Shader* m_PreFilterShader;
+    Shader* m_LUTShader;
 
     void configureGlobalState();
     void setupLights();

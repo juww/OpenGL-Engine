@@ -8,6 +8,7 @@
 
 #include "shader_m.h"
 #include "material.h"
+#include "GUI.h"
 
 class Sphere {
 public:
@@ -254,7 +255,7 @@ public:
         materials.roughnessMap = materials.loadTexture(roughness);
         materials.depthMap = materials.loadTexture(depth);
         materials.occlusionMap = materials.loadTexture(occlusion);
-        //materials.metallicMap = materials.loadTexture(metallic);
+        materials.metallicMap = materials.loadTexture(metallic);
     }
 
     void drawNormalLine(Shader* shader, const glm::mat4& projection, const glm::mat4& view) {
@@ -273,7 +274,8 @@ public:
 
     }
 
-    void draw(Shader* shader, const glm::mat4& projection, const glm::mat4& view, glm::vec3& cameraPos, const float &_time, const unsigned int skybox, glm::vec3& lightPos) {
+    void draw(Shader* shader, const glm::mat4& projection, const glm::mat4& view, glm::vec3& cameraPos, 
+              const float &_time, std::map<std::string, unsigned int>& mappers, std::vector<glm::vec3> lightPos, GUI::PBRParam& pbr) {
         shader->use();
 
         //glm::mat4 m = glm::rotate(model, _time, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -282,22 +284,26 @@ public:
         shader->setMat4("projection", projection);
         shader->setMat4("view", view);
 
-        shader->setVec3("lightPos", lightPos);
+        for (int i = 0; i < lightPos.size(); i++) {
+            shader->setVec3("lightPosition[" + std::to_string(i) + "]", lightPos[i]);
+        }
+        //shader->setVec3("lightPos", lightPos);
         shader->setVec3("viewPos", cameraPos);
 
-        shader->setVec3("baseColor", glm::vec3(1.0f, 1.0f, 1.0f));
-        shader->setFloat("roughnessFactor", 0.7f);
-        shader->setFloat("subSurface", 0.5f);
-        shader->setFloat("metallicFactor", 0.0f);
-        shader->setFloat("heightScale", 0.05f);
+        shader->setVec4("baseColor", pbr.m_BaseColor);
+        shader->setFloat("roughnessFactor", pbr.m_RoughnessFactor);
+        shader->setFloat("subSurface", pbr.m_SubSurface);
+        shader->setFloat("metallicFactor", pbr.m_MetallicFactor);
 
-        shader->setFloat("_Specular", 0.5f);
-        shader->setFloat("_SpecularTint", 1.0f);
-        shader->setFloat("_Sheen", 0.0f);
-        shader->setFloat("_SheenTint", 0.5f);
-        shader->setFloat("_Anisotropic", 0.5f);
-        shader->setFloat("_ClearCoatGloss", 0.5f);
-        shader->setFloat("_ClearCoat",0.5f);
+        shader->setFloat("_Specular", pbr.m_Specular);
+        shader->setFloat("_SpecularTint", pbr.m_SpecularTint);
+        shader->setFloat("_Sheen", pbr.m_Sheen);
+        shader->setFloat("_SheenTint", pbr.m_SheenTint);
+        shader->setFloat("_Anisotropic", pbr.m_Anisotropic);
+        shader->setFloat("_ClearCoatGloss", pbr.m_ClearCoatGloss);
+        shader->setFloat("_ClearCoat",pbr.m_ClearCoat);
+
+        shader->setFloat("heightScale", pbr.m_HeightScale);
 
         glBindVertexArray(vao);
 
@@ -342,9 +348,17 @@ public:
             }
         }
 
-        //shader->setInt("skybox", 1);
-        //glActiveTexture(GL_TEXTURE1);
-        //glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
+        shader->setInt("irradianceMap", 6);
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, mappers["irradianceMap"]);
+
+        shader->setInt("preFilterMap", 7);
+        glActiveTexture(GL_TEXTURE7);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, mappers["preFilterMap"]);
+
+        shader->setInt("brdfLUTTexture", 8);
+        glActiveTexture(GL_TEXTURE8);
+        glBindTexture(GL_TEXTURE_2D, mappers["brdfLUTTexture"]);
 
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         //glPointSize(10);
@@ -717,7 +731,6 @@ private:
 
         glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA, 512, 512, 6);
         glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 512, 512, 6, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-        glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
 
         for (int i = 0; i < 6; i++) {
             int w, h, nrChannels;

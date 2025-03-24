@@ -38,6 +38,7 @@ private:
     void getRenderer();
     void setGlfwCallbacks();
     void updateFps();
+    void configViewPort();
 
     void processInput(GLFWwindow* window);
 

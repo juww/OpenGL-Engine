@@ -198,8 +198,12 @@
     <None Include="src\shader\framebufferShader.vs" />
     <None Include="src\shader\grass.fs" />
     <None Include="src\shader\grass.vs" />
+    <None Include="src\shader\irradianceShader.fs" />
+    <None Include="src\shader\irradianceShader.vs" />
     <None Include="src\shader\light_cube.fs" />
     <None Include="src\shader\light_cube.vs" />
+    <None Include="src\shader\LUTShader.fs" />
+    <None Include="src\shader\LUTShader.vs" />
     <None Include="src\shader\noise.sc" />
     <None Include="src\shader\normalLine.fs" />
     <None Include="src\shader\normalLine.gs" />
@@ -211,6 +215,8 @@
     <None Include="src\shader\pbr.vs" />
     <None Include="src\shader\plane.fs" />
     <None Include="src\shader\plane.vs" />
+    <None Include="src\shader\preFilterShader.fs" />
+    <None Include="src\shader\preFilterShader.vs" />
     <None Include="src\shader\skeletal.fs" />
     <None Include="src\shader\skeletal.gs" />
     <None Include="src\shader\skeletal.vs" />

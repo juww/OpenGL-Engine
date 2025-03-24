@@ -7,7 +7,8 @@ Renderer* Renderer::instance = nullptr;
 GUI::TerrainParam tp(4, 27.9f, 4, 0.5f, 2.0f, {0.0f, 0.0f}, 5.0f);
 GUI::GrassParam gp(3.0f, 0.5f, 1.12f, 0.7f);
 GUI::WaterParam wp(1.73f, 0.83f, 2.0f, 0.0f, 4.3f, 32);
-GUI::FogDistanceParam fdp(0.03f, 150.0f, 0.1f, glm::vec3(1.0f));
+GUI::FogDistanceParam fdp(0.03f, 1.0f, 0.1f, glm::vec3(1.0f));
+GUI::PBRParam pbr;
 
 Renderer::Renderer() {
     m_Camera = new Camera(glm::vec3(0.0f, 10.0f, 5.0f));
@@ -15,11 +16,16 @@ Renderer::Renderer() {
     m_Shaders.clear();
     m_Skybox = new Skybox();
     m_Plane = nullptr;
-    m_LightCube = nullptr;
     m_Sphere = nullptr;
     m_PBRShader = nullptr;
 
     m_FBManager = m_FBManager->getInstance();
+
+    for (Cube* cube : m_LightCube) {
+        free(cube);
+        cube = nullptr;
+    }
+    m_LightCube.clear();
 }
 
 Renderer::~Renderer() {
@@ -41,6 +47,9 @@ Camera* Renderer::getCamera() {
 void Renderer::configureGlobalState() {
     glEnable(GL_DEPTH_TEST);
     // glEnable(GL_FRAMEBUFFER_SRGB); // gamma correction 
+    glDepthFunc(GL_LEQUAL);
+    // enable seamless cubemap sampling for lower mip levels in the pre-filter map.
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 }
 
 void Renderer::setupLights() {
@@ -75,6 +84,9 @@ void Renderer::setupShaders() {
 
     // framebuffer shader
     m_FramebufferShader = new Shader("framebufferShader.vs", "framebufferShader.fs");
+    m_IrradianceShader = new Shader("irradianceShader.vs", "irradianceShader.fs");
+    m_PreFilterShader = new Shader("preFilterShader.vs", "preFilterShader.fs");
+    m_LUTShader = new Shader("LUTShader.vs", "LUTShader.fs");
 }
 
 void Renderer::initModel() {
@@ -102,10 +114,19 @@ void Renderer::start() {
     m_Plane->GenerateNoiseMap(m_LightCubeShader, m_NoiseShader);
     m_Plane->generatePlaneWithPatch(64, 64);
 
-    m_LightCube = new Cube();
-    m_LightCube->initialize();
-    m_LightCube->pos = glm::vec3(5.0f, 10.0f, 5.0f);
-    m_LightCube->scale = glm::vec3(0.2f);
+    for (int i = 0; i < 4; i++) {
+        Cube* cube = new Cube();
+
+        cube->initialize();
+        cube->scale = glm::vec3(0.2f);
+
+        if (i == 0) cube->pos = glm::vec3(5.0f, 5.0f, 5.0f);
+        if (i == 1) cube->pos = glm::vec3(5.0f, 12.0f, -5.0f);
+        if (i == 2) cube->pos = glm::vec3(-5.0f, 10.0f, 5.0f);
+        if (i == 3) cube->pos = glm::vec3(-5.0f, 7.0f, -5.0f);
+
+        m_LightCube.push_back(cube);
+    }
     //m_LightCube->localTransform();
 
     m_Sphere = new Sphere(50, 2.0f);
@@ -127,6 +148,11 @@ void Renderer::start() {
     m_FBManager->setScreenSpace();
     m_FBManager->createDepthStencilFramebuffer();
     m_FBManager->shaderConfig(m_FramebufferShader);
+
+    m_FBManager->IrradianceMapping(m_IrradianceShader, m_Skybox->cubemapTexture, m_Skybox->width, m_Skybox->height);
+    m_FBManager->PreFilterMapping(m_PreFilterShader, m_Skybox->cubemapTexture, m_Skybox->width, m_Skybox->height);
+    m_FBManager->BrdfLUT(m_LUTShader, m_Skybox->width, m_Skybox->height);
+
 }
 //nanti dipindahin ke class model
 
@@ -164,7 +190,9 @@ void Renderer::render(float currentTime, float deltaTime) {
     m_Model->DrawModel(m_ModelShader);
 
     bool changeParam = GUI::proceduralTerrainParam(tp.m_Seed, tp.m_Scale, tp.m_Octaves, tp.m_Persistence, tp.m_Lacunarity, tp.m_OffsetV, tp.m_Amplitude);
-    GUI::grassParam(gp.m_Frequency, gp.m_Amplitude, gp.m_Scale, gp.m_Drop);
+
+    GUI::grassParam(gp);
+    GUI::PBRWindow(pbr);
 
     // draw plane
     m_Plane->update(m_Camera->Position, tp.m_Seed, tp.m_Scale, tp.m_Octaves, tp.m_Persistence, tp.m_Lacunarity, tp.m_OffsetV, tp.m_Amplitude, changeParam, m_NoiseShader);
@@ -176,10 +204,14 @@ void Renderer::render(float currentTime, float deltaTime) {
 
     m_Plane->drawPatchPlane(m_PatchPlaneShader, projection, view, 65, 65);
 
-    m_LightCube->update(currentTime * 0.1f);
-    m_LightCube->draw(m_LightCubeShader, projection, view);
+    //m_LightCube->update(currentTime * 0.1f);
+    std::vector<glm::vec3> lightpos;
+    for (Cube* cube : m_LightCube) {
+        lightpos.push_back(cube->pos);
+        cube->draw(m_LightCubeShader, projection, view);
+    }
 
-    GUI::waterParam(wp.m_Amplitude, wp.m_Frequency, wp.m_Speed, wp.m_WaveCount);
+    GUI::waterParam(wp);
 
     m_Water->setParameter(m_WaterShader, wp.m_Amplitude, wp.m_Frequency, currentTime, wp.m_Speed, wp.m_Seed, wp.m_SeedIter, wp.m_WaveCount, m_Camera->Position);
     //m_Water->draw(m_WaterShader, projection, view);
@@ -187,10 +219,11 @@ void Renderer::render(float currentTime, float deltaTime) {
 
     m_Skybox->draw(m_SkyboxShader, projection, glm::mat4(glm::mat3(m_Camera->GetViewMatrix())));
 
-    m_Sphere->draw(m_PBRShader, projection, view, m_Camera->Position, currentTime * 0.1f, m_Skybox->cubemapTexture, m_LightCube->pos);
+    m_Sphere->draw(m_PBRShader, projection, view, m_Camera->Position, 
+                   currentTime * 0.1f, m_FBManager->mappers, lightpos, pbr);
     //m_Sphere->drawNormalLine(m_NormalLineShader, projection, view);
 
-    GUI::fogDistanceParam(fdp.m_Near, fdp.m_Far, fdp.m_Density);
+    GUI::fogDistanceParam(fdp);
     m_FBManager->setFogDistance(m_FramebufferShader, fdp.m_Near, fdp.m_Far, fdp.m_Density, fdp.m_Color);
     m_FBManager->draw(m_FramebufferShader);
 

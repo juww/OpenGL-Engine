@@ -460,7 +460,6 @@ public:
 
 		glTexStorage3D(GL_TEXTURE_2D_ARRAY, mipLevelCount, GL_RGBA, width, height, layerCount);
 		glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, width, height, layerCount, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
 
 		for (int i = 0; i < terrains.size(); i++) {
 			int w, h, nrChannels;

@@ -8,6 +8,7 @@ FramebufferManager::FramebufferManager() {
     m_Fbo = 0;
     m_Vao = 0;
     m_ScreenVertices.clear();
+    mappers.clear();
 }
 
 FramebufferManager::~FramebufferManager() {
@@ -84,6 +85,230 @@ void FramebufferManager::createDepthStencilFramebuffer() {
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void FramebufferManager::IrradianceMapping(Shader *irradianceShader, unsigned int envCubemap, int width, int height) {
+
+    glGenFramebuffers(1, &captureFBO);
+    glGenRenderbuffers(1, &captureRBO);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
+
+    glGenTextures(1, &irradianceMap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+
+    int convWidth = 64;
+    int convHeight = 64;
+
+    for (unsigned int i = 0; i < 6; ++i) {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, convWidth, convHeight, 0, GL_RGB, GL_FLOAT, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, convWidth, convHeight);
+
+    irradianceShader->use();
+    irradianceShader->setInt("environmentMap", 0);
+    irradianceShader->setMat4("projection", captureProjection);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+
+    glViewport(0, 0, convWidth, convHeight); // don't forget to configure the viewport to the capture dimensions.
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    for (unsigned int i = 0; i < 6; ++i)
+    {
+        irradianceShader->setMat4("view", captureViews[i]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        renderCube();
+    }
+    mappers["irradianceMap"] = irradianceMap;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void FramebufferManager::PreFilterMapping(Shader *preFilterShader, unsigned int envCubemap, int width, int height) {
+
+    glGenTextures(1, &preFilterMap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, preFilterMap);
+    for (unsigned int i = 0; i < 6; ++i)
+    {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, 128, 128, 0, GL_RGB, GL_FLOAT, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // be sure to set minification filter to mip_linear 
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // generate mipmaps for the cubemap so OpenGL automatically allocates the required memory.
+    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+    preFilterShader->use();
+    preFilterShader->setInt("environmentMap", 0);
+    preFilterShader->setMat4("projection", captureProjection);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    unsigned int maxMipLevels = 5;
+    for (unsigned int mip = 0; mip < maxMipLevels; ++mip)
+    {
+        // reisze framebuffer according to mip-level size.
+        unsigned int mipWidth = static_cast<unsigned int>(128 * std::pow(0.5, mip));
+        unsigned int mipHeight = static_cast<unsigned int>(128 * std::pow(0.5, mip));
+        glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
+        glViewport(0, 0, mipWidth, mipHeight);
+
+        float roughness = (float)mip / (float)(maxMipLevels - 1);
+        preFilterShader->setFloat("roughness", roughness);
+        for (unsigned int i = 0; i < 6; ++i)
+        {
+            preFilterShader->setMat4("view", captureViews[i]);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, preFilterMap, mip);
+
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            renderCube();
+        }
+    }
+    mappers["preFilterMap"] = preFilterMap;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void FramebufferManager::BrdfLUT(Shader *LUTShader, int width, int height) {
+    // pbr: generate a 2D LUT from the BRDF equations used.
+    // ----------------------------------------------------
+    glGenTextures(1, &brdfLUTTexture);
+
+    // pre-allocate enough memory for the LUT texture.
+    glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, width, height, 0, GL_RG, GL_FLOAT, 0);
+    // be sure to set wrapping mode to GL_CLAMP_TO_EDGE
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // then re-configure capture framebuffer object and render screen-space quad with BRDF shader.
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTexture, 0);
+
+    glViewport(0, 0, width, height);
+    LUTShader->use();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    renderQuad();
+
+    mappers["brdfLUTTexture"] = brdfLUTTexture;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+}
+
+void FramebufferManager::renderCube() {
+    unsigned int cubeVAO = 0;
+    unsigned int cubeVBO = 0;
+    if (cubeVAO == 0) {
+        float vertices[] = {
+            // back face
+            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+             1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+             1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
+             1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+            -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
+            // front face
+            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+             1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
+             1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+             1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+            -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
+            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+            // left face
+            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+            -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
+            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+            -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+            // right face
+             1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+             1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+             1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
+             1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+             1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+             1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
+             // bottom face
+             -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+              1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
+              1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+              1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+             -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+             -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+             // top face
+             -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+              1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+              1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
+              1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+             -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+             -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
+        };
+        glGenVertexArrays(1, &cubeVAO);
+        glGenBuffers(1, &cubeVBO);
+        // fill buffer
+        glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        // link vertex attributes
+        glBindVertexArray(cubeVAO);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+    
+    glBindVertexArray(cubeVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+}
+
+void FramebufferManager::renderQuad() {
+    unsigned int quadVAO = 0;
+    unsigned int quadVBO;
+    if (quadVAO == 0) {
+        float quadVertices[] = {
+            // positions        // texture Coords
+            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+             1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+             1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+        };
+        // setup plane VAO
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    }
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
 }
 
 void FramebufferManager::shaderConfig(Shader* shader) {

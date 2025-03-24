@@ -105,6 +105,14 @@ void Scene::updateFps() {
     m_LastTime = m_CurrentTime;
 }
 
+void Scene::configViewPort() {
+    int scrWidth, scrHeight;
+    glfwGetFramebufferSize(m_Window, &scrWidth, &scrHeight);
+
+    printf("config ViewPort: %d %d\n", scrWidth, scrHeight);
+    glViewport(0, 0, scrWidth, scrHeight);
+}
+
 int Scene::run() {
     setup();
     initGlad();
@@ -114,6 +122,7 @@ int Scene::run() {
 
     GUI::initialize(m_Window);
     m_PreviousFrameTime = static_cast<float>(glfwGetTime());
+    configViewPort();
     while (!glfwWindowShouldClose(m_Window)) {
         updateFps();
 
@@ -124,7 +133,6 @@ int Scene::run() {
 
         m_Renderer->render(m_CurrentTime, m_DeltaTime);
 
-        ImGui::End();
         GUI::renderUI();
 
         glfwSwapBuffers(m_Window);

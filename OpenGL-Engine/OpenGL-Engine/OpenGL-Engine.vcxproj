@@ -192,6 +192,8 @@
     <ClInclude Include="src\waterFFT.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="src\shader\combineTextureShader.fs" />
+    <None Include="src\shader\combineTextureShader.vs" />
     <None Include="src\shader\cube.fs" />
     <None Include="src\shader\cube.vs" />
     <None Include="src\shader\framebufferShader.fs" />

@@ -43,7 +43,7 @@ public:
         lengthInv = 1.0f / radius;
         countVertex = 0;
         tex = 0, cubeTex = 0;
-        pos = glm::vec3(0.0f, 10.0f, -3.0f);
+        pos = glm::vec3(5.0f, 10.0f, -3.0f);
         BUFFER_SIZE = 14;
         duplicatedVertex.clear();
         
@@ -242,7 +242,7 @@ public:
         //std::string normal = materialPath + "sphere_DefaultMaterial_Normal.png";
         //std::string roughness = materialPath + "sphere_DefaultMaterial_Roughness.png";
 
-        std::string materialPath = "res/textures/materials/concrete_hexagon/";
+        std::string materialPath = "res/textures/materials/metal_hole/";
         std::string albedo = materialPath + "albedo.jpg";
         std::string normal = materialPath + "normal.png";
         std::string roughness = materialPath + "roughness.jpg";
@@ -253,9 +253,13 @@ public:
         materials.albedoMap = materials.loadTexture(albedo);
         materials.normalMap = materials.loadTexture(normal);
         materials.roughnessMap = materials.loadTexture(roughness);
-        materials.depthMap = materials.loadTexture(depth);
+        //materials.depthMap = materials.combineRoughnessAndMetallic(roughness, metallic);
         materials.occlusionMap = materials.loadTexture(occlusion);
         materials.metallicMap = materials.loadTexture(metallic);
+
+        materials.Map["roughnessMap"] = materials.roughnessMap;
+        materials.Map["metallicMap"] = materials.metallicMap;
+        materials.Map["occlusionMap"] = materials.occlusionMap;
     }
 
     void drawNormalLine(Shader* shader, const glm::mat4& projection, const glm::mat4& view) {
@@ -340,25 +344,33 @@ public:
                 glActiveTexture(GL_TEXTURE4);
                 glBindTexture(GL_TEXTURE_2D, materials.occlusionMap);
             }
+
             if (materials.depthMap) {
                 shader->setBool("useDepthMapping", true);
                 shader->setInt("depthMap", 5);
                 glActiveTexture(GL_TEXTURE5);
                 glBindTexture(GL_TEXTURE_2D, materials.depthMap);
             }
+
+            if (materials.metallicRoughnessOcclusionTexture) {
+                shader->setBool("useMROMapping", true);
+                shader->setInt("MROMap", 9);
+                glActiveTexture(GL_TEXTURE9);
+                glBindTexture(GL_TEXTURE_2D, materials.metallicRoughnessOcclusionTexture);
+            }
+
+            shader->setInt("irradianceMap", 6);
+            glActiveTexture(GL_TEXTURE6);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, mappers["irradianceMap"]);
+
+            shader->setInt("preFilterMap", 7);
+            glActiveTexture(GL_TEXTURE7);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, mappers["preFilterMap"]);
+
+            shader->setInt("brdfLUTTexture", 8);
+            glActiveTexture(GL_TEXTURE8);
+            glBindTexture(GL_TEXTURE_2D, mappers["brdfLUTTexture"]);
         }
-
-        shader->setInt("irradianceMap", 6);
-        glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, mappers["irradianceMap"]);
-
-        shader->setInt("preFilterMap", 7);
-        glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, mappers["preFilterMap"]);
-
-        shader->setInt("brdfLUTTexture", 8);
-        glActiveTexture(GL_TEXTURE8);
-        glBindTexture(GL_TEXTURE_2D, mappers["brdfLUTTexture"]);
 
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         //glPointSize(10);

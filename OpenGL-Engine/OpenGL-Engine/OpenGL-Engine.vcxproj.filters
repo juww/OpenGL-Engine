@@ -298,5 +298,11 @@
     <None Include="src\shader\LUTShader.fs">
       <Filter>Resource Files\FragmentShader</Filter>
     </None>
+    <None Include="src\shader\combineTextureShader.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="src\shader\combineTextureShader.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
   </ItemGroup>
 </Project>

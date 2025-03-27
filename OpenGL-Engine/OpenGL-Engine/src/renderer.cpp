@@ -64,7 +64,7 @@ void Renderer::setupShaders() {
 
     // build and compile our shader zprogram
     // ------------------------------------
-    m_ModelShader = new Shader("cube.vs", "cube.fs", "normalMapping.gs");
+    m_ModelShader = new Shader("pbr.vs", "pbr.fs"/*, "normalMapping.gs"*/);
     m_PlaneShader = new Shader("plane.vs", "plane.fs");
     m_GrassShader = new Shader("grass.vs", "grass.fs");
     m_LightCubeShader = new Shader("light_cube.vs", "light_cube.fs");
@@ -87,12 +87,13 @@ void Renderer::setupShaders() {
     m_IrradianceShader = new Shader("irradianceShader.vs", "irradianceShader.fs");
     m_PreFilterShader = new Shader("preFilterShader.vs", "preFilterShader.fs");
     m_LUTShader = new Shader("LUTShader.vs", "LUTShader.fs");
+    m_CombineTextureShader = new Shader("combineTextureShader.vs", "combineTextureShader.fs");
 }
 
 void Renderer::initModel() {
     //const std::string& pathfile = "res/models/simpleSkin/scene.gltf";
     //const std::string& pathfile = "res/models/model_avatar/model_external.gltf";
-    const std::string& pathfile = "res/models/phoenix_bird/scene.gltf";
+    const std::string& pathfile = "res/models/damaged-helmet/scene.gltf";
     m_Model = new loadModel(pathfile.c_str());
 
     m_Model->animator.doAnimation(0);
@@ -153,6 +154,12 @@ void Renderer::start() {
     m_FBManager->PreFilterMapping(m_PreFilterShader, m_Skybox->cubemapTexture, m_Skybox->width, m_Skybox->height);
     m_FBManager->BrdfLUT(m_LUTShader, m_Skybox->width, m_Skybox->height);
 
+    m_Sphere->materials.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader, m_Sphere->materials.Map, m_Sphere->materials.width, m_Sphere->materials.height);
+    for (Materials & material : m_Model->materials) {
+        material.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader, 
+            material.Map, material.width, material.height);
+        printf("material %d\n", material.metallicRoughnessOcclusionTexture);
+    }
 }
 //nanti dipindahin ke class model
 
@@ -185,10 +192,9 @@ void Renderer::render(float currentTime, float deltaTime) {
     glm::mat4 projection = glm::perspective(glm::radians(m_Camera->Zoom), m_Camera->Aspect, 0.1f, 150.0f);
     glm::mat4 view = m_Camera->GetViewMatrix();
 
-    setModelShader(projection, view);
-    m_Model->update(m_ModelShader, deltaTime);
-    m_Model->DrawModel(m_ModelShader);
-
+    GUI::modelTransform(m_Model->pos, m_Model->rot, m_Model->angle, m_Model->scale);
+    //setModelShader(projection, view);
+    
     bool changeParam = GUI::proceduralTerrainParam(tp.m_Seed, tp.m_Scale, tp.m_Octaves, tp.m_Persistence, tp.m_Lacunarity, tp.m_OffsetV, tp.m_Amplitude);
 
     GUI::grassParam(gp);
@@ -204,6 +210,12 @@ void Renderer::render(float currentTime, float deltaTime) {
 
     m_Plane->drawPatchPlane(m_PatchPlaneShader, projection, view, 65, 65);
 
+    GUI::waterParam(wp);
+
+    m_Water->setParameter(m_WaterShader, wp.m_Amplitude, wp.m_Frequency, currentTime, wp.m_Speed, wp.m_Seed, wp.m_SeedIter, wp.m_WaveCount, m_Camera->Position);
+    //m_Water->draw(m_WaterShader, projection, view);
+    //m_WaterFFT->drawTexture(m_LightCubeShader, projection, view);
+
     //m_LightCube->update(currentTime * 0.1f);
     std::vector<glm::vec3> lightpos;
     for (Cube* cube : m_LightCube) {
@@ -211,16 +223,14 @@ void Renderer::render(float currentTime, float deltaTime) {
         cube->draw(m_LightCubeShader, projection, view);
     }
 
-    GUI::waterParam(wp);
-
-    m_Water->setParameter(m_WaterShader, wp.m_Amplitude, wp.m_Frequency, currentTime, wp.m_Speed, wp.m_Seed, wp.m_SeedIter, wp.m_WaveCount, m_Camera->Position);
-    //m_Water->draw(m_WaterShader, projection, view);
-    //m_WaterFFT->drawTexture(m_LightCubeShader, projection, view);
-
-    m_Skybox->draw(m_SkyboxShader, projection, glm::mat4(glm::mat3(m_Camera->GetViewMatrix())));
+    m_Model->setUniformModel(m_ModelShader, projection, view, m_Camera->Position, currentTime
+        , m_FBManager->mappers, lightpos, pbr);
+    m_Model->update(m_ModelShader, deltaTime);
+    m_Model->DrawModel(m_ModelShader);
 
     m_Sphere->draw(m_PBRShader, projection, view, m_Camera->Position, 
                    currentTime * 0.1f, m_FBManager->mappers, lightpos, pbr);
+    m_Skybox->draw(m_SkyboxShader, projection, glm::mat4(glm::mat3(m_Camera->GetViewMatrix())));
     //m_Sphere->drawNormalLine(m_NormalLineShader, projection, view);
 
     GUI::fogDistanceParam(fdp);

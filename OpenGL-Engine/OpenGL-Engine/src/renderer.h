@@ -61,6 +61,7 @@ private:
     Shader* m_IrradianceShader;
     Shader* m_PreFilterShader;
     Shader* m_LUTShader;
+    Shader* m_CombineTextureShader;
 
     void configureGlobalState();
     void setupLights();

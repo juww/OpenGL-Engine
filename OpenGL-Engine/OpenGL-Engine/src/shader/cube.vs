@@ -48,9 +48,10 @@ void main() {
     gl_Position = projection * view * model * position;
 
     data_out.model = model;
-
+    mat3 normalMatrix = transpose(inverse(mat3(model)));
+    vec3 Normal = normalize(normalMatrix * vec3(normal));
     data_out.FragPos = vec3(model * position);
-    data_out.Normal = vec3(normal);
+    data_out.Normal = vec3(Normal);
 
     data_out.TexCoords = aTexCoords;
 }

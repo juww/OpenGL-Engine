@@ -14,29 +14,10 @@
 #include <map>
 
 #include "animator.h"
+#include "material.h"
+#include "GUI.h"
 
 const unsigned int INF = 4294967294U;
-struct MaterialModel {
-	bool flag;
-	glm::vec4 baseColor;
-	unsigned int albedoMap, normalMap, roughnessMap, emissiveMap, occlusionMap;
-	float metallicFactor, roughnessFactor;
-
-	MaterialModel() {
-		flag = false;
-		baseColor = glm::vec4(0.0);
-		albedoMap = 0;
-		normalMap = 0;
-		roughnessMap = 0;
-		emissiveMap = 0;
-		occlusionMap = 0;
-		metallicFactor = 0.0f;
-		roughnessFactor = 0.0f;
-	}
-	~MaterialModel() {
-
-	}
-};
 
 class loadModel {
 public:
@@ -48,13 +29,13 @@ public:
 	std::map<int, unsigned int> ebos;
 	std::map<int, unsigned int> vbos;
 	std::map<int, unsigned int> vaos;
-	std::vector<MaterialModel> materials;
+	std::vector<Materials> materials;
 	Animator animator;
 
-	glm::vec3 pos = glm::vec3(0.0f);
+	glm::vec3 pos = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 rot = glm::vec3(1.0f);
 	float angle = 0.0f;
-	glm::vec3 scale = glm::vec3(0.01f);
+	glm::vec3 scale = glm::vec3(1.11f);
 
 
 	loadModel(const char* filename) {
@@ -121,6 +102,48 @@ public:
         for (int i = 0; i < node.children.size(); i++) {
             updateSkeletalNode(node.children[i], indx, shader);
         }
+    }
+
+    void setUniformModel(Shader* shader, const glm::mat4& projection, const glm::mat4& view, glm::vec3& cameraPos,
+        const float& _time, std::map<std::string, unsigned int>& mappers, std::vector<glm::vec3> lightPos, GUI::PBRParam& pbr) {
+        shader->use();
+
+        shader->setMat4("projection", projection);
+        shader->setMat4("view", view);
+
+        for (int i = 0; i < lightPos.size(); i++) {
+            shader->setVec3("lightPosition[" + std::to_string(i) + "]", lightPos[i]);
+        }
+        //shader->setVec3("lightPos", lightPos);
+        shader->setVec3("viewPos", cameraPos);
+
+        shader->setVec4("baseColor", pbr.m_BaseColor);
+        shader->setFloat("roughnessFactor", pbr.m_RoughnessFactor);
+        shader->setFloat("subSurface", pbr.m_SubSurface);
+        shader->setFloat("metallicFactor", pbr.m_MetallicFactor);
+
+        shader->setFloat("_Specular", pbr.m_Specular);
+        shader->setFloat("_SpecularTint", pbr.m_SpecularTint);
+        shader->setFloat("_Sheen", pbr.m_Sheen);
+        shader->setFloat("_SheenTint", pbr.m_SheenTint);
+        shader->setFloat("_Anisotropic", pbr.m_Anisotropic);
+        shader->setFloat("_ClearCoatGloss", pbr.m_ClearCoatGloss);
+        shader->setFloat("_ClearCoat", pbr.m_ClearCoat);
+
+        shader->setFloat("heightScale", pbr.m_HeightScale);
+        shader->setInt("hasBone", 0);
+
+        shader->setInt("irradianceMap", 6);
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, mappers["irradianceMap"]);
+
+        shader->setInt("preFilterMap", 7);
+        glActiveTexture(GL_TEXTURE7);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, mappers["preFilterMap"]);
+
+        shader->setInt("brdfLUTTexture", 8);
+        glActiveTexture(GL_TEXTURE8);
+        glBindTexture(GL_TEXTURE_2D, mappers["brdfLUTTexture"]);
     }
 
 	void update(Shader* shader, float deltaTime) {
@@ -254,13 +277,28 @@ private:
 		return textureID;
 	}
 
+    void getTextureDimension(int materialIndex, int textureIndex) {
+        if (textureIndex < 0 || textureIndex >= (int)model.textures.size()) {
+            return;
+        }
+        tinygltf::Texture& t = model.textures[textureIndex];
+        if (t.source < 0 || t.source >= (int)model.images.size()) {
+            return;
+        }
+        tinygltf::Image& image = model.images[t.source];
+
+        materials[materialIndex].width = image.width;
+        materials[materialIndex].height = image.height;
+    }
+
 	void bindMaterial(int indx) {
 		if (indx < 0 || indx >= (int)model.materials.size()) {
 			std::cout << "index material is out of bound\n";
 			std::cout << "indx: " << indx << "\n";
 			return;
 		}
-		if (materials[indx].flag == true) {
+
+		if (materials[indx].useMaterial == true) {
 			return;
 		}
 		tinygltf::Material& material = model.materials[indx];
@@ -272,12 +310,17 @@ private:
 		materials[indx].metallicFactor = material.pbrMetallicRoughness.metallicFactor;
 		materials[indx].roughnessFactor = material.pbrMetallicRoughness.roughnessFactor;
 
+        getTextureDimension(indx, material.pbrMetallicRoughness.baseColorTexture.index);
 		materials[indx].albedoMap = loadTexture(material.pbrMetallicRoughness.baseColorTexture.index);
 		materials[indx].normalMap = loadTexture(material.normalTexture.index);
 		materials[indx].roughnessMap = loadTexture(material.pbrMetallicRoughness.metallicRoughnessTexture.index);
 		materials[indx].emissiveMap = loadTexture(material.emissiveTexture.index);
 		materials[indx].occlusionMap = loadTexture(material.occlusionTexture.index);
-		materials[indx].flag = true;
+		materials[indx].useMaterial = true;
+
+        materials[indx].Map["roughnessMap"] = materials[indx].roughnessMap;
+        materials[indx].Map["metallicMap"] = materials[indx].metallicMap;
+        materials[indx].Map["occlusionMap"] = materials[indx].occlusionMap;
 	}
 
 	void bindAttributeIndex(tinygltf::Primitive& prim) {
@@ -464,7 +507,7 @@ private:
 		modelMatrices.resize(model.nodes.size(), glm::mat4(1.0));
 		inverseMatrices.resize(model.nodes.size(), glm::mat4(1.0));
 		animationTransform.resize(model.nodes.size(), glm::mat4(1.0));
-		materials.resize(model.materials.size(), MaterialModel());
+		materials.resize(model.materials.size(), Materials());
 
 		int defaultScene = model.defaultScene < 0 ? 0 : model.defaultScene;
 		tinygltf::Scene& scene = model.scenes[defaultScene];
@@ -589,12 +632,52 @@ private:
 			}
 
 			if (prim.material != -1) {
+                shader->setBool("useAlbedoMapping", true);
+                shader->setInt("albedoMap", 0);
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, materials[prim.material].albedoMap);
-				glActiveTexture(GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_2D, materials[prim.material].normalMap);
-				glActiveTexture(GL_TEXTURE2);
-				glBindTexture(GL_TEXTURE_2D, materials[prim.material].roughnessMap);
+
+                if (materials[prim.material].normalMap) {
+                    shader->setBool("useNormalMapping", true);
+                    shader->setInt("normalMap", 1);
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindTexture(GL_TEXTURE_2D, materials[prim.material].normalMap);
+                }
+
+                if (materials[prim.material].roughnessMap) {
+                    shader->setBool("useRoughnessMapping", true);
+                    shader->setInt("roughnessMap", 2);
+                    glActiveTexture(GL_TEXTURE2);
+                    glBindTexture(GL_TEXTURE_2D, materials[prim.material].roughnessMap);
+                }
+
+                if (materials[prim.material].metallicMap) {
+                    shader->setBool("useMetallicMapping", true);
+                    shader->setInt("metallicMap", 3);
+                    glActiveTexture(GL_TEXTURE3);
+                    glBindTexture(GL_TEXTURE_2D, materials[prim.material].metallicMap);
+                }
+
+                if (materials[prim.material].occlusionMap) {
+                    shader->setBool("useOcclusionMapping", true);
+                    shader->setInt("occlusionMap", 4);
+                    glActiveTexture(GL_TEXTURE4);
+                    glBindTexture(GL_TEXTURE_2D, materials[prim.material].occlusionMap);
+                }
+
+                if (materials[prim.material].emissiveMap) {
+                    shader->setBool("useEmissiveMapping", true);
+                    shader->setInt("emissiveMap", 5);
+                    glActiveTexture(GL_TEXTURE5);
+                    glBindTexture(GL_TEXTURE_2D, materials[prim.material].emissiveMap);
+                }
+
+                if (materials[prim.material].metallicRoughnessOcclusionTexture) {
+                    shader->setBool("useMROMapping", true);
+                    shader->setInt("MROMap", 9);
+                    glActiveTexture(GL_TEXTURE9);
+                    glBindTexture(GL_TEXTURE_2D, materials[prim.material].metallicRoughnessOcclusionTexture);
+                }
 			}
 
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[prim.indices]);
@@ -639,10 +722,11 @@ private:
         dictVertexAttributeArray["NORMAL"] = 1;
         dictVertexAttributeArray["TEXCOORD_0"] = 2;
         dictVertexAttributeArray["TANGENT"] = 3;
-        dictVertexAttributeArray["COLOR_0"] = 4;
+        dictVertexAttributeArray["BITANGENT"] = 4;
         dictVertexAttributeArray["JOINTS_0"] = 5;
         dictVertexAttributeArray["WEIGHTS_0"] = 6;
     }
+
     GLenum glCheckError_(const char* file, int line)
     {
         std::cout << "check error" << std::endl;

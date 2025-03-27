@@ -20,6 +20,7 @@ uniform sampler2D albedoMap;
 uniform sampler2D normalMap;
 uniform sampler2D roughnessMap;
 uniform sampler2D ambientOcclusionMap;
+uniform sampler2D emissiveMap;
 uniform float uMetallic;
 
 const float PI = 3.14159265359;
@@ -107,6 +108,9 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 vec3 PBR(vec3 albedo, float metallic, float roughness, float ao){
 
     vec3 N = getNormalFromMap();
+    //vec3 N = texture(normalMap, TexCoords).rgb;
+    //N = N * 2.0 - 1.0;
+    //N = normalize(TBN * N);
     vec3 V = normalize(viewPos - FragPos);
 
     vec3 F0 = vec3(0.04);
@@ -160,11 +164,12 @@ void main() {
     float metallic  = texture(roughnessMap, TexCoords).b;
     float roughness = texture(roughnessMap, TexCoords).g;
     float ao        = texture(roughnessMap, TexCoords).r;
+    vec3 emissive   = texture(emissiveMap, TexCoords).rgb;
 
     vec3 Lo = PBR(albedo, metallic, roughness, ao);
     
     vec3 ambient = vec3(0.03) * albedo * ao;
-    vec3 color = ambient + Lo;
+    vec3 color = ambient + Lo + emissive;
     // HDR tonemapping
     color = color / (color + vec3(1.0));
     // gamma correct

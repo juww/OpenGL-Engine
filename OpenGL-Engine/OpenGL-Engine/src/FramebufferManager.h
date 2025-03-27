@@ -37,6 +37,7 @@ public:
     void setFogDistance(Shader* shader, float& near, float& far, float& density, glm::vec3& fogColor);
     void draw(Shader* shader);
     void deleteFramebuffer(unsigned int& fbo);
+    unsigned int combineTexture(Shader* shader, std::map<std::string, unsigned int>& pTexture, int width, int height);
 
 private:
     

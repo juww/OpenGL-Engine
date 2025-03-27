@@ -211,7 +211,57 @@ void FramebufferManager::BrdfLUT(Shader *LUTShader, int width, int height) {
 
     mappers["brdfLUTTexture"] = brdfLUTTexture;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 
+unsigned int FramebufferManager::combineTexture(Shader *shader, std::map<std::string, unsigned int>& pTexture, int width, int height) {
+
+    if (width == 0 || height == 0) return 0;
+    
+    int cnt = 0;
+    for (auto& tex : pTexture) {
+        if (tex.second == 0) cnt++;
+    }
+    if (cnt == pTexture.size()) return 0;
+    unsigned int ret = 0;
+
+    glGenTextures(1, &ret);
+    glBindTexture(GL_TEXTURE_2D, ret);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_FLOAT, 0);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ret, 0);
+
+    glViewport(0, 0, width, height);
+    shader->use();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    int id = -1;
+    for (auto& tex : pTexture) {
+        id++;
+        printf("%s : %d\n", tex.first.c_str(), tex.second);
+        if (tex.first == "occlusionMap" && tex.second != 0) {
+            shader->setBool("useOcclusionMapping", true);
+        }
+        if (tex.first == "metallicMap" && tex.second != 0) {
+            shader->setBool("useMetallicMapping", true);
+        }
+        shader->setInt(tex.first, id);
+        glActiveTexture(GL_TEXTURE0 + id);
+        glBindTexture(GL_TEXTURE_2D, tex.second);
+
+    }
+    renderQuad();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    printf("result combine Texture: %d\n", ret);
+    return ret;
 }
 
 void FramebufferManager::renderCube() {

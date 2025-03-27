@@ -17,14 +17,18 @@ public:
     
     bool useMaterial;
 
+    glm::vec4 baseColor;
     unsigned int albedoMap, normalMap, roughnessMap, emissiveMap, metallicMap, occlusionMap, depthMap;
+    unsigned int metallicRoughnessOcclusionTexture;
     float metallicFactor, roughnessFactor;
+    std::map<std::string, unsigned int> Map;
 
     int width, height;
 
     Materials() {
 
         useMaterial = false;
+        baseColor = glm::vec4(1.0f);
 
         albedoMap = 0;
         normalMap = 0;
@@ -33,12 +37,15 @@ public:
         metallicMap = 0;
         occlusionMap = 0;
         depthMap = 0;
+        metallicRoughnessOcclusionTexture = 0;
 
         metallicFactor = 0.0f;
         roughnessFactor = 0.0f;
 
         width = 0;
         height = 0;
+
+        Map.clear();
     }
 
     ~Materials() {

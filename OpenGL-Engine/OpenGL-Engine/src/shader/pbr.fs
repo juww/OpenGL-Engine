@@ -14,10 +14,11 @@ uniform sampler2D normalMap;
 uniform sampler2D roughnessMap;
 uniform sampler2D metallicMap;
 uniform sampler2D occlusionMap;
-uniform sampler2D depthMap;
+uniform sampler2D emissiveMap;
+uniform sampler2D MROMap;
 
 uniform samplerCube irradianceMap;
-uniform samplerCube prefilterMap;
+uniform samplerCube preFilterMap;
 uniform sampler2D brdfLUTTexture;
 
 uniform bool useAlbedoMapping;
@@ -25,7 +26,8 @@ uniform bool useNormalMapping;
 uniform bool useRoughnessMapping;
 uniform bool useMetallicMapping;
 uniform bool useOcclusionMapping;
-uniform bool useDepthMapping;
+uniform bool useEmissiveMapping;
+uniform bool useMROMapping;
 
 //uniform vec3 lightPos;
 uniform vec3 lightPosition[4];
@@ -68,6 +70,27 @@ vec3 lerp3(vec3 a, vec3 b, float t){
     //return a * (1.0 - t) + b * t;
     //return a + (t * (b - a));
     return mix(a, b, t);
+}
+
+vec3 TanX;
+vec3 TanY;
+vec3 getNormalFromMap() {
+    vec3 tangentNormal = texture(normalMap, TexCoords).xyz * 2.0 - 1.0;
+
+    vec3 Q1  = dFdx(FragPos);
+    vec3 Q2  = dFdy(FragPos);
+    vec2 st1 = dFdx(TexCoords);
+    vec2 st2 = dFdy(TexCoords);
+
+    vec3 N   = normalize(Normal);
+    vec3 T  = normalize(Q1 * st2.t - Q2 * st1.t);
+    vec3 B  = -normalize(cross(N, T));
+    mat3 tbn = mat3(T, B, N);
+
+    TanX = T;
+    TanY = B;
+
+    return normalize(tbn * tangentNormal);
 }
 
 float luminance(vec3 color) {
@@ -116,7 +139,7 @@ float NormalDistributionFunction(float ndoth, vec3 H, float alpha){
     float aspectRatio = sqrt(1.0f - _Anisotropic * 0.9f);
     float alphaX = max(0.001f, a2 / aspectRatio);
     float alphaY = max(0.001f, a2 * aspectRatio);
-    float Ds = AnisotropicGTR2(ndoth, dot(H, Tangent), dot(H, Bitangent), alphaX, alphaY);
+    float Ds = AnisotropicGTR2(ndoth, dot(H, TanX), dot(H, TanY), alphaX, alphaY);
 
     return Ds;
 }
@@ -129,8 +152,8 @@ float NormalDistributionFunction(float ndoth, vec3 H, float alpha){
     float GalphaX = max(0.001f, GalphaSquared / aspectRatio);
     float GalphaY = max(0.001f, GalphaSquared * aspectRatio);
 
-    float G = AnisotropicSmithGGX(ndotl, dot(L, Tangent), dot(L, Bitangent), GalphaX, GalphaY);
-    G *= AnisotropicSmithGGX(ndotv, dot(V, Tangent), dot (V, Bitangent), GalphaX, GalphaY); 
+    float G = AnisotropicSmithGGX(ndotl, dot(L, TanX), dot(L, TanY), GalphaX, GalphaY);
+    G *= AnisotropicSmithGGX(ndotv, dot(V, TanX), dot (V, TanY), GalphaX, GalphaY); 
 
     // specular brdf denominator (4 * ndotl * ndotv) is baked into output here (I assume at least)  
     return G;
@@ -176,19 +199,17 @@ vec3 DisneyBRDF(vec3 N, vec3 surfaceColor, vec3 lightPos, float Roughness, float
     vec3 F = lerp3(Cspec0, vec3(1.0f), FH);
     float G = GeometricAttenuation(Roughness, ndotl, ndotv, L, V);
 
-    vec3 metallicness = lerp3(vec3(1.0), surfaceColor, Metallic);
-
     // Clearcoat (Hard Coded Index Of Refraction -> 1.5f -> F0 -> 0.04)
     float Dr = GTR1(ndoth, lerp(0.1f, 0.001f, _ClearCoatGloss)); // Normalized Isotropic GTR Gamma == 1
     float Fr = lerp(0.04, 1.0f, FH);
     float Gr = SmithGGX(ndotl, ndotv, 0.25f);
 
-    //vec3 result = blinnPhong();
     vec3 FDiffuse = (1.0 / PI) * (lerp(Fd, ss, subSurface) * surfaceColor + FSheen) * (1.0 - Metallic) * (1.0 - F);
-    vec3 FSpecular = (D * G * F) * metallicness;
+    vec3 FSpecular = (D * G * F);
     vec3 FClearCoat = vec3(0.25f * _ClearCoat * Gr * Fr * Dr);
 
     vec3 result = (FDiffuse + FSpecular + FClearCoat) * ndotl;
+    //result = vec3(H);
 
     return result;
 }
@@ -197,9 +218,11 @@ void main (){
 
     vec3 N = Normal;
     vec3 surfaceColor = baseColor.rgb;
+    vec3 emissive = vec3(0.0);
     float Roughness = roughnessFactor;
     float Metallic = metallicFactor;
     float ao = 1.0f;
+    
     
     if(useAlbedoMapping){
         surfaceColor = texture(albedoMap, TexCoords).rgb;
@@ -207,23 +230,35 @@ void main (){
     }
 
     if(useNormalMapping){
-        N = texture(normalMap, TexCoords).rgb;
-        N = N * 2.0 - 1.0;
-        N = normalize(TBN * N);
-    }
-    
-    if(useRoughnessMapping){
-        Roughness = texture(roughnessMap, TexCoords).r * roughnessFactor;
+        //N = texture(normalMap, TexCoords).rgb;
+        //N = N * 2.0 - 1.0;
+        //N = normalize(TBN * N);
+
+        N = getNormalFromMap();
     }
 
-    if(useMetallicMapping){
-        Metallic = texture(metallicMap, TexCoords).r * metallicFactor;
+    if(useMROMapping){
+        vec3 mro = texture(MROMap, TexCoords).rgb;
+        Roughness = mro.g * roughnessFactor;
+        Metallic = mro.b * metallicFactor;
+        ao = mro.r;
+    } else {
+        if(useRoughnessMapping){
+            Roughness = texture(roughnessMap, TexCoords).g * roughnessFactor;
+        }
+        if(useMetallicMapping){
+            Metallic = texture(metallicMap, TexCoords).r * metallicFactor;
+        }
+        if(useOcclusionMapping){
+            ao = texture(occlusionMap, TexCoords).r;
+        }
     }
 
-    if(useOcclusionMapping){
-        ao = texture(occlusionMap, TexCoords).r;
-        //surfaceColor *= ao;
+    if(useEmissiveMapping){
+        emissive = texture(emissiveMap, TexCoords).rgb;
     }
+
+
     vec3 Lo = vec3(0.0);
 
     for(int i = 0; i < 4; i++) {
@@ -246,14 +281,17 @@ void main (){
 
     // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
     const float MAX_REFLECTION_LOD = 4.0;
-    vec3 prefilteredColor = textureLod(prefilterMap, R,  Roughness * MAX_REFLECTION_LOD).rgb;    
+    vec3 prefilteredColor = textureLod(preFilterMap, R,  Roughness * MAX_REFLECTION_LOD).rgb;    
     vec2 brdf  = texture(brdfLUTTexture, vec2(max(dot(N, V), 0.0), Roughness)).rg;
     vec3 IBLspecular = prefilteredColor * (F * brdf.x + brdf.y);
+    vec3 metallicness = lerp3(vec3(0.0), IBLspecular, Metallic);
 
     vec3 ambient = (kD * IBLDiffuse + IBLspecular);
 
     // result += ambient * ao;
-    vec3 result = (Lo + ambient) * ao;
+    vec3 result = (Lo + ambient + emissive) * ao;
+    //vec3 result = blinnPhong();
+
     //result = result/ (result + vec3(1.0));
     // gamma correct
     //result= pow(result, vec3(1.0/2.2));

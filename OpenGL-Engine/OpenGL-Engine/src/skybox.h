@@ -134,6 +134,7 @@ public:
         shader->setMat4("projection", projection);
         // skybox cube
         glBindVertexArray(vao);
+        shader->setInt("skybox", 0);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
         glDrawArrays(GL_TRIANGLES, 0, 36);

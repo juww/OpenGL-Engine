@@ -277,6 +277,23 @@ public:
         glBindVertexArray(0);
 
     }
+    // perlu ganti structure sebelum ganti/buang function ini
+    // cuman dipakek untuk buat shadow
+    void drawInDepthMap(Shader* shader) {
+        shader->use();
+
+        shader->setMat4("model", model);
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        //glPointSize(10);
+        //glDrawArrays(GL_POINTS, 0, vertices.size() / 8);
+
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0);
+
+        glBindVertexArray(0);
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
 
     void draw(Shader* shader, const glm::mat4& projection, const glm::mat4& view, glm::vec3& cameraPos, 
               const float &_time, std::map<std::string, unsigned int>& mappers, std::vector<glm::vec3> lightPos, GUI::PBRParam& pbr) {

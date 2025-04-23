@@ -219,6 +219,11 @@
     <None Include="src\shader\plane.vs" />
     <None Include="src\shader\preFilterShader.fs" />
     <None Include="src\shader\preFilterShader.vs" />
+    <None Include="src\shader\shadowCubeMappingShader.fs" />
+    <None Include="src\shader\shadowCubeMappingShader.gs" />
+    <None Include="src\shader\shadowCubeMappingShader.vs" />
+    <None Include="src\shader\shadowMappingShader.fs" />
+    <None Include="src\shader\shadowMappingShader.vs" />
     <None Include="src\shader\skeletal.fs" />
     <None Include="src\shader\skeletal.gs" />
     <None Include="src\shader\skeletal.vs" />

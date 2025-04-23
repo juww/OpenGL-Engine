@@ -22,7 +22,7 @@ void main() {
     if(mro.b != mro.g) {
         metallic = mro.b;
     } else {
-        if(useMetallicMapping){
+        if(useMetallicMapping) {
             metallic = texture(metallicMap, TexCoords).r;
         }
     }

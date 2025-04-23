@@ -7,6 +7,7 @@ FramebufferManager::FramebufferManager() {
     m_ScreenHeight = 720;
     m_Fbo = 0;
     m_Vao = 0;
+    depthFBO = 0;
     m_ScreenVertices.clear();
     mappers.clear();
 }
@@ -245,12 +246,11 @@ unsigned int FramebufferManager::combineTexture(Shader *shader, std::map<std::st
     int id = -1;
     for (auto& tex : pTexture) {
         id++;
-        printf("%s : %d\n", tex.first.c_str(), tex.second);
-        if (tex.first == "occlusionMap" && tex.second != 0) {
-            shader->setBool("useOcclusionMapping", true);
+        if (tex.first == "occlusionMap") {
+            shader->setBool("useOcclusionMapping", (tex.second != 0));
         }
-        if (tex.first == "metallicMap" && tex.second != 0) {
-            shader->setBool("useMetallicMapping", true);
+        if (tex.first == "metallicMap") {
+            shader->setBool("useMetallicMapping", (tex.second != 0));
         }
         shader->setInt(tex.first, id);
         glActiveTexture(GL_TEXTURE0 + id);
@@ -258,10 +258,69 @@ unsigned int FramebufferManager::combineTexture(Shader *shader, std::map<std::st
 
     }
     renderQuad();
-
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    printf("result combine Texture: %d\n", ret);
+
     return ret;
+}
+
+void FramebufferManager::ShadowMapping() {
+
+    if (depthFBO == 0) {
+        glGenFramebuffers(1, &depthFBO);
+    }
+
+    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+
+    mappers["shadowDepthMap"] = depthMap;
+    shadowType = 1;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void FramebufferManager::CubeShadowMapping() {
+
+    if (depthFBO == 0) {
+        glGenFramebuffers(1, &depthFBO);
+        printf("cubeMap shadow = %d\n", depthFBO);
+    }
+
+    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+
+    glGenTextures(1, &cubeDepthMap);
+
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubeDepthMap);
+    for (unsigned int i = 0; i < 6; ++i) {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, 
+            SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, cubeDepthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+
+    shadowType = 2;
+    mappers["shadowCubeDepthMap"] = cubeDepthMap;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void FramebufferManager::renderCube() {

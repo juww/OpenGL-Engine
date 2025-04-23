@@ -26,6 +26,7 @@ public:
 
     Camera* getCamera();
     void start();
+    void shadowRender(int shadowType);
     void render(float currentTime, float deltaTime);
 
 private:
@@ -36,6 +37,7 @@ private:
 
     std::vector<Light> m_Lights;
     loadModel* m_Model;
+    loadModel* m_Sponza;
     Skybox* m_Skybox;
     Plane* m_Plane;
     std::vector<Cube *> m_LightCube;
@@ -52,6 +54,8 @@ private:
     Shader* m_WaterShader;
     Shader* m_SphereShader;
     Shader* m_PBRShader;
+    Shader* m_ShadowMappingShader;
+    Shader* m_ShadowCubeMappingShader;
 
     Shader* m_NormalLineShader;
 

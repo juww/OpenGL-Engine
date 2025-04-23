@@ -53,11 +53,44 @@ void Renderer::configureGlobalState() {
 }
 
 void Renderer::setupLights() {
-    Light l1;
-    l1.setLight(glm::vec3(-0.2f, -1.0f, -0.3f));
-    m_Lights.push_back(l1);
-    l1.setLight(glm::vec3(1.0f, 0.0f, 0.0f), 1.0f, 0.0f, 1.0f);
-    m_Lights.push_back(l1);
+    Light lightdir;
+    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+    lightdir.setDirectionLight(glm::vec3(-2.0f, 3.0f, 1.0f) * 3.0f);
+    lightdir.setLightView(glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+    lightdir.setProjectionOrtho(glm::vec4(-20.0f, 20.0f, -20.0f, 20.0f), 1.0f, 15.5f);
+    //lightdir.setProjectionPerspective(glm::radians(45.0f), (1.7778f), 0.1f, 50.0f);
+    //m_Lights.push_back(lightdir);
+
+    glm::vec3 lpos = glm::vec3(0.0f, 3.0f, 0.0f);
+    Light lp;
+    Cube* c = new Cube();
+    float aspect = (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT;
+    lp.setPosLight(lpos, 0.0f, 0.0f, 0.0f);
+    lp.setProjectionPerspective(glm::radians(90.0f), aspect, 1.0f, 25.0f);
+    c->initialize();
+    c->scale = glm::vec3(0.2f);
+    c->pos = lpos;
+
+    m_Lights.push_back(lp);
+    m_LightCube.push_back(c);
+
+    /*for (int i = 0; i < 4; i++) {
+        Cube* cube = new Cube();
+
+        cube->initialize();
+        cube->scale = glm::vec3(0.2f);
+
+        if (i == 0) cube->pos = glm::vec3(5.0f, 5.0f, 5.0f);
+        if (i == 1) cube->pos = glm::vec3(5.0f, 12.0f, -5.0f);
+        if (i == 2) cube->pos = glm::vec3(-5.0f, 10.0f, 5.0f);
+        if (i == 3) cube->pos = glm::vec3(-5.0f, 7.0f, -5.0f);
+
+        Light lightpos;
+        lightpos.setPosLight(cube->pos, 0.0f, 0.0f, 0.0f);
+
+        m_Lights.push_back(lightpos);
+        m_LightCube.push_back(cube);
+    }*/
 }
 
 void Renderer::setupShaders() {
@@ -72,7 +105,7 @@ void Renderer::setupShaders() {
     m_WaterShader = new Shader("water.vs", "water.fs");
     m_SphereShader = new Shader("sphere.vs", "sphere.fs");
     m_PBRShader = new Shader("pbr.vs", "pbr.fs"/*, "normalMapping.gs"*/);
-
+    
     m_PatchPlaneShader = new Shader("patchPlane.vs", "patchPlane.fs");
     m_PatchPlaneShader->setTessellationShader("TessellationControlShader.tcs", "TessellationEvaluationShader.tes");
 
@@ -87,22 +120,34 @@ void Renderer::setupShaders() {
     m_IrradianceShader = new Shader("irradianceShader.vs", "irradianceShader.fs");
     m_PreFilterShader = new Shader("preFilterShader.vs", "preFilterShader.fs");
     m_LUTShader = new Shader("LUTShader.vs", "LUTShader.fs");
+    m_ShadowMappingShader = new Shader("shadowMappingShader.vs", "shadowMappingShader.fs");
+    m_ShadowCubeMappingShader = new Shader("shadowCubeMappingShader.vs", "shadowCubeMappingShader.fs", "shadowCubeMappingShader.gs");
     m_CombineTextureShader = new Shader("combineTextureShader.vs", "combineTextureShader.fs");
 }
 
 void Renderer::initModel() {
+
     //const std::string& pathfile = "res/models/simpleSkin/scene.gltf";
     //const std::string& pathfile = "res/models/model_avatar/model_external.gltf";
-    const std::string& pathfile = "res/models/damaged-helmet/scene.gltf";
-    m_Model = new loadModel(pathfile.c_str());
 
+    // bugged;
+    // loadModel has problem with texture take to each other texture
+    // the texture applied in other model
+
+    /*
+    const std::string& pathfile = "res/models/BoomBox/scene.gltf";
+    m_Model = new loadModel(pathfile.c_str());
     m_Model->animator.doAnimation(0);
+    */
+
+    const std::string& sponzaPathFile = "res/models/Sponza/glTF/Sponza.gltf";
+    m_Sponza = new loadModel(sponzaPathFile.c_str());
 }
 
 void Renderer::start() {
     configureGlobalState();
-    setupLights();
     setupShaders();
+    setupLights();
 
     initModel();
 
@@ -115,19 +160,6 @@ void Renderer::start() {
     m_Plane->GenerateNoiseMap(m_LightCubeShader, m_NoiseShader);
     m_Plane->generatePlaneWithPatch(64, 64);
 
-    for (int i = 0; i < 4; i++) {
-        Cube* cube = new Cube();
-
-        cube->initialize();
-        cube->scale = glm::vec3(0.2f);
-
-        if (i == 0) cube->pos = glm::vec3(5.0f, 5.0f, 5.0f);
-        if (i == 1) cube->pos = glm::vec3(5.0f, 12.0f, -5.0f);
-        if (i == 2) cube->pos = glm::vec3(-5.0f, 10.0f, 5.0f);
-        if (i == 3) cube->pos = glm::vec3(-5.0f, 7.0f, -5.0f);
-
-        m_LightCube.push_back(cube);
-    }
     //m_LightCube->localTransform();
 
     m_Sphere = new Sphere(50, 2.0f);
@@ -154,46 +186,132 @@ void Renderer::start() {
     m_FBManager->PreFilterMapping(m_PreFilterShader, m_Skybox->cubemapTexture, m_Skybox->width, m_Skybox->height);
     m_FBManager->BrdfLUT(m_LUTShader, m_Skybox->width, m_Skybox->height);
 
+    //m_FBManager->ShadowMapping();
+    m_FBManager->CubeShadowMapping();
+
     m_Sphere->materials.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader, m_Sphere->materials.Map, m_Sphere->materials.width, m_Sphere->materials.height);
-    for (Materials & material : m_Model->materials) {
-        material.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader, 
+    //for (Materials& material : m_Model->materials) {
+    //    material.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
+    //        material.Map, material.width, material.height);
+    //}
+    for (Materials& material : m_Sponza->materials) {
+        material.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
             material.Map, material.width, material.height);
-        printf("material %d\n", material.metallicRoughnessOcclusionTexture);
     }
 }
-//nanti dipindahin ke class model
 
-void Renderer::setModelShader(const glm::mat4& projection, const glm::mat4& view) {
-    m_ModelShader->use();
-    int light_n = m_Lights.size();
-    m_ModelShader->setInt("light_n", light_n);
-    for (int i = 0; i < light_n; i++) {
-        m_ModelShader->setInt("lightID[" + std::to_string(i) + "]", i + 1);
-        m_ModelShader->setVec3("lightDirection[" + std::to_string(i) + "]", m_Lights[i].m_Direction);
-        m_ModelShader->setVec3("lightPosition[" + std::to_string(i) + "]", m_Lights[i].m_Position);
-        m_ModelShader->setVec3("lightColor[" + std::to_string(i) + "]", m_Lights[i].m_Color);
+// int shadowType perhaps make enum?
+// make new file shadow.cpp/shadow.h?
+void Renderer::shadowRender(int shadowType) {
+    // vector or not?
+    glm::vec3 lightPos(0.0f);
+    glm::mat4 lightSpaceMatrix;
+    for (Light light : m_Lights) {
+        if (light.m_LightType == light.POSITION_LIGHT && shadowType == 2) {
+            lightPos = light.m_Position;
+        } else if (light.m_LightType == light.DIRECTION_LIGHT && shadowType == 1) {
+            lightPos = light.m_Direction;
+            lightSpaceMatrix = light.m_LightProjection * light.m_LightView;
+        }
+    }
+    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+
+    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_FBManager->depthFBO);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+
+    if (shadowType == 1) {
+        // render scene from light's point of view
+        m_ShadowMappingShader->use();
+        m_ShadowMappingShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+
+        m_Sponza->DrawModel(m_ShadowMappingShader);
+        m_Sphere->drawInDepthMap(m_ShadowMappingShader);
+
+        unsigned int shadowMap = m_FBManager->mappers["shadowDepthMap"];
+        m_ModelShader->use();
+        m_ModelShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        m_ModelShader->setInt("shadowMap", 10);
+        m_ModelShader->setInt("useShadowMapping", 1);
+        glActiveTexture(GL_TEXTURE10);
+        glBindTexture(GL_TEXTURE_2D, shadowMap);
+
+        m_PBRShader->use();
+        m_PBRShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        m_PBRShader->setInt("shadowMap", 10);
+        m_PBRShader->setInt("useShadowMapping", 1);
+        glActiveTexture(GL_TEXTURE10);
+        glBindTexture(GL_TEXTURE_2D, shadowMap);
     }
 
-    m_ModelShader->setVec3("viewPos", m_Camera->Position);
-    m_ModelShader->setMat4("projection", projection);
-    m_ModelShader->setMat4("view", view);
-    m_ModelShader->setInt("hasBone", 1);
+    if (shadowType == 2) {
+        float near_plane = 0.1f;
+        float far_plane = 25.0f;
+        glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT, near_plane, far_plane);
+        std::vector<glm::mat4> shadowTransforms;
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
 
+        m_ShadowCubeMappingShader->use();
+        for (unsigned int i = 0; i < 6; ++i) {
+            m_ShadowCubeMappingShader->setMat4(
+                "shadowMatrices[" + std::to_string(i) + "]", shadowTransforms[i]);
+        }
+        m_ShadowCubeMappingShader->setFloat("far_plane", far_plane);
+        m_ShadowCubeMappingShader->setVec3("lightPos", lightPos);
+
+        m_Sponza->DrawModel(m_ShadowCubeMappingShader);
+        m_Sphere->drawInDepthMap(m_ShadowCubeMappingShader);
+
+
+        //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        unsigned int shadowCubeMap = m_FBManager->mappers["shadowCubeDepthMap"];
+        m_ModelShader->use();
+        m_ModelShader->setFloat("far_plane", far_plane);
+        m_ModelShader->setInt("shadowCubeMap", 11);
+        m_ModelShader->setInt("useShadowMapping", 2);
+        glActiveTexture(GL_TEXTURE11);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, shadowCubeMap);
+
+        m_PBRShader->use();
+        m_PBRShader->setFloat("far_plane", far_plane);
+        m_PBRShader->setInt("shadowCubeMap", 11);
+        m_PBRShader->setInt("useShadowMapping", 2);
+        glActiveTexture(GL_TEXTURE11);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, shadowCubeMap);
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Renderer::render(float currentTime, float deltaTime) {
 
-    m_FBManager->bindFramebuffers();
+    //m_FBManager->bindFramebuffers();
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    shadowRender(m_FBManager->shadowType);
+
+    // reset viewport
+    int SCR_WIDTH = 1280;
+    int SCR_HEIGHT = 720;
+
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // view/projection transformations
     glm::mat4 projection = glm::perspective(glm::radians(m_Camera->Zoom), m_Camera->Aspect, 0.1f, 150.0f);
     glm::mat4 view = m_Camera->GetViewMatrix();
 
-    GUI::modelTransform(m_Model->pos, m_Model->rot, m_Model->angle, m_Model->scale);
-    //setModelShader(projection, view);
+    //GUI::modelTransform(m_Model->pos, m_Model->rot, m_Model->angle, m_Model->scale);
+    GUI::modelTransform(m_Sponza->pos, m_Sponza->rot, m_Sponza->angle, m_Sponza->scale);
     
     bool changeParam = GUI::proceduralTerrainParam(tp.m_Seed, tp.m_Scale, tp.m_Octaves, tp.m_Persistence, tp.m_Lacunarity, tp.m_OffsetV, tp.m_Amplitude);
 
@@ -218,15 +336,28 @@ void Renderer::render(float currentTime, float deltaTime) {
 
     //m_LightCube->update(currentTime * 0.1f);
     std::vector<glm::vec3> lightpos;
+
+    for (Light light : m_Lights) {
+        if (light.m_LightType == light.POSITION_LIGHT && m_FBManager->shadowType == 2) {
+            lightpos.push_back(light.m_Position);
+        } else if(light.m_LightType == light.DIRECTION_LIGHT && m_FBManager->shadowType == 1){
+            lightpos.push_back(light.m_Direction);
+        }
+    }
+
     for (Cube* cube : m_LightCube) {
-        lightpos.push_back(cube->pos);
         cube->draw(m_LightCubeShader, projection, view);
     }
 
-    m_Model->setUniformModel(m_ModelShader, projection, view, m_Camera->Position, currentTime
+    //m_Model->setUniformModel(m_ModelShader, projection, view, m_Camera->Position, currentTime
+    //    , m_FBManager->mappers, lightpos, pbr);
+    //m_Model->update(m_ModelShader, deltaTime);
+    //m_Model->DrawModel(m_ModelShader);
+
+    m_Sponza->setUniformModel(m_ModelShader, projection, view, m_Camera->Position, currentTime
         , m_FBManager->mappers, lightpos, pbr);
-    m_Model->update(m_ModelShader, deltaTime);
-    m_Model->DrawModel(m_ModelShader);
+    m_Sponza->update(m_ModelShader, deltaTime);
+    m_Sponza->DrawModel(m_ModelShader);
 
     m_Sphere->draw(m_PBRShader, projection, view, m_Camera->Position, 
                    currentTime * 0.1f, m_FBManager->mappers, lightpos, pbr);
@@ -234,7 +365,8 @@ void Renderer::render(float currentTime, float deltaTime) {
     //m_Sphere->drawNormalLine(m_NormalLineShader, projection, view);
 
     GUI::fogDistanceParam(fdp);
-    m_FBManager->setFogDistance(m_FramebufferShader, fdp.m_Near, fdp.m_Far, fdp.m_Density, fdp.m_Color);
-    m_FBManager->draw(m_FramebufferShader);
 
+    //m_FBManager->bindFramebuffers();
+    //m_FBManager->setFogDistance(m_FramebufferShader, fdp.m_Near, fdp.m_Far, fdp.m_Density, fdp.m_Color);
+    //m_FBManager->draw(m_FramebufferShader);
 }

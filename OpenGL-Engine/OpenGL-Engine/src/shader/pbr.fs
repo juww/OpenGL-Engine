@@ -8,6 +8,7 @@ in vec2 TexCoords;
 in mat3 TBN;
 in vec3 Tangent;
 in vec3 Bitangent;
+in vec4 FragPosLightSpace;
 
 uniform sampler2D albedoMap;
 uniform sampler2D normalMap;
@@ -16,6 +17,8 @@ uniform sampler2D metallicMap;
 uniform sampler2D occlusionMap;
 uniform sampler2D emissiveMap;
 uniform sampler2D MROMap;
+uniform sampler2D shadowMap;
+uniform samplerCube shadowCubeMap;
 
 uniform samplerCube irradianceMap;
 uniform samplerCube preFilterMap;
@@ -29,7 +32,11 @@ uniform bool useOcclusionMapping;
 uniform bool useEmissiveMapping;
 uniform bool useMROMapping;
 
-//uniform vec3 lightPos;
+uniform int useShadowMapping;
+
+uniform float far_plane;
+
+uniform vec3 lightDirection;
 uniform vec3 lightPosition[4];
 uniform vec3 viewPos;
 uniform vec4 baseColor;
@@ -83,7 +90,8 @@ vec3 getNormalFromMap() {
     vec2 st2 = dFdy(TexCoords);
 
     vec3 N   = normalize(Normal);
-    vec3 T  = normalize(Q1 * st2.t - Q2 * st1.t);
+    //vec3 T  = normalize(Q1 * st2.t - Q2 * st1.t);
+    vec3 T  = Tangent;
     vec3 B  = -normalize(cross(N, T));
     mat3 tbn = mat3(T, B, N);
 
@@ -161,6 +169,7 @@ float NormalDistributionFunction(float ndoth, vec3 H, float alpha){
 
 vec3 DisneyBRDF(vec3 N, vec3 surfaceColor, vec3 lightPos, float Roughness, float Metallic){
     vec3 L = normalize(lightPos - FragPos);
+    //vec3 L = normalize(lightPos);
     vec3 V = normalize(viewPos - FragPos);
 
     vec3 H = normalize(L + V); // Microfacet normal of perfect reflection
@@ -214,6 +223,99 @@ vec3 DisneyBRDF(vec3 N, vec3 surfaceColor, vec3 lightPos, float Roughness, float
     return result;
 }
 
+float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightPos) {
+    // perform perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    if(projCoords.z > 1.0){
+        return 0.0;
+    }
+    float closestDepth = texture(shadowMap, projCoords.xy).r; 
+    // get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+    // calculate bias (based on depth map resolution and slope)
+    vec3 lightDir = normalize(lightPos);
+    float ndotl = DotClamped(normal, lightDir);
+    float bias = max(0.005 * (1.0 - ndotl), 0.0025);
+    // check whether current frag pos is in shadow
+    // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
+    // PCF
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    for(int x = -1; x <= 1; ++x) {
+        for(int y = -1; y <= 1; ++y) {
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
+            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
+        }    
+    }
+    shadow /= 9.0;
+
+    return shadow;
+}
+
+// array of offset direction for sampling
+vec3 gridSamplingDisk[20] = vec3[] (
+   vec3(1, 1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1, 1,  1), 
+   vec3(1, 1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
+   vec3(1, 1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1, 1,  0),
+   vec3(1, 0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1, 0, -1),
+   vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
+);
+
+float ShadowCubeCalculation(vec3 fragPos, vec3 normal, vec3 lightPos) {
+
+// get vector between fragment position and light position
+    vec3 fragToLight = fragPos - lightPos;
+    // use the fragment to light vector to sample from the depth map    
+    // float closestDepth = texture(shadowCubeMap, fragToLight).r;
+    // it is currently in linear range between [0,1], let's re-transform it back to original depth value
+    // closestDepth *= far_plane;
+    // now get current linear depth as the length between the fragment and light position
+    float currentDepth = length(fragToLight);
+    // test for shadows
+    // float bias = 0.05; // we use a much larger bias since depth is now in [near_plane, far_plane] range
+    // float shadow = currentDepth -  bias > closestDepth ? 1.0 : 0.0;
+    // PCF
+    // float shadow = 0.0;
+    // float bias = 0.05; 
+    // float samples = 4.0;
+    // float offset = 0.1;
+    // for(float x = -offset; x < offset; x += offset / (samples * 0.5))
+    // {
+        // for(float y = -offset; y < offset; y += offset / (samples * 0.5))
+        // {
+            // for(float z = -offset; z < offset; z += offset / (samples * 0.5))
+            // {
+                // float closestDepth = texture(shadowCubeMap, fragToLight + vec3(x, y, z)).r; // use lightdir to lookup cubemap
+                // closestDepth *= far_plane;   // Undo mapping [0;1]
+                // if(currentDepth - bias > closestDepth)
+                    // shadow += 1.0;
+            // }
+        // }
+    // }
+    // shadow /= (samples * samples * samples);
+    float shadow = 0.0;
+    float bias = 0.15;
+    int samples = 20;
+    float viewDistance = length(viewPos - fragPos);
+    float diskRadius = (1.0 + (viewDistance / far_plane)) / 25.0;
+    for(int i = 0; i < samples; ++i)
+    {
+        float closestDepth = texture(shadowCubeMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
+        closestDepth *= far_plane;   // undo mapping [0;1]
+        if(currentDepth - bias > closestDepth)
+            shadow += 1.0;
+    }
+    shadow /= float(samples);
+        
+    // display closestDepth as debug (to visualize depth cubemap)
+    // FragColor = vec4(vec3(closestDepth / far_plane), 1.0);    
+        
+    return shadow;
+}
+
 void main (){
 
     vec3 N = Normal;
@@ -261,9 +363,10 @@ void main (){
 
     vec3 Lo = vec3(0.0);
 
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < 1; i++) {
         Lo += DisneyBRDF(N, surfaceColor, lightPosition[i], Roughness, Metallic);
     }
+
     //ambient IBL
     vec3 V = normalize(viewPos - FragPos);
     vec3 R = reflect(-V, N); 
@@ -287,7 +390,17 @@ void main (){
     vec3 metallicness = lerp3(vec3(0.0), IBLspecular, Metallic);
 
     vec3 ambient = (kD * IBLDiffuse + IBLspecular);
-
+    float shadow = 0.0;
+    if(useShadowMapping == 1){
+        shadow = ShadowCalculation(FragPosLightSpace, N, lightPosition[0]);
+        Lo = Lo * (1.0 - shadow);
+        ambient *= (1.0 - (shadow * 0.6));
+    }
+    if(useShadowMapping == 2){
+        shadow = ShadowCubeCalculation(FragPos, N, lightPosition[0]);
+        Lo = Lo * (1.0 - shadow);
+        ambient *= (1.0 - (shadow * 0.75));
+    }
     // result += ambient * ao;
     vec3 result = (Lo + ambient + emissive) * ao;
     //vec3 result = blinnPhong();

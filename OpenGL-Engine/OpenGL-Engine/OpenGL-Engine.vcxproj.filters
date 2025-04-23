@@ -304,5 +304,20 @@
     <None Include="src\shader\combineTextureShader.vs">
       <Filter>Resource Files\VertexShader</Filter>
     </None>
+    <None Include="src\shader\shadowMappingShader.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="src\shader\shadowMappingShader.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="src\shader\shadowCubeMappingShader.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="src\shader\shadowCubeMappingShader.gs">
+      <Filter>Resource Files\GeometryShader</Filter>
+    </None>
+    <None Include="src\shader\shadowCubeMappingShader.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
   </ItemGroup>
 </Project>

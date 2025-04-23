@@ -35,8 +35,9 @@ public:
 	glm::vec3 pos = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 rot = glm::vec3(1.0f);
 	float angle = 0.0f;
-	glm::vec3 scale = glm::vec3(1.11f);
+	glm::vec3 scale = glm::vec3(0.5f);
 
+    unsigned int indexMesh = 1;
 
 	loadModel(const char* filename) {
 		bool ret = false;
@@ -67,6 +68,7 @@ public:
 		printf("Loaded glTF: %s\n", filename);
 
         setDictAttribArray();
+        indexMesh = 1;
 		ret = loadScene();
 		ret = loadAnimation();
 
@@ -171,11 +173,14 @@ public:
 	void DrawModel(Shader *shader) {
 
 		shader->use();
+        //glEnable(GL_CULL_FACE);
+        indexMesh = 1;
 		int defaultScene = model.defaultScene < 0 ? 0 : model.defaultScene;
 		tinygltf::Scene& scene = model.scenes[defaultScene];
 		for (int node : scene.nodes) {
 			drawNodes(node, shader);
 		}
+        //glDisable(GL_CULL_FACE);
 	}
 
 	void localTransform(tinygltf::Node& node, glm::mat4& matrix) {
@@ -325,7 +330,6 @@ private:
 
 	void bindAttributeIndex(tinygltf::Primitive& prim) {
 		for (auto& attr : prim.attributes) {
-			std::cout << attr.first << " - " << attr.second << "\n";
 			tinygltf::Accessor& accessor = model.accessors[attr.second];
 			if (accessor.bufferView < 0 || accessor.bufferView >= (int)model.bufferViews.size()) {
 				std::cout << "index bufferView is out of bound\n";
@@ -383,12 +387,8 @@ private:
 		printf("Mesh ke - %d\n", indx);
 		printf("mesh name: %s\n", mesh.name.c_str());
 
-		unsigned int vao;
-		glGenVertexArrays(1, &vao);
-		glBindVertexArray(vao);
-		vaos[indx] = vao;
-
 		for (int i = 0; i < mesh.primitives.size(); i++) {
+
 			tinygltf::Primitive &prim = mesh.primitives[i];
 			if (prim.indices < 0 || prim.indices >= (int)model.accessors.size()) {
 				std::cout << "index indices of accessor is out of bound\n";
@@ -414,10 +414,16 @@ private:
 			//printf("accessor.bufferView = %d\n", accessor.bufferView);
 			//printf("bufferView.buffer = %d\n", bufferView.buffer);
 
-			if (ebos[prim.indices]) {
+			if (ebos[indexMesh]) {
 				std::cout << "already bind the mesh" << std::endl;
 				continue;
 			}
+
+            unsigned int vao;
+            glGenVertexArrays(1, &vao);
+            glBindVertexArray(vao);
+            vaos[indexMesh] = vao;
+
 			unsigned int ebo;
 			glGenBuffers(1, &ebo);
 			unsigned int offsetofData = bufferView.byteOffset + accessor.byteOffset;
@@ -426,13 +432,15 @@ private:
 
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, lengthOfData, &buffer.data.at(offsetofData), GL_STATIC_DRAW);
-			ebos[prim.indices] = ebo;
+			ebos[indexMesh] = ebo;
+            indexMesh++;
 
 			bindAttributeIndex(prim);
 			bindMaterial(prim.material);
+
+		    glBindVertexArray(0);
 		}
 
-		glBindVertexArray(0);
 	}
 
 	void bindSkin(int indx) {
@@ -615,7 +623,6 @@ private:
 			return;
 		}
 		tinygltf::Mesh& mesh = model.meshes[indx];
-		glBindVertexArray(vaos[indx]);
 
 		for (int i = 0; i < mesh.primitives.size(); i++) {
 			tinygltf::Primitive &prim = mesh.primitives[i];
@@ -630,6 +637,7 @@ private:
 			if (bufferView.buffer < 0 || bufferView.buffer >= (int)model.buffers.size()) {
 				continue;
 			}
+		    glBindVertexArray(vaos[indexMesh]);
 
 			if (prim.material != -1) {
                 shader->setBool("useAlbedoMapping", true);
@@ -680,11 +688,11 @@ private:
                 }
 			}
 
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[prim.indices]);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[indexMesh]);
 			glDrawElements(prim.mode, accessor.count, accessor.componentType, (void*)(0));
+            indexMesh++;
+		    glBindVertexArray(0);
 		}
-		
-		glBindVertexArray(0);
 	}
 	
 	void drawNodes(int indx, Shader* shader) {

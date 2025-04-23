@@ -13,6 +13,7 @@ const int MAX_BONES = 128;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform mat4 lightSpaceMatrix;
 
 uniform int hasBone;
 uniform mat4 boneTransform[MAX_BONES];
@@ -33,6 +34,7 @@ out vec2 TexCoords;
 out mat3 TBN;
 out vec3 Tangent;
 out vec3 Bitangent;
+out vec4 FragPosLightSpace;
 
 vec4 applyBoneTransform(vec4 p) {
 
@@ -63,6 +65,8 @@ void main() {
     TexCoords = aTexCoords;
     Tangent = T;
     Bitangent = B;
+
+    FragPosLightSpace = lightSpaceMatrix * vec4(FragPos, 1.0);
 
     //data_out.model = model;
     //data_out.FragPos = vec3(model * vec4(aPos, 1.0));

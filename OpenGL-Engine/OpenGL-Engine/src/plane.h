@@ -9,6 +9,7 @@
 #include <map>
 
 #include "shader_m.h"
+#include "shader_t.h"
 #include "noise.h"
 #include "grass.h"
 
@@ -124,9 +125,8 @@ public:
         shader->setMat4("view", view);
         shader->setMat4("model", m);
 
-
-        //shader->setInt("Textures", 0);
-        //glActiveTexture(GL_TEXTURE0);
+        shader->setInt("Textures", 0);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, qp.tex);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, qp.ebo);
@@ -210,7 +210,7 @@ public:
         glBindVertexArray(0);
     }
 
-    void drawPatchPlane(Shader *shader, glm::mat4 projection, glm::mat4 view, float width, float heigth) {
+    void drawPatchPlane(ShaderT *shader, glm::mat4 projection, glm::mat4 view, float width, float heigth) {
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glm::mat4 m(1.0f);

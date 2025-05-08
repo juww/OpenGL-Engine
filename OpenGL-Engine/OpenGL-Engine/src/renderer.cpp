@@ -106,11 +106,11 @@ void Renderer::setupShaders() {
     m_SphereShader = new Shader("sphere.vs", "sphere.fs");
     m_PBRShader = new Shader("pbr.vs", "pbr.fs"/*, "normalMapping.gs"*/);
     
-    m_PatchPlaneShader = new Shader("patchPlane.vs", "patchPlane.fs");
-    m_PatchPlaneShader->setTessellationShader("TessellationControlShader.tcs", "TessellationEvaluationShader.tes");
+    m_PatchPlaneShader = new ShaderT("patchPlane.vs", "patchPlane.fs", "", 
+        "TessellationControlShader.tcs", "TessellationEvaluationShader.tes");
 
     m_NormalLineShader = new Shader("normalLine.vs", "normalLine.fs", "normalLine.gs");
-    //Shader skeletalModel("skeletal.vs", "skeletal.fs", "skeletal.gs");
+    m_DebugShader = new Shader("debugPlane.vs", "debugPlane.fs");
 
     // compute shader
     m_NoiseShader = new ComputeShader("noise.sc");
@@ -153,9 +153,9 @@ void Renderer::start() {
 
     m_Plane = new Plane(65);
     m_Plane->InitTerrainChunk(1, 64.0f, m_Camera->Position);
-    m_Plane->initGrass(50);
     m_Plane->setAllUniform(m_PlaneShader);
-    m_Plane->grass.generateNoiseMap(m_GrassShader, 1, 10.0f, 4, 1.5f, 2.0f, { 0.0f,0.0f });
+    //m_Plane->initGrass(50);
+    //m_Plane->grass.generateNoiseMap(m_GrassShader, 1, 10.0f, 4, 1.5f, 2.0f, { 0.0f,0.0f });
 
     m_Plane->GenerateNoiseMap(m_LightCubeShader, m_NoiseShader);
     m_Plane->generatePlaneWithPatch(64, 64);
@@ -171,7 +171,16 @@ void Renderer::start() {
     m_Water = new Water();
     m_Water->initialize(1536, 1024, 8.0f);
 
-    //m_WaterFFT = new WaterFFT(256);
+    m_WaterFFT = new WaterFFT();
+    m_WaterFFT->setPos(glm::vec3(-15.0f, 6.0f, 0.0f));
+    m_WaterFFT->setPlaneSize(16);
+    m_WaterFFT->setTextureSize(1024);
+    m_WaterFFT->createShader("waterFFT");
+    m_WaterFFT->createPlane();
+    m_WaterFFT->createComputeShader();
+    m_WaterFFT->createDebugPlane();
+    m_WaterFFT->initUniform();
+
     //m_WaterFFT->initialSpectrum();
     //m_WaterFFT->conjugateSpectrum();
     //m_WaterFFT->update(0.0f);
@@ -321,7 +330,7 @@ void Renderer::render(float currentTime, float deltaTime) {
     // draw plane
     m_Plane->update(m_Camera->Position, tp.m_Seed, tp.m_Scale, tp.m_Octaves, tp.m_Persistence, tp.m_Lacunarity, tp.m_OffsetV, tp.m_Amplitude, changeParam, m_NoiseShader);
     m_Plane->draw(m_PlaneShader, projection, view);
-    m_Plane->drawGrass(m_GrassShader, projection, view, currentTime, gp.m_Frequency, gp.m_Amplitude, gp.m_Scale, gp.m_Drop);
+    //m_Plane->drawGrass(m_GrassShader, projection, view, currentTime, gp.m_Frequency, gp.m_Amplitude, gp.m_Scale, gp.m_Drop);
 
     m_Plane->drawNoiseTexture(m_LightCubeShader, m_NoiseShader, projection, view, currentTime);
     m_Plane->drawNoiseCPU(m_LightCubeShader, projection, view, currentTime);
@@ -330,9 +339,12 @@ void Renderer::render(float currentTime, float deltaTime) {
 
     GUI::waterParam(wp);
 
-    m_Water->setParameter(m_WaterShader, wp.m_Amplitude, wp.m_Frequency, currentTime, wp.m_Speed, wp.m_Seed, wp.m_SeedIter, wp.m_WaveCount, m_Camera->Position);
+    //m_Water->setParameter(m_WaterShader, wp.m_Amplitude, wp.m_Frequency, currentTime, wp.m_Speed, wp.m_Seed, wp.m_SeedIter, wp.m_WaveCount, m_Camera->Position);
     //m_Water->draw(m_WaterShader, projection, view);
-    //m_WaterFFT->drawTexture(m_LightCubeShader, projection, view);
+    m_WaterFFT->initializeSpectrum();
+    m_WaterFFT->updateSpectrumToFFT(currentTime);
+    m_WaterFFT->drawDebugPlane(m_DebugShader, projection, view);
+    m_WaterFFT->draw(projection, view);
 
     //m_LightCube->update(currentTime * 0.1f);
     std::vector<glm::vec3> lightpos;

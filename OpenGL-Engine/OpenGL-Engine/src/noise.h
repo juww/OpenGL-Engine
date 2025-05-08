@@ -33,7 +33,7 @@ public:
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, noiseTex);
 
-        coutLimitation();
+        //coutLimitation();
     }
 
     static std::vector<std::vector<float>> GenerateNoiseMap(int mapWidth, int mapHeight, int seed, float scale, 

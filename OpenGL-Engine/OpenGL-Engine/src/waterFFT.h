@@ -8,20 +8,25 @@
 #include <cmath>
 
 #include "interpolate.h"
+#include "shader_t.h"
 #include "shader_m.h"
+#include "computeShader.h"
 
 class WaterFFT {
 public:
+    glm::vec3 pos;
 
-    int N;
-    int logN;
-    unsigned int m_Seed;
-    float m_LowCutoff, m_HighCutoff;
-    float m_Gravity, m_Depth;
+    int planeSize;
+    int textureSize;
 
-    float m_LengthScales[4];
+    bool updateSpectrum;
 
-    struct spectrumSettings {
+    struct attributeArray {
+        unsigned int vao, ebo;
+        unsigned int indicesSize;
+    } patchAttribute, debug[2];
+
+    struct SpectrumSettings {
         float scale;
         float angle;
         float spreadBlend;
@@ -30,60 +35,68 @@ public:
         float peakOmega;
         float gamma;
         float shortWavesFade;
-    };
+    } spectrumParam;
 
-    struct spectrumParameter {
+    struct DisplaySpectrumSettings {
         float scale;
+        float windSpeed;
         float windDirection;
+        float fetch;
         float spreadBlend;
         float swell;
-        float fetch;
-        float windSpeed;
         float peakEnhancement;
         float shortWavesFade;
-    };
+    } displaySpectrum;
 
-    struct quadPlane {
-        unsigned int vao, ebo;
-        unsigned int tex;
-    };
-    std::vector<quadPlane> m_Quad;
-    std::vector<glm::vec4> initSpectrumTextures[9];
-    std::vector<glm::vec4> spectrumTextures[5], fftGroupBuffer[2];
-    std::vector<glm::vec4> displacementTextures, slopeTextures;
+    struct WaterUniform {
+        int seed;
+        float lowCutoff;
+        float highCutoff;
+        float gravity;
+        float depth;
+        float repeatTime;
+        float speed;
+        glm::vec2 lambda;
+        float displacementDepthFalloff;
 
-    WaterFFT(int n);
+        float normalStrength;
+        float normalDepthFalloff;
+    } waterUniform;
+
+    unsigned int initialSpectrumTexture, spectrumTexture;
+
+    ShaderT *waterShader;
+    ComputeShader* compute_InitialSpectrum;
+    ComputeShader* compute_PackSpectrumConjugate;
+    ComputeShader* compute_UpdateSpectrum;
+
+    WaterFFT();
     ~WaterFFT();
-    void initialSpectrum();
-    void conjugateSpectrum();
-    void update(float frameTime);
-    void createQuad(int lod, int k);
-    void drawTexture(Shader* shader, glm::mat4 projection, glm::mat4 view);
+
+    void createPlane();
+    void createShader(std::string filename);
+    void createComputeShader();
+    unsigned int createRenderTexture(int binding);
+
+    void initializeSpectrum();
+    void initUniform();
+    void setUniform(ComputeShader* computeShader);
+
+    void updateSpectrumToFFT(float frameTime);
+
+    void update();
+    void draw(glm::mat4 projection, glm::mat4 view);
+
+    void createDebugPlane();
+    void drawDebugPlane(Shader* shader, glm::mat4 projection, glm::mat4 view);
+
+    void setPlaneSize(int n);
+    void setTextureSize(int n);
+    void setPos(glm::vec3 p);
 
 private:
-    float hash(unsigned int n);
-    glm::vec2 ComplexMult(glm::vec2 a, glm::vec2 b);
-    glm::vec2 EulerFormula(float x);
-    glm::vec2 UniformToGaussian(float u1, float u2);
-    float Dispersion(float kMag);
-    float DispersionDerivative(float kMag);
-    float TMACorrection(float omega);
-    float JONSWAP(float omega, spectrumSettings spectrum);
-    float DirectionSpectrum(float theta, float omega, spectrumSettings spectrum);
-    float ShortWavesFade(float kLength, spectrumSettings spectrum);
-    float Cosine2s(float theta, float s);
-    float SpreadPower(float omega, float peakOmega);
-    float NormalizationFactor(float s);
     float JonswapAlpha(float fetch, float windSpeed);
     float JonswapPeakFrequency(float fetch, float windSpeed);
-    void updateSpectrum(float repeatTime, float frameTime);
-    void horizontalFFT();
-    void verticalFFT();
-    void ButterflyValues(unsigned int step, unsigned int index, glm::ivec2& indices, glm::vec2& twiddle);
-    glm::vec4 FFT(unsigned int Index, glm::vec4 input);
-    glm::vec4 Permute(glm::vec4 data, glm::vec3 ids);
-    void assembleMaps(glm::vec2 lambda, float foamDecayRate, float foamBias);
-    void setSpectrumSettings(spectrumSettings& spectrumSetting, spectrumParameter& spectrumParameter);
 };
 
 #endif // !WATER_FFT_H

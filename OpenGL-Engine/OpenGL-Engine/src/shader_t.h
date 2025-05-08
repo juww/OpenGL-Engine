@@ -1,5 +1,5 @@
-﻿#ifndef SHADER_H
-#define SHADER_H
+﻿#ifndef SHADER_T_H
+#define SHADER_T_H
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -9,16 +9,16 @@
 #include <sstream>
 #include <iostream>
 
-const std::string PREFIX_PATH = "src/shader/";
-
-class Shader
+class ShaderT
 {
 public:
     std::string name;
     unsigned int ID;
+    const std::string PREFIX_PATH = "src/shader/";
     // constructor generates the shader on the fly
     // ------------------------------------------------------------------------
-    Shader(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath = "")
+    ShaderT(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath,
+        const std::string& TessellationControlPath, const std::string& TessellationEvaluationPath)
     {
 
         // 1. retrieve the vertex/fragment source code from filePath
@@ -32,6 +32,15 @@ public:
         vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         gShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+        std::string tcsCode;
+        std::string tesCode;
+        std::ifstream tcsFile;
+        std::ifstream tesFile;
+
+        tcsFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        tesFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
         try
         {
             // open files
@@ -57,6 +66,16 @@ public:
                 gShaderFile.close();
                 geometryCode = gShaderStream.str();
             }
+
+            tcsFile.open(PREFIX_PATH + TessellationControlPath);
+            tesFile.open(PREFIX_PATH + TessellationEvaluationPath);
+            std::stringstream tcsShaderStream, tesShaderStream;
+            tcsShaderStream << tcsFile.rdbuf();
+            tesShaderStream << tesFile.rdbuf();
+            tcsFile.close();
+            tesFile.close();
+            tcsCode = tcsShaderStream.str();
+            tesCode = tesShaderStream.str();
         }
         catch (std::ifstream::failure& e)
         {
@@ -64,8 +83,14 @@ public:
         }
         const char* vShaderCode = vertexCode.c_str();
         const char* fShaderCode = fragmentCode.c_str();
+
+        const char* tcsShaderCode = tcsCode.c_str();
+        const char* tesShaderCode = tesCode.c_str();
+
         // 2. compile shaders
         unsigned int vertex, fragment;
+
+        unsigned int tcs, tes;
         // vertex shader
         vertex = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(vertex, 1, &vShaderCode, NULL);
@@ -86,68 +111,36 @@ public:
             glCompileShader(geometry);
             checkCompileErrors(geometry, "GEOMETRY");
         }
+        //tessellation control
+        tcs = glCreateShader(GL_TESS_CONTROL_SHADER);
+        glShaderSource(tcs, 1, &tcsShaderCode, NULL);
+        glCompileShader(tcs);
+        checkCompileErrors(tcs, "TESSELLATION CONTROL");
+        //tesselation evaluation
+        tes = glCreateShader(GL_TESS_EVALUATION_SHADER);
+        glShaderSource(tes, 1, &tesShaderCode, NULL);
+        glCompileShader(tes);
+        checkCompileErrors(tes, "TESSELLATION EVALUATION");
         // shader Program
         ID = glCreateProgram();
         glAttachShader(ID, vertex);
         glAttachShader(ID, fragment);
         if (geometryPath != "")
             glAttachShader(ID, geometry);
+        glAttachShader(ID, tcs);
+        glAttachShader(ID, tes);
         glLinkProgram(ID);
         checkCompileErrors(ID, "PROGRAM");
         // delete the shaders as they're linked into our program now and no longer necessary
         glDeleteShader(vertex);
         glDeleteShader(fragment);
+
+        glDeleteShader(tcs);
+        glDeleteShader(tes);
         if (geometryPath != "")
             glDeleteShader(geometry);
 
     }
-
-    void setTessellationShader(const std::string& TessellationControlPath, const std::string& TessellationEvaluationPath) {
-        std::string tcsCode;
-        std::string tesCode;
-        std::ifstream tcsFile;
-        std::ifstream tesFile;
-
-        tcsFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-        tesFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-        try {
-            tcsFile.open(PREFIX_PATH + TessellationControlPath);
-            tesFile.open(PREFIX_PATH + TessellationEvaluationPath);
-            std::stringstream tcsShaderStream, tesShaderStream;
-            tcsShaderStream << tcsFile.rdbuf();
-            tesShaderStream << tesFile.rdbuf();
-            tcsFile.close();
-            tesFile.close();
-            tcsCode = tcsShaderStream.str();
-            tesCode = tesShaderStream.str();
-
-        } catch (std::ifstream::failure& e) {
-            std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
-        }
-        const char* tcsShaderCode = tcsCode.c_str();
-        const char* tesShaderCode = tesCode.c_str();
-
-        unsigned int tcs, tes;
-
-        tcs = glCreateShader(GL_TESS_CONTROL_SHADER);
-        glShaderSource(tcs, 1, &tcsShaderCode, NULL);
-        glCompileShader(tcs);
-        checkCompileErrors(tcs, "TESSELLATION CONTROL");
-
-        tes = glCreateShader(GL_TESS_EVALUATION_SHADER);
-        glShaderSource(tes, 1, &tesShaderCode, NULL);
-        glCompileShader(tes);
-        checkCompileErrors(tes, "TESSELLATION EVALUATION");
-
-        glAttachShader(ID, tcs);
-        glAttachShader(ID, tes);
-        //glLinkProgram(ID);
-        checkCompileErrors(ID, "TESSELLATION PROGRAM");
-        
-        glDeleteShader(tcs);
-        glDeleteShader(tes);
-    }
-
     // activate the shader
     // ------------------------------------------------------------------------
     void use()

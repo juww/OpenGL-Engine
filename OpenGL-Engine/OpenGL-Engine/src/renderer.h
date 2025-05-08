@@ -4,6 +4,7 @@
 #include "camera.h"
 #include "light.h"
 #include "shader_m.h"
+#include "shader_t.h"
 #include "skybox.h"
 #include "loadModel.h"
 #include "FramebufferManager.h"
@@ -48,8 +49,8 @@ private:
     Shader* m_ModelShader;
     Shader* m_GrassShader;
     Shader* m_PlaneShader;
-    Shader* m_PatchPlaneShader;
     Shader* m_LightCubeShader;
+    Shader* m_DebugShader;
     Shader* m_SkyboxShader;
     Shader* m_WaterShader;
     Shader* m_SphereShader;
@@ -60,6 +61,8 @@ private:
     Shader* m_NormalLineShader;
 
     ComputeShader* m_NoiseShader;
+
+    ShaderT* m_PatchPlaneShader;
 
     Shader* m_FramebufferShader;
     Shader* m_IrradianceShader;

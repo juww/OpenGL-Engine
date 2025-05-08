@@ -639,54 +639,54 @@ private:
 			}
 		    glBindVertexArray(vaos[indexMesh]);
 
-			if (prim.material != -1) {
+            if (prim.material != -1) {
                 shader->setBool("useAlbedoMapping", true);
                 shader->setInt("albedoMap", 0);
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, materials[prim.material].albedoMap);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, materials[prim.material].albedoMap);
+            }
 
-                if (materials[prim.material].normalMap) {
-                    shader->setBool("useNormalMapping", true);
-                    shader->setInt("normalMap", 1);
-                    glActiveTexture(GL_TEXTURE1);
-                    glBindTexture(GL_TEXTURE_2D, materials[prim.material].normalMap);
-                }
+            if (materials[prim.material].normalMap) {
+                shader->setBool("useNormalMapping", true);
+                shader->setInt("normalMap", 1);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, materials[prim.material].normalMap);
+            }
 
-                if (materials[prim.material].roughnessMap) {
-                    shader->setBool("useRoughnessMapping", true);
-                    shader->setInt("roughnessMap", 2);
-                    glActiveTexture(GL_TEXTURE2);
-                    glBindTexture(GL_TEXTURE_2D, materials[prim.material].roughnessMap);
-                }
+            if (materials[prim.material].roughnessMap) {
+                shader->setBool("useRoughnessMapping", true);
+                shader->setInt("roughnessMap", 2);
+                glActiveTexture(GL_TEXTURE2);
+                glBindTexture(GL_TEXTURE_2D, materials[prim.material].roughnessMap);
+            }
 
-                if (materials[prim.material].metallicMap) {
-                    shader->setBool("useMetallicMapping", true);
-                    shader->setInt("metallicMap", 3);
-                    glActiveTexture(GL_TEXTURE3);
-                    glBindTexture(GL_TEXTURE_2D, materials[prim.material].metallicMap);
-                }
+            if (materials[prim.material].metallicMap) {
+                shader->setBool("useMetallicMapping", true);
+                shader->setInt("metallicMap", 3);
+                glActiveTexture(GL_TEXTURE3);
+                glBindTexture(GL_TEXTURE_2D, materials[prim.material].metallicMap);
+            }
 
-                if (materials[prim.material].occlusionMap) {
-                    shader->setBool("useOcclusionMapping", true);
-                    shader->setInt("occlusionMap", 4);
-                    glActiveTexture(GL_TEXTURE4);
-                    glBindTexture(GL_TEXTURE_2D, materials[prim.material].occlusionMap);
-                }
+            if (materials[prim.material].occlusionMap) {
+                shader->setBool("useOcclusionMapping", true);
+                shader->setInt("occlusionMap", 4);
+                glActiveTexture(GL_TEXTURE4);
+                glBindTexture(GL_TEXTURE_2D, materials[prim.material].occlusionMap);
+            }
 
-                if (materials[prim.material].emissiveMap) {
-                    shader->setBool("useEmissiveMapping", true);
-                    shader->setInt("emissiveMap", 5);
-                    glActiveTexture(GL_TEXTURE5);
-                    glBindTexture(GL_TEXTURE_2D, materials[prim.material].emissiveMap);
-                }
+            if (materials[prim.material].emissiveMap) {
+                shader->setBool("useEmissiveMapping", true);
+                shader->setInt("emissiveMap", 5);
+                glActiveTexture(GL_TEXTURE5);
+                glBindTexture(GL_TEXTURE_2D, materials[prim.material].emissiveMap);
+            }
 
-                if (materials[prim.material].metallicRoughnessOcclusionTexture) {
-                    shader->setBool("useMROMapping", true);
-                    shader->setInt("MROMap", 9);
-                    glActiveTexture(GL_TEXTURE9);
-                    glBindTexture(GL_TEXTURE_2D, materials[prim.material].metallicRoughnessOcclusionTexture);
-                }
-			}
+            if (materials[prim.material].metallicRoughnessOcclusionTexture) {
+                shader->setBool("useMROMapping", true);
+                shader->setInt("MROMap", 9);
+                glActiveTexture(GL_TEXTURE9);
+                glBindTexture(GL_TEXTURE_2D, materials[prim.material].metallicRoughnessOcclusionTexture);
+            }
 
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[indexMesh]);
 			glDrawElements(prim.mode, accessor.count, accessor.componentType, (void*)(0));

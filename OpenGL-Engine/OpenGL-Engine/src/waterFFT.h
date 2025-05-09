@@ -24,7 +24,8 @@ public:
     struct attributeArray {
         unsigned int vao, ebo;
         unsigned int indicesSize;
-    } patchAttribute, debug[2];
+        unsigned int tex;
+    } patchAttribute, debug[4];
 
     struct SpectrumSettings {
         float scale;
@@ -69,6 +70,8 @@ public:
     ComputeShader* compute_InitialSpectrum;
     ComputeShader* compute_PackSpectrumConjugate;
     ComputeShader* compute_UpdateSpectrum;
+    ComputeShader* compute_FFTHorizontal;
+    ComputeShader* compute_FFTVertical;
 
     WaterFFT();
     ~WaterFFT();
@@ -82,6 +85,7 @@ public:
     void initUniform();
     void setUniform(ComputeShader* computeShader);
 
+    void inverseFFT();
     void updateSpectrumToFFT(float frameTime);
 
     void update();

@@ -342,7 +342,7 @@ void Renderer::render(float currentTime, float deltaTime) {
     //m_Water->setParameter(m_WaterShader, wp.m_Amplitude, wp.m_Frequency, currentTime, wp.m_Speed, wp.m_Seed, wp.m_SeedIter, wp.m_WaveCount, m_Camera->Position);
     //m_Water->draw(m_WaterShader, projection, view);
     m_WaterFFT->initializeSpectrum();
-    m_WaterFFT->updateSpectrumToFFT(currentTime);
+    m_WaterFFT->updateSpectrumToFFT(currentTime * 0.1f);
     m_WaterFFT->drawDebugPlane(m_DebugShader, projection, view);
     m_WaterFFT->draw(projection, view);
 

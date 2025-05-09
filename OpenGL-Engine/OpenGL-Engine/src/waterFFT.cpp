@@ -12,6 +12,8 @@ WaterFFT::WaterFFT() {
     waterShader = nullptr;
     compute_InitialSpectrum = nullptr;
     compute_UpdateSpectrum = nullptr;
+    compute_FFTHorizontal = nullptr;
+    compute_FFTVertical = nullptr;
 
     updateSpectrum = true;
 }
@@ -102,10 +104,12 @@ void WaterFFT::initializeSpectrum() {
     int cnt = 0;
     if (initialSpectrumTexture == 0) {
         initialSpectrumTexture = createRenderTexture(cnt++);
+        debug[0].tex = initialSpectrumTexture;
     }
 
     if (spectrumTexture == 0) {
         spectrumTexture = createRenderTexture(cnt++);
+        debug[1].tex = spectrumTexture;
     }
 
     setUniform(compute_InitialSpectrum);
@@ -127,6 +131,23 @@ void WaterFFT::initializeSpectrum() {
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
+void WaterFFT::inverseFFT() {
+
+    if (debug[2].tex == 0) {
+        debug[2].tex = createRenderTexture(2);
+    }
+    if (debug[3].tex == 0) {
+        debug[3].tex = createRenderTexture(3);
+    }
+    compute_FFTHorizontal->use();
+    glDispatchCompute(1, textureSize, 1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+    compute_FFTVertical->use();
+    glDispatchCompute(1, textureSize, 1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+}
+
 void WaterFFT::updateSpectrumToFFT(float frameTime) {
 
     setUniform(compute_UpdateSpectrum);
@@ -143,6 +164,8 @@ void WaterFFT::updateSpectrumToFFT(float frameTime) {
     glDispatchCompute((textureSize / 8), (textureSize / 8), 1);
 
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+    inverseFFT();
 }
 
 unsigned int WaterFFT::createRenderTexture(int binding) {
@@ -236,7 +259,7 @@ void WaterFFT::createDebugPlane() {
     unsigned int indices[6] = {
         0,2,3,  1,2,0
     };
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 4; i++) {
 
         glGenVertexArrays(1, &debug[i].vao);
         glBindVertexArray(debug[i].vao);
@@ -263,7 +286,7 @@ void WaterFFT::createDebugPlane() {
 void WaterFFT::drawDebugPlane(Shader *shader, glm::mat4 projection, glm::mat4 view) {
 
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 4; i++) {
         glBindVertexArray(debug[i].vao);
         glm::mat4 m(1.0f);
         float xx = i * 2.0f;
@@ -274,16 +297,9 @@ void WaterFFT::drawDebugPlane(Shader *shader, glm::mat4 projection, glm::mat4 vi
         shader->setMat4("view", view);
         shader->setMat4("model", m);
 
-        if (i == 0) {
-            shader->setInt("Textures", 0);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, initialSpectrumTexture);
-        }
-        if (i == 1) {
-            shader->setInt("Textures", 0);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, spectrumTexture);
-        }
+        shader->setInt("Textures", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, debug[i].tex);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, debug[i].ebo);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
@@ -310,6 +326,12 @@ void WaterFFT::createComputeShader() {
 
     computePath = "waterFFT_PackSpectrumConjugate.sc";
     compute_PackSpectrumConjugate = new ComputeShader(computePath);
+
+    computePath = "waterFFT_FFTHorizontal.sc";
+    compute_FFTHorizontal = new ComputeShader(computePath);
+
+    computePath = "waterFFT_FFTVertical.sc";
+    compute_FFTVertical = new ComputeShader(computePath);
 }
 
 float WaterFFT::JonswapAlpha(float fetch, float windSpeed) {

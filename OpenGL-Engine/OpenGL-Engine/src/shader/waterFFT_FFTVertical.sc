@@ -3,7 +3,7 @@
 layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 
 layout (rgba32f, binding = 1) uniform image2D spectrumTexture;
-layout (rgba32f, binding = 3) uniform image2D FFTVertical;
+layout (rgba32f, binding = 5) uniform image2D FFTVertical;
 
 #define SIZE 1024
 #define LOG_SIZE 10
@@ -63,5 +63,5 @@ void main() {
         value = FFT(id.x, fourierTarget);
     }
 
-    imageStore(FFTVertical, id.yx, value);
+    imageStore(spectrumTexture, id.yx, value);
 }

@@ -174,7 +174,7 @@ void Renderer::start() {
     m_WaterFFT = new WaterFFT();
     m_WaterFFT->setPos(glm::vec3(-15.0f, 6.0f, 0.0f));
     m_WaterFFT->setPlaneSize(16);
-    m_WaterFFT->setTextureSize(1024);
+    m_WaterFFT->setTextureSize(256);
     m_WaterFFT->createShader("waterFFT");
     m_WaterFFT->createPlane();
     m_WaterFFT->createComputeShader();

@@ -240,6 +240,7 @@
     <None Include="src\shader\waterFFT.tcs" />
     <None Include="src\shader\waterFFT.tes" />
     <None Include="src\shader\waterFFT.vs" />
+    <None Include="src\shader\waterFFT_AssembleMaps.sc" />
     <None Include="src\shader\waterFFT_FFTHorizontal.sc" />
     <None Include="src\shader\waterFFT_FFTVertical.sc" />
     <None Include="src\shader\waterFFT_InitSpectrum.sc" />

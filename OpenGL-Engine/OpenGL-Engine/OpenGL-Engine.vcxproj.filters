@@ -343,5 +343,8 @@
     <None Include="src\shader\waterFFT_FFTVertical.sc">
       <Filter>Resource Files\computeShader</Filter>
     </None>
+    <None Include="src\shader\waterFFT_AssembleMaps.sc">
+      <Filter>Resource Files\computeShader</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -21,11 +21,14 @@ public:
 
     bool updateSpectrum;
 
+    int debugIndex;
+    const int DEBUGSIZE = 7;
+
     struct attributeArray {
         unsigned int vao, ebo;
         unsigned int indicesSize;
         unsigned int tex;
-    } patchAttribute, debug[4];
+    } patchAttribute, debug[6];
 
     struct SpectrumSettings {
         float scale;
@@ -65,6 +68,7 @@ public:
     } waterUniform;
 
     unsigned int initialSpectrumTexture, spectrumTexture;
+    unsigned int displacementTexture, slopeTexture;
 
     ShaderT *waterShader;
     ComputeShader* compute_InitialSpectrum;
@@ -72,6 +76,7 @@ public:
     ComputeShader* compute_UpdateSpectrum;
     ComputeShader* compute_FFTHorizontal;
     ComputeShader* compute_FFTVertical;
+    ComputeShader* compute_AssembleMaps;
 
     WaterFFT();
     ~WaterFFT();

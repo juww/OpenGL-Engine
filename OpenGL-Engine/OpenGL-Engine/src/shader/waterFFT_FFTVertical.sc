@@ -33,7 +33,8 @@ void ButterflyValues(uint step, uint index, out uvec2 indices, out vec2 twiddle)
 
 vec4 FFT(uint threadIndex, vec4 inputTarget) {
     fftGroupBuffer[0][threadIndex] = inputTarget;
-    groupMemoryBarrier();
+    memoryBarrierShared();
+    barrier();
     int flag = 0;
 
     #pragma unroll
@@ -47,7 +48,8 @@ vec4 FFT(uint threadIndex, vec4 inputTarget) {
         fftGroupBuffer[notFlag][threadIndex] = fftGroupBuffer[flag][inputsIndices.x] + vec4(ComplexMult(twiddle, v.xy), ComplexMult(twiddle, v.zw));
 
         flag = notFlag;
-        groupMemoryBarrier();
+        memoryBarrierShared();
+        barrier();
     }
 
     return fftGroupBuffer[flag][threadIndex];

@@ -7,6 +7,6 @@ in vec2 TexCoords;
 
 void main() {
 
-    vec3 color = texture(textures, TexCoords).rgb * 12345.0f;
+    vec3 color = texture(textures, TexCoords).rgb * 123.0f;
     FragColor = vec4(color, 1.0);
 } 

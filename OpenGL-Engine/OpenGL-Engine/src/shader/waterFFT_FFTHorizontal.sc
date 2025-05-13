@@ -3,7 +3,7 @@
 layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 
 layout (rgba32f, binding = 1) uniform image2D spectrumTexture;
-layout (rgba32f, binding = 4) uniform image2D FFTHorizontal;
+layout (rgba32f, binding = 5) uniform image2D FFTHorizontal;
 
 #define SIZE 1024
 #define LOG_SIZE 10
@@ -24,7 +24,7 @@ void ButterflyValues(uint step, uint index, out uvec2 indices, out vec2 twiddle)
     uint b = SIZE >> (step + 1);
     uint w = b * (index / b);
     uint i = (w + index) % SIZE;
-    sincos(-twoPi / SIZE * w, twiddle.y, twiddle.x);
+    sincos(-twoPi / float(SIZE) * float(w), twiddle.y, twiddle.x);
 
     //This is what makes it the inverse FFT
     twiddle.y = -twiddle.y;
@@ -33,7 +33,8 @@ void ButterflyValues(uint step, uint index, out uvec2 indices, out vec2 twiddle)
 
 vec4 FFT(uint threadIndex, vec4 inputTarget) {
     fftGroupBuffer[0][threadIndex] = inputTarget;
-    groupMemoryBarrier();
+    memoryBarrierShared();
+    barrier();
     int flag = 0;
 
     #pragma unroll
@@ -47,7 +48,8 @@ vec4 FFT(uint threadIndex, vec4 inputTarget) {
         fftGroupBuffer[notFlag][threadIndex] = fftGroupBuffer[flag][inputsIndices.x] + vec4(ComplexMult(twiddle, v.xy), ComplexMult(twiddle, v.zw));
 
         flag = notFlag;
-        groupMemoryBarrier();
+        memoryBarrierShared();
+        barrier();
     }
 
     return fftGroupBuffer[flag][threadIndex];

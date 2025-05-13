@@ -35,7 +35,7 @@ void main() {
     
     float lengthScales[4] = { _LengthScale0, _LengthScale1, _LengthScale2, _LengthScale3 };
 
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 1; ++i) {
 
         vec4 initialSignal = imageLoad(initialSpectrum, id);
         vec2 h0 = initialSignal.xy;

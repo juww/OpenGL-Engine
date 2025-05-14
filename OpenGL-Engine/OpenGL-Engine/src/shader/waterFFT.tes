@@ -6,9 +6,12 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
+uniform sampler2D displacementTexture;
+
 in vec2 TextureCoord[];
 
 out float Height;
+out vec3 FragPos;
 out vec2 texCoord;
 
 void main() {
@@ -27,7 +30,9 @@ void main() {
     // bilinearly interpolate texture coordinate across patch
     vec2 t0 = (t01 - t00) * u + t00;
     vec2 t1 = (t10 - t11) * u + t11;
-    vec2 texCoord = (t1 - t0) * v + t0;
+    texCoord = (t1 - t0) * v + t0;
+
+    vec4 displacement = texture(displacementTexture, texCoord) * 0.15f;
 
     // ----------------------------------------------------------------------
     // retrieve control point position coordinates
@@ -45,7 +50,9 @@ void main() {
     vec4 p0 = (p01 - p00) * u + p00;
     vec4 p1 = (p10 - p11) * u + p11;
     vec4 p = (p1 - p0) * v + p0;
+    p += displacement;
 
+    FragPos = vec3(model * p);
     // ----------------------------------------------------------------------
     // output patch point position in clip space
     gl_Position = projection * view * model * p;

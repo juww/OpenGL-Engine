@@ -28,7 +28,7 @@ public:
         unsigned int vao, ebo;
         unsigned int indicesSize;
         unsigned int tex;
-    } patchAttribute, debug[6];
+    } patchAttribute, debug[7];
 
     struct SpectrumSettings {
         float scale;
@@ -67,10 +67,10 @@ public:
         float normalDepthFalloff;
     } waterUniform;
 
-    unsigned int initialSpectrumTexture, spectrumTexture;
+    unsigned int initialSpectrumTexture, spectrumTexture, derivativeTexture;
     unsigned int displacementTexture, slopeTexture;
 
-    ShaderT *waterShader;
+    ShaderT *waterFFTShader;
     ComputeShader* compute_InitialSpectrum;
     ComputeShader* compute_PackSpectrumConjugate;
     ComputeShader* compute_UpdateSpectrum;
@@ -94,7 +94,7 @@ public:
     void updateSpectrumToFFT(float frameTime);
 
     void update();
-    void draw(glm::mat4 projection, glm::mat4 view);
+    void draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos);
 
     void createDebugPlane();
     void drawDebugPlane(Shader* shader, glm::mat4 projection, glm::mat4 view);

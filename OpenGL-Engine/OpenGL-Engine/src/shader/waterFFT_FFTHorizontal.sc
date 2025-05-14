@@ -3,7 +3,7 @@
 layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 
 layout (rgba32f, binding = 1) uniform image2D spectrumTexture;
-layout (rgba32f, binding = 5) uniform image2D FFTHorizontal;
+layout (rgba32f, binding = 2) uniform image2D derivativeTexture;
 
 #define SIZE 1024
 #define LOG_SIZE 10
@@ -63,7 +63,11 @@ void main() {
     for (int i = 0; i < 1; ++i) {
         vec4 fourierTarget = imageLoad(spectrumTexture, id);
         value = FFT(id.x, fourierTarget);
-    }
 
-    imageStore(spectrumTexture, id, value);
+        vec4 DfFourierTarget = imageLoad(derivativeTexture, id);
+        vec4 dValue = FFT(id.x, DfFourierTarget);
+
+        imageStore(spectrumTexture, id, value);
+        imageStore(derivativeTexture, id, dValue);
+    }
 }

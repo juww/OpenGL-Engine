@@ -4,6 +4,7 @@ layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout (rgba32f, binding = 0) readonly uniform image2D initialSpectrum;
 layout (rgba32f, binding = 1) uniform image2D spectrumTexture;
+layout (rgba32f, binding = 2) uniform image2D derivativeTexture;
 
 #define PI 3.14159265359
 
@@ -76,9 +77,8 @@ void main() {
         vec2 htildeSlopeZ = vec2(displacementX_dx.x - displacementZ_dz.y, displacementX_dx.y + displacementZ_dz.x);
 
         value = vec4(htildeDisplacementX, htildeDisplacementZ);
-        //_SpectrumTextures[uint3(id.xy, i * 2)] = vec4(htildeDisplacementX, htildeDisplacementZ);
-        //_SpectrumTextures[uint3(id.xy, i * 2 + 1)] = vec4(htildeSlopeX, htildeSlopeZ);
+        vec4 dValue = vec4(htildeSlopeX, htildeSlopeZ);
+        imageStore(spectrumTexture, id, value);
+        imageStore(derivativeTexture, id, dValue);
     }
-
-    imageStore(spectrumTexture, id, value);
 }

@@ -3,8 +3,9 @@
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout (rgba32f, binding = 1) uniform image2D spectrumTexture;
-layout (rgba32f, binding = 2) uniform image2D displacementTexture;
-layout (rgba32f, binding = 3) uniform image2D slopeTexture;
+layout (rgba32f, binding = 2) uniform image2D derivativeTexture;
+layout (rgba32f, binding = 3) uniform image2D displacementTexture;
+layout (rgba32f, binding = 4) uniform image2D slopeTexture;
 
 #define PI 3.14159265359
 
@@ -38,10 +39,7 @@ void main() {
     for (int i = 0; i < 1; ++i) {
 
         vec4 htildeDisplacement = Permute(imageLoad(spectrumTexture, id), idf);
-        vec4 htildeSlope = Permute(imageLoad(spectrumTexture, id), idf);
-
-        // vec4 htildeDisplacement = Permute(_SpectrumTextures[uint3(id.xy, i * 2)], id);
-        //vec4 htildeSlope = Permute(_SpectrumTextures[uint3(id.xy, i * 2 + 1)], id);
+        vec4 htildeSlope = Permute(imageLoad(derivativeTexture, id), idf);
 
         vec2 dxdz = htildeDisplacement.rg;
         vec2 dydxz = htildeDisplacement.ba;

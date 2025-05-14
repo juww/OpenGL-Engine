@@ -169,7 +169,7 @@ void Renderer::start() {
     //m_Sphere->cubesphere(5);
 
     m_Water = new Water();
-    m_Water->initialize(1536, 1024, 8.0f);
+    m_Water->initialize(256, 256, 8.0f);
 
     m_WaterFFT = new WaterFFT();
     m_WaterFFT->setPos(glm::vec3(-15.0f, 6.0f, 0.0f));
@@ -181,10 +181,6 @@ void Renderer::start() {
     m_WaterFFT->createDebugPlane();
     m_WaterFFT->initUniform();
 
-    //m_WaterFFT->initialSpectrum();
-    //m_WaterFFT->conjugateSpectrum();
-    //m_WaterFFT->update(0.0f);
-    
     m_Skybox = new Skybox();
 
     m_FBManager->setScreenSpace();
@@ -344,7 +340,7 @@ void Renderer::render(float currentTime, float deltaTime) {
     m_WaterFFT->initializeSpectrum();
     m_WaterFFT->updateSpectrumToFFT(currentTime);
     m_WaterFFT->drawDebugPlane(m_DebugShader, projection, view);
-    m_WaterFFT->draw(projection, view);
+    m_WaterFFT->draw(projection, view, m_Camera->Position);
 
     //m_LightCube->update(currentTime * 0.1f);
     std::vector<glm::vec3> lightpos;

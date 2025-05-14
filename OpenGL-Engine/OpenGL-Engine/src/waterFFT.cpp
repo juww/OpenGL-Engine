@@ -12,7 +12,7 @@ WaterFFT::WaterFFT() {
     slopeTexture = 0;
     debugIndex = 0;
 
-    waterShader = nullptr;
+    waterFFTShader = nullptr;
     compute_InitialSpectrum = nullptr;
     compute_UpdateSpectrum = nullptr;
     compute_FFTHorizontal = nullptr;
@@ -67,34 +67,39 @@ void WaterFFT::createPlane() {
     glBindVertexArray(0);
 }
 
-void WaterFFT::draw(glm::mat4 projection, glm::mat4 view) {
+void WaterFFT::draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos) {
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glm::mat4 m(1.0f);
     m = glm::translate(m, pos);
 
-    waterShader->use();
+    waterFFTShader->use();
 
-    waterShader->setFloat("width", textureSize);
-    waterShader->setFloat("heigth", textureSize);
+    waterFFTShader->setFloat("width", planeSize);
+    waterFFTShader->setFloat("heigth", planeSize);
+    waterFFTShader->setVec3("viewPos", viewPos);
 
-    waterShader->setMat4("projection", projection);
-    waterShader->setMat4("view", view);
-    waterShader->setMat4("model", m);
+    waterFFTShader->setMat4("projection", projection);
+    waterFFTShader->setMat4("view", view);
+    waterFFTShader->setMat4("model", m);
 
     attributeArray& attr = patchAttribute;
     glBindVertexArray(attr.vao);
 
-    //shader->setInt("Textures", 0);
-    //glActiveTexture(GL_TEXTURE0);
-    //glBindTexture(GL_TEXTURE_2D, qp.tex);
+    waterFFTShader->setInt("displacementTexture", 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, displacementTexture);
+
+    waterFFTShader->setInt("slopeTexture", 1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, slopeTexture);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, attr.ebo);
     glDrawElements(GL_PATCHES, attr.indicesSize, GL_UNSIGNED_INT, (void*)0);
 
     glBindVertexArray(0);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 float asuTime = 0.0f;
@@ -112,6 +117,11 @@ void WaterFFT::initializeSpectrum() {
     if (spectrumTexture == 0) {
         spectrumTexture = createRenderTexture(debugIndex);
         debug[debugIndex].tex = spectrumTexture;
+        debugIndex++;
+    }
+    if (derivativeTexture == 0) {
+        derivativeTexture = createRenderTexture(debugIndex);
+        debug[debugIndex].tex = derivativeTexture;
         debugIndex++;
     }
     if (displacementTexture == 0) {
@@ -146,15 +156,6 @@ void WaterFFT::initializeSpectrum() {
 
 void WaterFFT::inverseFFT() {
 
-    if (debug[debugIndex].tex == 0) {
-        debug[debugIndex].tex = createRenderTexture(debugIndex);
-        debugIndex++;
-    }
-    if (debug[debugIndex].tex == 0) {
-        debug[debugIndex].tex = createRenderTexture(debugIndex);
-        debugIndex++;
-
-    }
     compute_FFTHorizontal->use();
     glDispatchCompute(1, textureSize, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -334,7 +335,7 @@ void WaterFFT::createShader(std::string filename) {
     std::string tcs = filename + ".tcs";
     std::string tes = filename + ".tes";
 
-    waterShader = new ShaderT(vs, fs, "", tcs, tes);
+    waterFFTShader = new ShaderT(vs, fs, "", tcs, tes);
 }
 
 void WaterFFT::createComputeShader() {

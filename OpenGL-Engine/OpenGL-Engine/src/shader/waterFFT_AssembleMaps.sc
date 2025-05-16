@@ -9,7 +9,6 @@ layout (rgba32f, binding = 4) uniform image2D slopeTexture;
 
 #define PI 3.14159265359
 
-uniform int _N;
 uniform vec2 _Lambda;
 
 vec2 ComplexMult(vec2 a, vec2 b) {

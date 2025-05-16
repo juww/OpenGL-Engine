@@ -6,7 +6,9 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <vector>
 #include <cmath>
+#include <map>
 
+#include "GUI.h"
 #include "interpolate.h"
 #include "shader_t.h"
 #include "shader_m.h"
@@ -39,33 +41,9 @@ public:
         float peakOmega;
         float gamma;
         float shortWavesFade;
-    } spectrumParam;
+    } spectrumParam[4];
 
-    struct DisplaySpectrumSettings {
-        float scale;
-        float windSpeed;
-        float windDirection;
-        float fetch;
-        float spreadBlend;
-        float swell;
-        float peakEnhancement;
-        float shortWavesFade;
-    } displaySpectrum;
-
-    struct WaterUniform {
-        int seed;
-        float lowCutoff;
-        float highCutoff;
-        float gravity;
-        float depth;
-        float repeatTime;
-        float speed;
-        glm::vec2 lambda;
-        float displacementDepthFalloff;
-
-        float normalStrength;
-        float normalDepthFalloff;
-    } waterUniform;
+    GUI::WaterFFTParam waterFFTParam;
 
     unsigned int initialSpectrumTexture, spectrumTexture, derivativeTexture;
     unsigned int displacementTexture, slopeTexture;
@@ -86,6 +64,7 @@ public:
     void createComputeShader();
     unsigned int createRenderTexture(int binding);
 
+    void initTexture();
     void initializeSpectrum();
     void initUniform();
     void setUniform(ComputeShader* computeShader);
@@ -94,7 +73,8 @@ public:
     void updateSpectrumToFFT(float frameTime);
 
     void update();
-    void draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos);
+    void draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos, unsigned int environmentMap,
+        std::map<std::string, unsigned int>& mappers);
 
     void createDebugPlane();
     void drawDebugPlane(Shader* shader, glm::mat4 projection, glm::mat4 view);

@@ -173,13 +173,15 @@ void Renderer::start() {
 
     m_WaterFFT = new WaterFFT();
     m_WaterFFT->setPos(glm::vec3(-15.0f, 6.0f, 0.0f));
-    m_WaterFFT->setPlaneSize(16);
+    m_WaterFFT->setPlaneSize(32);
     m_WaterFFT->setTextureSize(1024);
     m_WaterFFT->createShader("waterFFT");
     m_WaterFFT->createPlane();
     m_WaterFFT->createComputeShader();
     m_WaterFFT->createDebugPlane();
+    m_WaterFFT->initTexture();
     m_WaterFFT->initUniform();
+    m_WaterFFT->initializeSpectrum();
 
     m_Skybox = new Skybox();
 
@@ -337,10 +339,11 @@ void Renderer::render(float currentTime, float deltaTime) {
 
     //m_Water->setParameter(m_WaterShader, wp.m_Amplitude, wp.m_Frequency, currentTime, wp.m_Speed, wp.m_Seed, wp.m_SeedIter, wp.m_WaveCount, m_Camera->Position);
     //m_Water->draw(m_WaterShader, projection, view);
-    m_WaterFFT->initializeSpectrum();
+    GUI::waterFFTParam(m_WaterFFT->waterFFTParam);
+    m_WaterFFT->update();
     m_WaterFFT->updateSpectrumToFFT(currentTime);
     m_WaterFFT->drawDebugPlane(m_DebugShader, projection, view);
-    m_WaterFFT->draw(projection, view, m_Camera->Position);
+    m_WaterFFT->draw(projection, view, m_Camera->Position, m_Skybox->cubemapTexture,m_FBManager->mappers);
 
     //m_LightCube->update(currentTime * 0.1f);
     std::vector<glm::vec3> lightpos;

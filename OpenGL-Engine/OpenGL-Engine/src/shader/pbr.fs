@@ -68,14 +68,10 @@ float DotClamped(vec3 a, vec3 b){
 }
 
 float lerp(float a, float b, float t){
-    //return a * (1.0 - t) + b * t;
-    //return a + (t * (b - a));
     return mix(a, b, t);
 }
 
 vec3 lerp3(vec3 a, vec3 b, float t){
-    //return a * (1.0 - t) + b * t;
-    //return a + (t * (b - a));
     return mix(a, b, t);
 }
 
@@ -390,6 +386,7 @@ void main (){
     vec3 metallicness = lerp3(vec3(0.0), IBLspecular, Metallic);
 
     vec3 ambient = (kD * IBLDiffuse + IBLspecular);
+
     float shadow = 0.0;
     if(useShadowMapping == 1){
         shadow = ShadowCalculation(FragPosLightSpace, N, lightPosition[0]);

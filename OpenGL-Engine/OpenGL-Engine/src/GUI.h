@@ -63,6 +63,52 @@ namespace GUI {
         }
     };
 
+    class WaterFFTParam {
+    public:
+        struct SpectrumParam {
+            float lengthScale;
+            float tile;
+
+            float scale;
+            float windSpeed;
+            float windDirection;
+            float fetch;
+            float spreadBlend;
+            float swell;
+            float peakEnhancement;
+            float shortWavesFade;
+
+        } spectrumParam[4];
+
+        struct WaterUniform {
+            int seed = 1234;
+            float lowCutoff = 0.0001f;
+            float highCutoff = 9000.0f;
+            float gravity = 9.81f;
+            float depth = 20.0f;
+            float repeatTime = 200.0f;
+            float speed = 1.0f;
+            float lambda[2] = { 1.0f, 1.0f };
+            float displacementDepthFalloff = 1.0f;
+            float normalStrength = 1.0f;
+            float normalDepthFalloff = 1.0f;
+        } waterUniform;
+
+        struct PBRWaterParam {
+            float roughness;
+            float metallic;
+            float sunIrradiance[3];
+            float scatterColor[3];
+            float bubbleColor[3];
+            float heightModifier;
+            float bubbleDensity;
+            float wavePeakScatterStrength;
+            float scatterStrength;
+            float scatterShadowStrength;
+            float environmentLightStrength;
+        } PBRWater;
+    };
+
     class FogDistanceParam {
     public:
         float m_Near = 0.0f;
@@ -107,6 +153,9 @@ namespace GUI {
     void PBRWindow(PBRParam &pbr);
     bool proceduralTerrainParam(int& seed, float& scale, int& octaves, float& persistence, float& lacunarity, glm::vec2& offset, float& heightMultiplier);
     void grassParam(GrassParam& gp);
+    void waterFFTParam(WaterFFTParam& waterFFTParams);
+    void color01(float temp[], int n);
+    glm::vec3 vecColor3(float temp[]);
 
     void waterParam(WaterParam& wp);
     void fogDistanceParam(FogDistanceParam& fp);

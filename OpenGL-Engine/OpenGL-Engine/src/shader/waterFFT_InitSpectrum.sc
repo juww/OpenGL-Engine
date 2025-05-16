@@ -129,7 +129,7 @@ float ShortWavesFade(float kLength, SpectrumParameters spectrum) {
 
 void main() {
 
-    vec4 value = vec4(0.0, 0.0, 0.0, 1.0);
+    vec4 value = vec4(0.0);
     ivec2 id = ivec2(gl_GlobalInvocationID.xy);
     
     uint seed = id.x + _N * id.y + _N;

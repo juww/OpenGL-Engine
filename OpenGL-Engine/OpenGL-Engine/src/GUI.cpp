@@ -91,7 +91,56 @@ namespace GUI {
         //}
     }
 
+    void waterFFTParam(WaterFFTParam &waterFFTParams) {
+        ImGui::Begin("water FFT");
 
+        ImGui::SeparatorText("water FFT parameter");
+        ImGui::DragInt("seed", &waterFFTParams.waterUniform.seed);
+        ImGui::DragFloat("lowCutoff", &waterFFTParams.waterUniform.lowCutoff);
+        ImGui::DragFloat("highCutoff", &waterFFTParams.waterUniform.highCutoff);
+        ImGui::DragFloat("gravity", &waterFFTParams.waterUniform.gravity);
+        ImGui::DragFloat("depth", &waterFFTParams.waterUniform.depth);
+        ImGui::DragFloat("repeatTime", &waterFFTParams.waterUniform.repeatTime);
+        ImGui::DragFloat("speed", &waterFFTParams.waterUniform.speed);
+        ImGui::DragFloat2("lambda", waterFFTParams.waterUniform.lambda);
+        ImGui::DragFloat("displacementDepthFalloff", &waterFFTParams.waterUniform.displacementDepthFalloff);
+        ImGui::DragFloat("normalStrength", &waterFFTParams.waterUniform.normalStrength);
+        ImGui::DragFloat("normalDepthFalloff", &waterFFTParams.waterUniform.normalDepthFalloff);
+
+        ImGui::SeparatorText("spectrum parameter");
+        for (int i = 0; i < 2; i++) {
+            if (i == 0) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+            ImGui::PushID(i);
+            if (ImGui::TreeNode("", "spectrum %d", i)) {
+                ImGui::DragFloat("tile", &waterFFTParams.spectrumParam[i].tile);
+                ImGui::DragFloat("scale", &waterFFTParams.spectrumParam[i].scale);
+                ImGui::DragFloat("windSpeed", &waterFFTParams.spectrumParam[i].windSpeed);
+                ImGui::DragFloat("windDirection", &waterFFTParams.spectrumParam[i].windDirection);
+                ImGui::DragFloat("fetch", &waterFFTParams.spectrumParam[i].fetch);
+                ImGui::DragFloat("spreadBlend", &waterFFTParams.spectrumParam[i].spreadBlend);
+                ImGui::DragFloat("swell", &waterFFTParams.spectrumParam[i].swell);
+                ImGui::DragFloat("peakEnhancement", &waterFFTParams.spectrumParam[i].peakEnhancement);
+                ImGui::DragFloat("shortWavesFade", &waterFFTParams.spectrumParam[i].shortWavesFade);
+                ImGui::TreePop();
+            }
+            ImGui::PopID();
+        }
+
+        ImGui::SeparatorText("PBR water parameter");
+        ImGui::DragFloat("roughness", &waterFFTParams.PBRWater.roughness);
+        ImGui::DragFloat("metallic", &waterFFTParams.PBRWater.metallic);
+        ImGui::ColorEdit3("sunIrradiance", waterFFTParams.PBRWater.sunIrradiance);
+        ImGui::ColorEdit3("scatterColor", waterFFTParams.PBRWater.scatterColor);
+        ImGui::ColorEdit3("bubbleColor", waterFFTParams.PBRWater.bubbleColor);
+        ImGui::DragFloat("heightModifier", &waterFFTParams.PBRWater.heightModifier);
+        ImGui::DragFloat("bubbleDensity", &waterFFTParams.PBRWater.bubbleDensity);
+        ImGui::DragFloat("wavePeakScatterStrength", &waterFFTParams.PBRWater.wavePeakScatterStrength);
+        ImGui::DragFloat("scatterStrength", &waterFFTParams.PBRWater.scatterStrength);
+        ImGui::DragFloat("scatterShadowStrength", &waterFFTParams.PBRWater.scatterShadowStrength);
+        ImGui::DragFloat("environmentLightStrength", &waterFFTParams.PBRWater.environmentLightStrength);
+
+        ImGui::End();
+    }
 
     bool proceduralTerrainParam(int& seed, float& scale, int& octaves, float& persistence, float& lacunarity, glm::vec2& offset, float& heightMultiplier) {
 
@@ -153,6 +202,16 @@ namespace GUI {
         ImGui::DragFloat("fogDensity", &fp.m_Density, 0.001f);
 
         ImGui::End();
+    }
+
+    void color01(float temp[], int n) {
+        for (int i = 0; i < n; i++) {
+            temp[i] /= 255.0f;
+        }
+    }
+
+    glm::vec3 vecColor3(float temp[]) {
+        return glm::vec3(temp[0], temp[1], temp[2]);
     }
 
     void renderUI() {

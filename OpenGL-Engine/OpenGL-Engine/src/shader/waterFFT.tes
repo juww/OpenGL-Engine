@@ -10,7 +10,6 @@ uniform sampler2D displacementTexture;
 
 in vec2 TextureCoord[];
 
-out float Height;
 out vec3 FragPos;
 out vec2 texCoord;
 

@@ -84,8 +84,8 @@ void WaterFFT::draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos, uns
 
     waterFFTShader->use();
 
-    waterFFTShader->setFloat("width", planeSize / 2.0f);
-    waterFFTShader->setFloat("heigth", planeSize / 2.0f);
+    waterFFTShader->setFloat("width", planeSize);
+    waterFFTShader->setFloat("heigth", planeSize);
 
     waterFFTShader->setMat4("projection", projection);
     waterFFTShader->setMat4("view", view);
@@ -108,9 +108,13 @@ void WaterFFT::draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos, uns
 
     // pbr parameter uniform
     glm::vec4 waterColor = glm::vec4(6.0 / 255.0f, 66.0f / 255.0f, 115.0f / 255.0f, 1.0f);
-    waterFFTShader->setVec3("lightDirection", glm::vec3(-1.0f, -5.0f, -1.0f));
+    glm::vec3 lightDir = glm::normalize(GUI::vecColor3(waterFFTParam.waterUniform.lightDirection));
+    waterFFTShader->setVec3("lightDirection", lightDir);
     waterFFTShader->setVec3("viewPos", viewPos);
     waterFFTShader->setVec4("baseColor", waterColor);
+    for (int i = 0;i < 3; i++) {
+        waterFFTParam.waterUniform.lightDirection[i] = lightDir[i];
+    }
 
     GUI::WaterFFTParam::PBRWaterParam& pbr = waterFFTParam.PBRWater;
     waterFFTShader->setFloat("_Roughness", pbr.roughness);
@@ -118,13 +122,19 @@ void WaterFFT::draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos, uns
     waterFFTShader->setVec3("_SunIrradiance", GUI::vecColor3(pbr.sunIrradiance));
     waterFFTShader->setVec3("_ScatterColor", GUI::vecColor3(pbr.scatterColor));
     waterFFTShader->setVec3("_BubbleColor", GUI::vecColor3(pbr.bubbleColor));
+    waterFFTShader->setVec3("_FoamColor", GUI::vecColor3(waterFFTParam.foamParam.foamColor));
     waterFFTShader->setFloat("_HeightModifier", pbr.heightModifier);
+    waterFFTShader->setFloat("_FoamRoughnessModifier", pbr.foamRoughnessModifier);
     waterFFTShader->setFloat("_BubbleDensity", pbr.bubbleDensity);
     waterFFTShader->setFloat("_WavePeakScatterStrength", pbr.wavePeakScatterStrength);
     waterFFTShader->setFloat("_ScatterStrength", pbr.scatterStrength);
     waterFFTShader->setFloat("_ScatterShadowStrength", pbr.scatterShadowStrength);
     waterFFTShader->setFloat("_EnvironmentLightStrength", pbr.environmentLightStrength);
 
+    waterFFTShader->setFloat("_FoamSubtract0", waterFFTParam.foamParam.foamSubtract0);
+    waterFFTShader->setFloat("_FoamSubtract1", waterFFTParam.foamParam.foamSubtract1);
+    waterFFTShader->setFloat("_FoamSubtract2", waterFFTParam.foamParam.foamSubtract2);
+    waterFFTShader->setFloat("_FoamSubtract3", waterFFTParam.foamParam.foamSubtract3);
     //waterFFTShader->setInt("irradianceMap", 6);
     //glActiveTexture(GL_TEXTURE6);
     //glBindTexture(GL_TEXTURE_CUBE_MAP, mappers["irradianceMap"]);
@@ -188,6 +198,7 @@ void WaterFFT::initializeSpectrum() {
     compute_InitialSpectrum->setInt("_LengthScale2", waterFFTParam.spectrumParam[2].lengthScale);
     compute_InitialSpectrum->setInt("_LengthScale3", waterFFTParam.spectrumParam[3].lengthScale);
 
+    updateSpectrumParam();
     for (int i = 0; i < 2; i++) {
         compute_InitialSpectrum->setFloat("_Spectrums[" + std::to_string(i) + "].scale", spectrumParam[i].scale);
         compute_InitialSpectrum->setFloat("_Spectrums[" + std::to_string(i) + "].angle", spectrumParam[i].angle);
@@ -252,6 +263,11 @@ void WaterFFT::updateSpectrumToFFT(float frameTime) {
     compute_AssembleMaps->use();
     glm::vec2 lambda(waterFFTParam.waterUniform.lambda[0], waterFFTParam.waterUniform.lambda[1]);
     compute_AssembleMaps->setVec2("_Lambda", lambda);
+    compute_AssembleMaps->setFloat("_FoamBias", waterFFTParam.foamParam.foamBias);
+    compute_AssembleMaps->setFloat("_FoamDecayRate", waterFFTParam.foamParam.foamDecayRate);
+    compute_AssembleMaps->setFloat("_FoamAdd", waterFFTParam.foamParam.foamAdd);
+    compute_AssembleMaps->setFloat("_FoamThreshold", waterFFTParam.foamParam.foamThreshold);
+
     glDispatchCompute((textureSize / 8), (textureSize / 8), 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -276,9 +292,24 @@ unsigned int WaterFFT::createRenderTexture(int binding) {
     return tex;
 }
 
+void WaterFFT::updateSpectrumParam() {
+    for (int i = 0; i < 2; i++) {
+        GUI::WaterFFTParam::SpectrumParam& sp = waterFFTParam.spectrumParam[i];
+        spectrumParam[i].scale = sp.scale;
+        spectrumParam[i].angle = sp.windDirection / 180.0f * PI;
+        spectrumParam[i].spreadBlend = sp.spreadBlend;
+        spectrumParam[i].swell = sp.swell;
+        spectrumParam[i].alpha = JonswapAlpha(sp.fetch, sp.windSpeed);
+        spectrumParam[i].peakOmega = JonswapPeakFrequency(sp.fetch, sp.windSpeed);
+        spectrumParam[i].gamma = sp.peakEnhancement;
+        spectrumParam[i].shortWavesFade = sp.shortWavesFade;
+    }
+}
+
 void WaterFFT::initUniform() {
     GUI::WaterFFTParam::WaterUniform& waterUniform = waterFFTParam.waterUniform;
     waterUniform.seed = 1234;
+    waterUniform.lightDirection[0] = -1.0f; waterUniform.lightDirection[1] = -1.0f; waterUniform.lightDirection[2] = -1.0f;
     waterUniform.lowCutoff = 0.0001f;
     waterUniform.highCutoff = 9000.0f;
     waterUniform.gravity = 9.81f;
@@ -303,7 +334,7 @@ void WaterFFT::initUniform() {
 
     waterFFTParam.spectrumParam[1].lengthScale = 256.0f;
     waterFFTParam.spectrumParam[1].tile = 0.01f;
-    waterFFTParam.spectrumParam[1].scale = 0.0f;
+    waterFFTParam.spectrumParam[1].scale = 0.01f;
     waterFFTParam.spectrumParam[1].windSpeed = 2.0f;
     waterFFTParam.spectrumParam[1].windDirection = 59.0f;
     waterFFTParam.spectrumParam[1].fetch = 1000.0f;
@@ -319,23 +350,23 @@ void WaterFFT::initUniform() {
     pbr.scatterColor[0] = 4.0f; pbr.scatterColor[1] = 19.0f; pbr.scatterColor[2] = 41.0f; GUI::color01(pbr.scatterColor, 3);
     pbr.bubbleColor[0] = 0.0f; pbr.bubbleColor[2] = 5.0f; pbr.bubbleColor[2] = 4.0f; GUI::color01(pbr.bubbleColor, 3);
     pbr.heightModifier = 1.0f;
+    pbr.foamRoughnessModifier = 0.0f;
     pbr.bubbleDensity = 1.0f;
     pbr.wavePeakScatterStrength = 1.0f;
     pbr.scatterStrength = 1.0f;
     pbr.scatterShadowStrength = 0.5f;
-    pbr.environmentLightStrength = 0.5f;
+    pbr.environmentLightStrength = 1.0f;
 
-    for (int i = 0; i < 2; i++) {
-        GUI::WaterFFTParam::SpectrumParam& sp = waterFFTParam.spectrumParam[i];
-        spectrumParam[i].scale = sp.scale;
-        spectrumParam[i].angle = sp.windDirection / 180.0f * PI;
-        spectrumParam[i].spreadBlend = sp.spreadBlend;
-        spectrumParam[i].swell = sp.swell;
-        spectrumParam[i].alpha = JonswapAlpha(sp.fetch, sp.windSpeed);
-        spectrumParam[i].peakOmega = JonswapPeakFrequency(sp.fetch, sp.windSpeed);
-        spectrumParam[i].gamma = sp.peakEnhancement;
-        spectrumParam[i].shortWavesFade = sp.shortWavesFade;
-    }
+    waterFFTParam.foamParam.foamColor[0] = 0.6f; waterFFTParam.foamParam.foamColor[1] = 0.5568f; waterFFTParam.foamParam.foamColor[2] = 0.492f;
+    //GUI::color01(waterFFTParam.foamParam.foamColor, 3);
+    waterFFTParam.foamParam.foamBias = 1.0f;
+    waterFFTParam.foamParam.foamAdd = 1.0f;
+    waterFFTParam.foamParam.foamThreshold = 0.3f;
+    waterFFTParam.foamParam.foamDecayRate = 0.5f;
+    waterFFTParam.foamParam.foamSubtract0 = 0.01f;
+    waterFFTParam.foamParam.foamSubtract1 = 0.02f;
+    waterFFTParam.foamParam.foamSubtract2 = 0.03f;
+    waterFFTParam.foamParam.foamSubtract3 = 0.04f;
 }
 
 void WaterFFT::createDebugPlane() {

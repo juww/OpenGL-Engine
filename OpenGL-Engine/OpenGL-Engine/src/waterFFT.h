@@ -84,6 +84,7 @@ public:
     void setPos(glm::vec3 p);
 
 private:
+    void updateSpectrumParam();
     float JonswapAlpha(float fetch, float windSpeed);
     float JonswapPeakFrequency(float fetch, float windSpeed);
 };

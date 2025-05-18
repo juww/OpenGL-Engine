@@ -14,12 +14,19 @@ uniform float _Metallic;
 uniform vec3 _SunIrradiance;
 uniform vec3 _ScatterColor;
 uniform vec3 _BubbleColor;
+uniform vec3 _FoamColor;
 uniform float _HeightModifier;
+uniform float _FoamRoughnessModifier;
 uniform float _BubbleDensity;
 uniform float _WavePeakScatterStrength;
 uniform float _ScatterStrength;
 uniform float _ScatterShadowStrength;
 uniform float _EnvironmentLightStrength;
+
+uniform float _FoamSubtract0;
+uniform float _FoamSubtract1;
+uniform float _FoamSubtract2;
+uniform float _FoamSubtract3;
 
 uniform sampler2D displacementTexture;
 uniform sampler2D slopeTexture;
@@ -37,6 +44,11 @@ float rcp(float a){
 
 float DotClamped(vec3 a, vec3 b){
     return clamp(dot(a, b), 0.0f, 1.0f);
+}
+
+float SchlickFresnel(vec3 normal, vec3 viewDir) {
+    // 0.02f comes from the reflectivity bias of water kinda idk it's from a paper somewhere i'm not gonna link it tho lmaooo
+    return 0.02f + (1.0f - 0.02f) * (pow(1.0f - DotClamped(normal, viewDir), 5.0f));
 }
 
 float SmithMaskingBeckmann(vec3 H, vec3 S, float roughness) {
@@ -62,6 +74,7 @@ vec3 BRDF(vec3 surfaceColor, vec3 norm, float d, vec4 displacementFoam){
     float roughness = _Roughness;
     float metallic = _Metallic;
     float depth = d;
+    float foam = displacementFoam.a + _FoamSubtract0;
     vec3 macroNormal = vec3(0.0f, 1.0f, 0.0f);
 
     float LdotH = DotClamped(L, H);
@@ -69,7 +82,7 @@ vec3 BRDF(vec3 surfaceColor, vec3 norm, float d, vec4 displacementFoam){
     float NdotL = DotClamped(N, L);
     float NdotH = max(0.0001f, dot(N, H));
 
-    float a = roughness;
+    float a = roughness + foam * _FoamRoughnessModifier;
 
     float viewMask = SmithMaskingBeckmann(H, V, a);
     float lightMask = SmithMaskingBeckmann(H, L, a);
@@ -83,21 +96,21 @@ vec3 BRDF(vec3 surfaceColor, vec3 norm, float d, vec4 displacementFoam){
     float numerator = pow(1.0f - dot(N, V), 5.0f * exp(-2.69f * a));
     float F = R + (1.0f - R) * numerator / (1.0f + 22.7f * pow(a, 1.5f));
     F = clamp(F, 0.0f, 1.0f);
+    //F = SchlickFresnel(N, V);
     
     vec3 specular = _SunIrradiance * F * G * Beckmann(NdotH, a);
     specular /= 4.0f * max(0.001f, DotClamped(macroNormal, L));
-    specular *= DotClamped(N, L);
+    specular *= NdotL;
 
-    vec3 I = normalize(FragPos - viewPos);
-    vec3 envReflection = texture(_EnvironmentMap, reflect(I, N)).rgb;
+    vec3 envReflection = texture(_EnvironmentMap, reflect(-V, N)).rgb;
     envReflection *= _EnvironmentLightStrength;
 
-    float waveHeight = max(0.0f, displacementFoam.y) * _HeightModifier;
+    float waveHeigth = max(0.0f, displacementFoam.y) * _HeightModifier;
     vec3 scatterColor = _ScatterColor;
     vec3 bubbleColor = _BubbleColor;
     float bubbleDensity = _BubbleDensity;
 
-    float k1 = _WavePeakScatterStrength * waveHeight * pow(DotClamped(L, -V), 4.0f) * pow(0.5f - 0.5f * dot(L, N), 3.0f);
+    float k1 = _WavePeakScatterStrength * waveHeigth * pow(DotClamped(L, -V), 4.0f) * pow(0.5f - 0.5f * dot(L, N), 3.0f);
     float k2 = _ScatterStrength * pow(DotClamped(V, N), 2.0f);
     float k3 = _ScatterShadowStrength * NdotL;
     float k4 = bubbleDensity;
@@ -107,8 +120,7 @@ vec3 BRDF(vec3 surfaceColor, vec3 norm, float d, vec4 displacementFoam){
 
     vec3 result = (1.0f - F) * scatter + specular + F * envReflection;
     result = max(vec3(0.0f), result);
-    //result = mix(result, _FoamColor, clamp(foam, 0.0f, 1.0f));
-
+    result = mix(result, _FoamColor, clamp(foam, 0.0f, 1.0f));
     result = vec3(result);
 
     return result;
@@ -118,7 +130,7 @@ void main(){
 
     vec3 surfaceColor = normalize(baseColor.rgb);
 
-    vec3 displacement = texture(displacementTexture, texCoord).rgb;
+    vec4 displacementFoam = texture(displacementTexture, texCoord);
     vec2 slope = texture(slopeTexture, texCoord).rg;
 
     mat3 normalMatrix = transpose(inverse(mat3(model)));
@@ -127,9 +139,9 @@ void main(){
 
     vec3 result = phong(surfaceColor, N);
     float depth = 10.0f;
-    vec4 displacementFoam = vec4(1.0f);
     result = BRDF(surfaceColor, N, depth, displacementFoam);
 
+    result = pow(result, vec3(1.0 / 2.2));
     FragColor = vec4(result, 1.0);
 }
 

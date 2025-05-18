@@ -96,6 +96,7 @@ namespace GUI {
 
         ImGui::SeparatorText("water FFT parameter");
         ImGui::DragInt("seed", &waterFFTParams.waterUniform.seed);
+        ImGui::DragFloat3("lightDirection", waterFFTParams.waterUniform.lightDirection);
         ImGui::DragFloat("lowCutoff", &waterFFTParams.waterUniform.lowCutoff);
         ImGui::DragFloat("highCutoff", &waterFFTParams.waterUniform.highCutoff);
         ImGui::DragFloat("gravity", &waterFFTParams.waterUniform.gravity);
@@ -132,12 +133,24 @@ namespace GUI {
         ImGui::ColorEdit3("sunIrradiance", waterFFTParams.PBRWater.sunIrradiance);
         ImGui::ColorEdit3("scatterColor", waterFFTParams.PBRWater.scatterColor);
         ImGui::ColorEdit3("bubbleColor", waterFFTParams.PBRWater.bubbleColor);
-        ImGui::DragFloat("heightModifier", &waterFFTParams.PBRWater.heightModifier);
+        ImGui::DragFloat("heightModifier", &waterFFTParams.PBRWater.heightModifier, 0.001f);
+        ImGui::DragFloat("foamRoughnessModifier", &waterFFTParams.PBRWater.foamRoughnessModifier, 0.001f);
         ImGui::DragFloat("bubbleDensity", &waterFFTParams.PBRWater.bubbleDensity);
         ImGui::DragFloat("wavePeakScatterStrength", &waterFFTParams.PBRWater.wavePeakScatterStrength);
         ImGui::DragFloat("scatterStrength", &waterFFTParams.PBRWater.scatterStrength);
         ImGui::DragFloat("scatterShadowStrength", &waterFFTParams.PBRWater.scatterShadowStrength);
         ImGui::DragFloat("environmentLightStrength", &waterFFTParams.PBRWater.environmentLightStrength);
+
+        ImGui::SeparatorText("foam parameter");
+        ImGui::ColorEdit3("foamColor", waterFFTParams.foamParam.foamColor);
+        ImGui::DragFloat("foamBias", &waterFFTParams.foamParam.foamBias, 0.01f);
+        ImGui::DragFloat("foamDecayRate", &waterFFTParams.foamParam.foamDecayRate, 0.01f);
+        ImGui::DragFloat("foamAdd", &waterFFTParams.foamParam.foamAdd, 0.01f);
+        ImGui::DragFloat("foamThreshold", &waterFFTParams.foamParam.foamThreshold, 0.01f);
+        ImGui::DragFloat("foamSubtract0", &waterFFTParams.foamParam.foamSubtract0, 0.01f);
+        ImGui::DragFloat("foamSubtract1", &waterFFTParams.foamParam.foamSubtract1, 0.01f);
+        ImGui::DragFloat("foamSubtract2", &waterFFTParams.foamParam.foamSubtract2, 0.01f);
+        ImGui::DragFloat("foamSubtract3", &waterFFTParams.foamParam.foamSubtract3, 0.01f);
 
         ImGui::End();
     }

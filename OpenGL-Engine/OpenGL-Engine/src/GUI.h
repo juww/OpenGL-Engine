@@ -82,6 +82,7 @@ namespace GUI {
 
         struct WaterUniform {
             int seed = 1234;
+            float lightDirection[3] = { 0.0f, 1.0f, 0.0f };
             float lowCutoff = 0.0001f;
             float highCutoff = 9000.0f;
             float gravity = 9.81f;
@@ -101,12 +102,27 @@ namespace GUI {
             float scatterColor[3];
             float bubbleColor[3];
             float heightModifier;
+            float foamRoughnessModifier;
             float bubbleDensity;
             float wavePeakScatterStrength;
             float scatterStrength;
             float scatterShadowStrength;
             float environmentLightStrength;
         } PBRWater;
+
+        struct FoamParam {
+            float foamColor[3];
+            float foamBias;
+            float foamDecayRate;
+            float foamAdd;
+            float foamThreshold;
+            
+            float foamSubtract0;
+            float foamSubtract1;
+            float foamSubtract2;
+            float foamSubtract3;
+
+        } foamParam;
     };
 
     class FogDistanceParam {

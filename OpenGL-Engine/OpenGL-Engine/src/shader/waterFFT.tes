@@ -31,7 +31,7 @@ void main() {
     vec2 t1 = (t10 - t11) * u + t11;
     texCoord = (t1 - t0) * v + t0;
 
-    vec4 displacement = texture(displacementTexture, texCoord) * 0.15f;
+    vec3 displacement = texture(displacementTexture, texCoord).rgb * 1.0f;
 
     // ----------------------------------------------------------------------
     // retrieve control point position coordinates
@@ -49,7 +49,7 @@ void main() {
     vec4 p0 = (p01 - p00) * u + p00;
     vec4 p1 = (p10 - p11) * u + p11;
     vec4 p = (p1 - p0) * v + p0;
-    p += displacement;
+    p += vec4(displacement, 0.0f);
 
     FragPos = vec3(model * p);
     // ----------------------------------------------------------------------

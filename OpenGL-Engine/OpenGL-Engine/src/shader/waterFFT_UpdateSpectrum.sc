@@ -78,6 +78,7 @@ void main() {
 
         value = vec4(htildeDisplacementX, htildeDisplacementZ);
         vec4 dValue = vec4(htildeSlopeX, htildeSlopeZ);
+
         imageStore(spectrumTexture, id, value);
         imageStore(derivativeTexture, id, dValue);
     }

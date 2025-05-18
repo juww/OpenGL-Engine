@@ -28,7 +28,7 @@ struct SpectrumParameters {
 	float shortWavesFade;
 };
 
-uniform SpectrumParameters _Spectrums[2];
+uniform SpectrumParameters _Spectrums[3];
 
 vec2 ComplexMult(vec2 a, vec2 b) {
     return vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
@@ -157,17 +157,14 @@ void main() {
 
             float spectrum = JONSWAP(omega, _Spectrums[i * 2]) * DirectionSpectrum(kAngle, omega, _Spectrums[i * 2]) * ShortWavesFade(kLength, _Spectrums[i * 2]);
             
-            //if (_Spectrums[i * 2 + 1].scale > 0)
-            //    spectrum += JONSWAP(omega, _Spectrums[i * 2 + 1]) * DirectionSpectrum(kAngle, omega, _Spectrums[i * 2 + 1]) * ShortWavesFade(kLength, _Spectrums[i * 2 + 1]);
+            if (_Spectrums[i * 2 + 1].scale > 0.0f)
+                spectrum += JONSWAP(omega, _Spectrums[i * 2 + 1]) * DirectionSpectrum(kAngle, omega, _Spectrums[i * 2 + 1]) * ShortWavesFade(kLength, _Spectrums[i * 2 + 1]);
             
-            //_InitialSpectrumTextures[uint3(id.xy, i)] = float4(float2(gauss2.x, gauss1.y) * sqrt(2 * spectrum * abs(dOmegadk) / kLength * deltaK * deltaK), 0.0f, 0.0f);
             value = vec4(vec2(gauss2.x, gauss1.y) * sqrt(2 * spectrum * abs(dOmegadk) / kLength * deltaK * deltaK), 0.0f, 0.0f);
             //value = vec4(vec3(gauss2.x, gauss1.y, 0.0f), 1.0f);
         } else {
-            //_InitialSpectrumTextures[uint3(id.xy, i)] = 0.0f;
             value = vec4(0.0f);
         }
+        imageStore(initialSpectrum, id, value);
     }
-
-    imageStore(initialSpectrum, id, value);
 }

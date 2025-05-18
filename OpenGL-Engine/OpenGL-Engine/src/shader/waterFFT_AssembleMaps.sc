@@ -10,6 +10,10 @@ layout (rgba32f, binding = 4) uniform image2D slopeTexture;
 #define PI 3.14159265359
 
 uniform vec2 _Lambda;
+uniform float _FoamBias;
+uniform float _FoamDecayRate;
+uniform float _FoamAdd;
+uniform float _FoamThreshold;
 
 vec2 ComplexMult(vec2 a, vec2 b) {
     return vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
@@ -52,21 +56,17 @@ void main() {
         vec2 slopes = dyxdyz.xy / (1.0 + abs(dxxdzz * _Lambda));
         float covariance = slopes.x * slopes.y;
 
-        // float foam = _DisplacementTextures[uint3(id.xy, i)].a;
-        // foam *= exp(-_FoamDecayRate);
-        // foam = saturate(foam);
+        float foam = imageLoad(displacementTexture, id).a;
+        foam *= exp(-_FoamDecayRate);
+        foam = clamp(foam, 0.0f, 1.0f);
 
-        // float biasedJacobian = max(0.0f, -(jacobian - _FoamBias));
+        float biasedJacobian = max(0.0f, -(jacobian - _FoamBias));
+        if (biasedJacobian > _FoamThreshold) foam += _FoamAdd * biasedJacobian;
 
-        // if (biasedJacobian > _FoamThreshold) foam += _FoamAdd * biasedJacobian;
-
-        // if (i == 0) _BuoyancyData[id.xy] = displacement.y;
-
-        //_DisplacementTextures[uint3(id.xy, i)] = float4(displacement, foam);
-        //_SlopeTextures[uint3(id.xy, i)] = float2(slopes);
-
-        vec4 displacementValue = vec4(displacement, 0.0f);
+        vec4 displacementValue = vec4(displacement, foam);
         vec4 slopeValue = vec4(slopes, 0.0f, 0.0f);
+
+        //if (i == 0) _BuoyancyData[id.xy] = displacement.y;
 
         imageStore(displacementTexture, id, displacementValue);
         imageStore(slopeTexture, id, slopeValue);

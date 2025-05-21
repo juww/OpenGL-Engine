@@ -23,13 +23,13 @@ uniform float _ScatterStrength;
 uniform float _ScatterShadowStrength;
 uniform float _EnvironmentLightStrength;
 
-uniform float _FoamSubtract0;
-uniform float _FoamSubtract1;
-uniform float _FoamSubtract2;
-uniform float _FoamSubtract3;
+uniform int arrayTextureSize;
+uniform bool useSpectrum[4];
+uniform float tile[4];
+uniform float foamSubtract[4];
 
-uniform sampler2D displacementTexture;
-uniform sampler2D slopeTexture;
+uniform sampler2DArray displacementTexture;
+uniform sampler2DArray slopeTexture;
 uniform samplerCube _EnvironmentMap;
 
 out vec4 FragColor;
@@ -74,7 +74,7 @@ vec3 BRDF(vec3 surfaceColor, vec3 norm, float d, vec4 displacementFoam){
     float roughness = _Roughness;
     float metallic = _Metallic;
     float depth = d;
-    float foam = displacementFoam.a + _FoamSubtract0;
+    float foam = displacementFoam.a;
     vec3 macroNormal = vec3(0.0f, 1.0f, 0.0f);
 
     float LdotH = DotClamped(L, H);
@@ -130,8 +130,15 @@ void main(){
 
     vec3 surfaceColor = normalize(baseColor.rgb);
 
-    vec4 displacementFoam = texture(displacementTexture, texCoord);
-    vec2 slope = texture(slopeTexture, texCoord).rg;
+    vec4 displacementFoam = vec4(0.0f);
+    vec2 slope = vec2(0.0f);
+    for(int i = 0; i < arrayTextureSize; i++){
+        if(useSpectrum[i] == true){
+            vec3 tx = vec3(texCoord / tile[i], i);
+            displacementFoam += texture(displacementTexture, tx) + foamSubtract[i];
+            slope += texture(slopeTexture, tx).rg;
+        }
+    }
 
     mat3 normalMatrix = transpose(inverse(mat3(model)));
     vec3 N = normalize(vec3(-slope.x, 1.0f, -slope.y));

@@ -2,11 +2,12 @@
 
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout (rgba32f, binding = 0) uniform image2D initialSpectrum;
+layout (rgba32f, binding = 0) uniform image2DArray initialSpectrum;
 
 #define PI 3.14159265359
 
 uniform int _N;
+uniform int _ArrayTextureSize;
 uniform int _Seed;
 uniform float _LowCutoff;
 uniform float _HighCutoff;
@@ -28,7 +29,7 @@ struct SpectrumParameters {
 	float shortWavesFade;
 };
 
-uniform SpectrumParameters _Spectrums[3];
+uniform SpectrumParameters _Spectrums[4];
 
 vec2 ComplexMult(vec2 a, vec2 b) {
     return vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
@@ -137,7 +138,7 @@ void main() {
 
     float lengthScales[4] = { _LengthScale0, _LengthScale1, _LengthScale2, _LengthScale3 };
 
-    for(uint i = 0; i < 1; i++){
+    for(uint i = 0; i < _ArrayTextureSize; i++){
         float halfN = _N / 2.0;
 
         float deltaK = 2.0 * PI / lengthScales[i];
@@ -155,16 +156,14 @@ void main() {
 
             float dOmegadk = DispersionDerivative(kLength);
 
-            float spectrum = JONSWAP(omega, _Spectrums[i * 2]) * DirectionSpectrum(kAngle, omega, _Spectrums[i * 2]) * ShortWavesFade(kLength, _Spectrums[i * 2]);
-            
-            if (_Spectrums[i * 2 + 1].scale > 0.0f)
-                spectrum += JONSWAP(omega, _Spectrums[i * 2 + 1]) * DirectionSpectrum(kAngle, omega, _Spectrums[i * 2 + 1]) * ShortWavesFade(kLength, _Spectrums[i * 2 + 1]);
+            float spectrum = JONSWAP(omega, _Spectrums[i]) * DirectionSpectrum(kAngle, omega, _Spectrums[i]) * ShortWavesFade(kLength, _Spectrums[i]);
             
             value = vec4(vec2(gauss2.x, gauss1.y) * sqrt(2 * spectrum * abs(dOmegadk) / kLength * deltaK * deltaK), 0.0f, 0.0f);
             //value = vec4(vec3(gauss2.x, gauss1.y, 0.0f), 1.0f);
         } else {
             value = vec4(0.0f);
         }
-        imageStore(initialSpectrum, id, value);
+        ivec3 idx = ivec3(id, i);
+        imageStore(initialSpectrum, idx, value);
     }
 }

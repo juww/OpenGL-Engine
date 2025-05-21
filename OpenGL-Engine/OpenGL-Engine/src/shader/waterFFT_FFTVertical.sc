@@ -1,12 +1,14 @@
 #version 430 core
 
-layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
-
-layout (rgba32f, binding = 1) uniform image2D spectrumTexture;
-layout (rgba32f, binding = 2) uniform image2D derivativeTexture;
-
 #define SIZE 1024
 #define LOG_SIZE 10
+
+layout (local_size_x = SIZE, local_size_y = 1, local_size_z = 1) in;
+
+layout (rgba32f, binding = 1) uniform image2DArray spectrumTexture;
+layout (rgba32f, binding = 2) uniform image2DArray derivativeTexture;
+
+uniform int _ArrayTextureSize;
 
 shared vec4 fftGroupBuffer[2][SIZE];
 
@@ -60,14 +62,15 @@ void main() {
     vec4 value = vec4(0.0, 0.0, 0.0, 1.0);
     ivec2 id = ivec2(gl_GlobalInvocationID.xy);
     
-    for (int i = 0; i < 1; ++i) {
-        vec4 fourierTarget = imageLoad(spectrumTexture, id.yx);
+    for (int i = 0; i < _ArrayTextureSize; ++i) {
+        ivec3 idx = ivec3(id, i);
+        vec4 fourierTarget = imageLoad(spectrumTexture, idx.yxz);
         value = FFT(id.x, fourierTarget);
 
-        vec4 DfFourierTarget = imageLoad(derivativeTexture, id.yx);
+        vec4 DfFourierTarget = imageLoad(derivativeTexture, idx.yxz);
         vec4 dValue = FFT(id.x, DfFourierTarget);
 
-        imageStore(spectrumTexture, id.yx, value);
-        imageStore(derivativeTexture, id.yx, dValue);
+        imageStore(spectrumTexture, idx.yxz, value);
+        imageStore(derivativeTexture, idx.yxz, dValue);
     }
 }

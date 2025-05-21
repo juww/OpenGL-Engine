@@ -78,9 +78,12 @@ namespace GUI {
             float peakEnhancement;
             float shortWavesFade;
 
+            bool useSpectrum;
+
         } spectrumParam[4];
 
         struct WaterUniform {
+            int arrayTextureSize = 1;
             int seed = 1234;
             float lightDirection[3] = { 0.0f, 1.0f, 0.0f };
             float lowCutoff = 0.0001f;
@@ -117,11 +120,7 @@ namespace GUI {
             float foamAdd;
             float foamThreshold;
             
-            float foamSubtract0;
-            float foamSubtract1;
-            float foamSubtract2;
-            float foamSubtract3;
-
+            float foamSubtract[4];
         } foamParam;
     };
 

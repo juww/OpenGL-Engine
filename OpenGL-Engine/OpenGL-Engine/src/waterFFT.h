@@ -23,14 +23,15 @@ public:
 
     bool updateSpectrum;
 
-    int debugIndex;
-    const int DEBUGSIZE = 7;
+    bool hasCreateDebugPlane;
+    static const int DEBUGSIZE = 5;
+    static const int TEXTURE_ARRAY_SIZE = 4;
 
     struct attributeArray {
         unsigned int vao, ebo;
         unsigned int indicesSize;
         unsigned int tex;
-    } patchAttribute, debug[7];
+    } patchAttribute, debug[DEBUGSIZE * TEXTURE_ARRAY_SIZE];
 
     struct SpectrumSettings {
         float scale;
@@ -41,7 +42,10 @@ public:
         float peakOmega;
         float gamma;
         float shortWavesFade;
-    } spectrumParam[4];
+        
+        bool useSpectrum;
+        float tile;
+    } spectrumParam[TEXTURE_ARRAY_SIZE];
 
     GUI::WaterFFTParam waterFFTParam;
 
@@ -62,19 +66,17 @@ public:
     void createPlane();
     void createShader(std::string filename);
     void createComputeShader();
-    unsigned int createRenderTexture(int binding);
+    unsigned int createRenderTexture(int binding, int arrayTextureSize);
 
     void initTexture();
     void initializeSpectrum();
     void initUniform();
-    void setUniform(ComputeShader* computeShader);
 
     void inverseFFT();
     void updateSpectrumToFFT(float frameTime);
 
-    void update();
-    void draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos, unsigned int environmentMap,
-        std::map<std::string, unsigned int>& mappers);
+    void update(float frameTime);
+    void draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos, unsigned int environmentMap);
 
     void createDebugPlane();
     void drawDebugPlane(Shader* shader, glm::mat4 projection, glm::mat4 view);

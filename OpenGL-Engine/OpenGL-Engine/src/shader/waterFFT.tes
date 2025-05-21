@@ -6,7 +6,10 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-uniform sampler2D displacementTexture;
+uniform int arrayTextureSize;
+uniform sampler2DArray displacementTexture;
+uniform bool useSpectrum[4];
+uniform float tile[4];
 
 in vec2 TextureCoord[];
 
@@ -31,7 +34,13 @@ void main() {
     vec2 t1 = (t10 - t11) * u + t11;
     texCoord = (t1 - t0) * v + t0;
 
-    vec3 displacement = texture(displacementTexture, texCoord).rgb * 1.0f;
+    vec3 displacement = vec3(0.0f);
+    for(int i = 0; i < arrayTextureSize; i++){
+        if(useSpectrum[i] == true){
+            vec3 idx = vec3(texCoord / tile[i], i);
+            displacement += texture(displacementTexture, idx).rgb;
+        }
+    }
 
     // ----------------------------------------------------------------------
     // retrieve control point position coordinates

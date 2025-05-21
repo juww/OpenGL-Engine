@@ -2,12 +2,14 @@
 
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout (rgba32f, binding = 1) uniform image2D spectrumTexture;
-layout (rgba32f, binding = 2) uniform image2D derivativeTexture;
-layout (rgba32f, binding = 3) uniform image2D displacementTexture;
-layout (rgba32f, binding = 4) uniform image2D slopeTexture;
+layout (rgba32f, binding = 1) uniform image2DArray spectrumTexture;
+layout (rgba32f, binding = 2) uniform image2DArray derivativeTexture;
+layout (rgba32f, binding = 3) uniform image2DArray displacementTexture;
+layout (rgba32f, binding = 4) uniform image2DArray slopeTexture;
 
 #define PI 3.14159265359
+
+uniform int _ArrayTextureSize;
 
 uniform vec2 _Lambda;
 uniform float _FoamBias;
@@ -39,10 +41,11 @@ void main() {
     vec2 idf = vec2(gl_GlobalInvocationID.xy);
 
 
-    for (int i = 0; i < 1; ++i) {
+    for (int i = 0; i < _ArrayTextureSize; ++i) {
 
-        vec4 htildeDisplacement = Permute(imageLoad(spectrumTexture, id), idf);
-        vec4 htildeSlope = Permute(imageLoad(derivativeTexture, id), idf);
+        ivec3 idx = ivec3(id, i);
+        vec4 htildeDisplacement = Permute(imageLoad(spectrumTexture, idx), idf);
+        vec4 htildeSlope = Permute(imageLoad(derivativeTexture, idx), idf);
 
         vec2 dxdz = htildeDisplacement.rg;
         vec2 dydxz = htildeDisplacement.ba;
@@ -56,7 +59,7 @@ void main() {
         vec2 slopes = dyxdyz.xy / (1.0 + abs(dxxdzz * _Lambda));
         float covariance = slopes.x * slopes.y;
 
-        float foam = imageLoad(displacementTexture, id).a;
+        float foam = imageLoad(displacementTexture, idx).a;
         foam *= exp(-_FoamDecayRate);
         foam = clamp(foam, 0.0f, 1.0f);
 
@@ -68,8 +71,8 @@ void main() {
 
         //if (i == 0) _BuoyancyData[id.xy] = displacement.y;
 
-        imageStore(displacementTexture, id, displacementValue);
-        imageStore(slopeTexture, id, slopeValue);
+        imageStore(displacementTexture, idx, displacementValue);
+        imageStore(slopeTexture, idx, slopeValue);
     }
 
 }

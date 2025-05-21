@@ -96,61 +96,64 @@ namespace GUI {
 
         ImGui::SeparatorText("water FFT parameter");
         ImGui::DragInt("seed", &waterFFTParams.waterUniform.seed);
+        ImGui::DragInt("arrayTextureSize", &waterFFTParams.waterUniform.arrayTextureSize, 1, 1, 4);
         ImGui::DragFloat3("lightDirection", waterFFTParams.waterUniform.lightDirection);
-        ImGui::DragFloat("lowCutoff", &waterFFTParams.waterUniform.lowCutoff);
-        ImGui::DragFloat("highCutoff", &waterFFTParams.waterUniform.highCutoff);
-        ImGui::DragFloat("gravity", &waterFFTParams.waterUniform.gravity);
-        ImGui::DragFloat("depth", &waterFFTParams.waterUniform.depth);
-        ImGui::DragFloat("repeatTime", &waterFFTParams.waterUniform.repeatTime);
-        ImGui::DragFloat("speed", &waterFFTParams.waterUniform.speed);
+        ImGui::DragFloat("lowCutoff", &waterFFTParams.waterUniform.lowCutoff, 0.0001f, 0.0f, 1.0f);
+        ImGui::DragFloat("highCutoff", &waterFFTParams.waterUniform.highCutoff, 1.0f, 1.0f, 9000.0f);
+        ImGui::DragFloat("gravity", &waterFFTParams.waterUniform.gravity, 0.01f, 0.0f, 20.0f);
+        ImGui::DragFloat("depth", &waterFFTParams.waterUniform.depth, 0.01f, 1.0f, 20.0f);
+        ImGui::DragFloat("repeatTime", &waterFFTParams.waterUniform.repeatTime, 0.01f, 0.0f, 200.0f);
+        ImGui::DragFloat("speed", &waterFFTParams.waterUniform.speed, 0.01f, 0.0f, 20.0f);
         ImGui::DragFloat2("lambda", waterFFTParams.waterUniform.lambda);
         ImGui::DragFloat("displacementDepthFalloff", &waterFFTParams.waterUniform.displacementDepthFalloff);
         ImGui::DragFloat("normalStrength", &waterFFTParams.waterUniform.normalStrength);
         ImGui::DragFloat("normalDepthFalloff", &waterFFTParams.waterUniform.normalDepthFalloff);
 
         ImGui::SeparatorText("spectrum parameter");
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 4; i++) {
             if (i == 0) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
             ImGui::PushID(i);
             if (ImGui::TreeNode("", "spectrum %d", i)) {
-                ImGui::DragFloat("tile", &waterFFTParams.spectrumParam[i].tile);
-                ImGui::DragFloat("scale", &waterFFTParams.spectrumParam[i].scale);
-                ImGui::DragFloat("windSpeed", &waterFFTParams.spectrumParam[i].windSpeed);
-                ImGui::DragFloat("windDirection", &waterFFTParams.spectrumParam[i].windDirection);
+                ImGui::DragFloat("lengthScale", &waterFFTParams.spectrumParam[i].lengthScale);
+                ImGui::DragFloat("tile", &waterFFTParams.spectrumParam[i].tile, 1.0f);
+                ImGui::DragFloat("scale", &waterFFTParams.spectrumParam[i].scale, 0.001f, 0.0f, 5.0f);
+                ImGui::DragFloat("windSpeed", &waterFFTParams.spectrumParam[i].windSpeed, 0.1f);
+                ImGui::DragFloat("windDirection", &waterFFTParams.spectrumParam[i].windDirection, 0.0f, 0.0f, 360.0f);
                 ImGui::DragFloat("fetch", &waterFFTParams.spectrumParam[i].fetch);
-                ImGui::DragFloat("spreadBlend", &waterFFTParams.spectrumParam[i].spreadBlend);
-                ImGui::DragFloat("swell", &waterFFTParams.spectrumParam[i].swell);
-                ImGui::DragFloat("peakEnhancement", &waterFFTParams.spectrumParam[i].peakEnhancement);
-                ImGui::DragFloat("shortWavesFade", &waterFFTParams.spectrumParam[i].shortWavesFade);
+                ImGui::DragFloat("spreadBlend", &waterFFTParams.spectrumParam[i].spreadBlend, 0.001f, 0.0f, 1.0f);
+                ImGui::DragFloat("swell", &waterFFTParams.spectrumParam[i].swell, 0.001f, 0.0f, 1.0f);
+                ImGui::DragFloat("peakEnhancement", &waterFFTParams.spectrumParam[i].peakEnhancement, 0.1f);
+                ImGui::DragFloat("shortWavesFade", &waterFFTParams.spectrumParam[i].shortWavesFade, 0.01f);
+                ImGui::Checkbox("useSpectrum", &waterFFTParams.spectrumParam[i].useSpectrum);
                 ImGui::TreePop();
             }
             ImGui::PopID();
         }
 
         ImGui::SeparatorText("PBR water parameter");
-        ImGui::DragFloat("roughness", &waterFFTParams.PBRWater.roughness);
-        ImGui::DragFloat("metallic", &waterFFTParams.PBRWater.metallic);
+        ImGui::DragFloat("roughness", &waterFFTParams.PBRWater.roughness, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("metallic", &waterFFTParams.PBRWater.metallic, 0.001f, 0.0f, 1.0f);
         ImGui::ColorEdit3("sunIrradiance", waterFFTParams.PBRWater.sunIrradiance);
         ImGui::ColorEdit3("scatterColor", waterFFTParams.PBRWater.scatterColor);
         ImGui::ColorEdit3("bubbleColor", waterFFTParams.PBRWater.bubbleColor);
-        ImGui::DragFloat("heightModifier", &waterFFTParams.PBRWater.heightModifier, 0.001f);
-        ImGui::DragFloat("foamRoughnessModifier", &waterFFTParams.PBRWater.foamRoughnessModifier, 0.001f);
-        ImGui::DragFloat("bubbleDensity", &waterFFTParams.PBRWater.bubbleDensity);
-        ImGui::DragFloat("wavePeakScatterStrength", &waterFFTParams.PBRWater.wavePeakScatterStrength);
-        ImGui::DragFloat("scatterStrength", &waterFFTParams.PBRWater.scatterStrength);
-        ImGui::DragFloat("scatterShadowStrength", &waterFFTParams.PBRWater.scatterShadowStrength);
-        ImGui::DragFloat("environmentLightStrength", &waterFFTParams.PBRWater.environmentLightStrength);
+        ImGui::DragFloat("heightModifier", &waterFFTParams.PBRWater.heightModifier, 0.01f, 0.0f, 20.0f);
+        ImGui::DragFloat("foamRoughnessModifier", &waterFFTParams.PBRWater.foamRoughnessModifier, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("bubbleDensity", &waterFFTParams.PBRWater.bubbleDensity, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("wavePeakScatterStrength", &waterFFTParams.PBRWater.wavePeakScatterStrength, 0.01f, 0.0f, 20.0f);
+        ImGui::DragFloat("scatterStrength", &waterFFTParams.PBRWater.scatterStrength, 0.01f, 0.0f, 20.0f);
+        ImGui::DragFloat("scatterShadowStrength", &waterFFTParams.PBRWater.scatterShadowStrength, 0.01f, 0.0f, 20.0f);
+        ImGui::DragFloat("environmentLightStrength", &waterFFTParams.PBRWater.environmentLightStrength, 0.01f, 0.0f, 2.0f);
 
         ImGui::SeparatorText("foam parameter");
         ImGui::ColorEdit3("foamColor", waterFFTParams.foamParam.foamColor);
-        ImGui::DragFloat("foamBias", &waterFFTParams.foamParam.foamBias, 0.01f);
+        ImGui::DragFloat("foamBias", &waterFFTParams.foamParam.foamBias, 0.01f, -2.0f, 2.0f);
         ImGui::DragFloat("foamDecayRate", &waterFFTParams.foamParam.foamDecayRate, 0.01f);
         ImGui::DragFloat("foamAdd", &waterFFTParams.foamParam.foamAdd, 0.01f);
-        ImGui::DragFloat("foamThreshold", &waterFFTParams.foamParam.foamThreshold, 0.01f);
-        ImGui::DragFloat("foamSubtract0", &waterFFTParams.foamParam.foamSubtract0, 0.01f);
-        ImGui::DragFloat("foamSubtract1", &waterFFTParams.foamParam.foamSubtract1, 0.01f);
-        ImGui::DragFloat("foamSubtract2", &waterFFTParams.foamParam.foamSubtract2, 0.01f);
-        ImGui::DragFloat("foamSubtract3", &waterFFTParams.foamParam.foamSubtract3, 0.01f);
+        ImGui::DragFloat("foamThreshold", &waterFFTParams.foamParam.foamThreshold, 0.01f, -10.0f, 10.0f);
+        ImGui::DragFloat("foamSubtract0", &waterFFTParams.foamParam.foamSubtract[0], 0.001f, -2.0f, 2.0f);
+        ImGui::DragFloat("foamSubtract1", &waterFFTParams.foamParam.foamSubtract[1], 0.001f, -2.0f, 2.0f);
+        ImGui::DragFloat("foamSubtract2", &waterFFTParams.foamParam.foamSubtract[2], 0.001f, -2.0f, 2.0f);
+        ImGui::DragFloat("foamSubtract3", &waterFFTParams.foamParam.foamSubtract[3], 0.001f, -2.0f, 2.0f);
 
         ImGui::End();
     }

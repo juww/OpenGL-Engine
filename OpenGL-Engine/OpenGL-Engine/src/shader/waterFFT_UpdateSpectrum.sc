@@ -2,13 +2,14 @@
 
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout (rgba32f, binding = 0) readonly uniform image2D initialSpectrum;
-layout (rgba32f, binding = 1) uniform image2D spectrumTexture;
-layout (rgba32f, binding = 2) uniform image2D derivativeTexture;
+layout (rgba32f, binding = 0) readonly uniform image2DArray initialSpectrum;
+layout (rgba32f, binding = 1) uniform image2DArray spectrumTexture;
+layout (rgba32f, binding = 2) uniform image2DArray derivativeTexture;
 
 #define PI 3.14159265359
 
 uniform int _N;
+uniform int _ArrayTextureSize;
 uniform float _Gravity;
 uniform float _RepeatTime;
 uniform float _FrameTime;
@@ -36,9 +37,10 @@ void main() {
     
     float lengthScales[4] = { _LengthScale0, _LengthScale1, _LengthScale2, _LengthScale3 };
 
-    for (int i = 0; i < 1; ++i) {
+    for (int i = 0; i < _ArrayTextureSize; ++i) {
 
-        vec4 initialSignal = imageLoad(initialSpectrum, id);
+        ivec3 idx = ivec3(id, i);
+        vec4 initialSignal = imageLoad(initialSpectrum, idx);
         vec2 h0 = initialSignal.xy;
         vec2 h0conj = initialSignal.zw;
 
@@ -79,7 +81,7 @@ void main() {
         value = vec4(htildeDisplacementX, htildeDisplacementZ);
         vec4 dValue = vec4(htildeSlopeX, htildeSlopeZ);
 
-        imageStore(spectrumTexture, id, value);
-        imageStore(derivativeTexture, id, dValue);
+        imageStore(spectrumTexture, idx, value);
+        imageStore(derivativeTexture, idx, dValue);
     }
 }

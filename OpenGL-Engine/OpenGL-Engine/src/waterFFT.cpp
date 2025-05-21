@@ -10,7 +10,6 @@ WaterFFT::WaterFFT() {
     spectrumTexture = 0;
     displacementTexture = 0;
     slopeTexture = 0;
-    debugIndex = 0;
 
     waterFFTShader = nullptr;
     compute_InitialSpectrum = nullptr;
@@ -19,6 +18,7 @@ WaterFFT::WaterFFT() {
     compute_FFTVertical = nullptr;
     compute_AssembleMaps = nullptr;
 
+    hasCreateDebugPlane = false;
     updateSpectrum = true;
 }
 
@@ -67,25 +67,21 @@ void WaterFFT::createPlane() {
     glBindVertexArray(0);
 }
 
-void WaterFFT::update() {
+void WaterFFT::update(float frameTime) {
 
     if (updateSpectrum) {
         initializeSpectrum();
     }
-
+    updateSpectrumToFFT(frameTime);
 }
 
-void WaterFFT::draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos, unsigned int environmentMap,
-    std::map<std::string, unsigned int>& mappers) {
+void WaterFFT::draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos, unsigned int environmentMap) {
 
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glm::mat4 m(1.0f);
     m = glm::translate(m, pos);
 
     waterFFTShader->use();
-
-    waterFFTShader->setFloat("width", planeSize);
-    waterFFTShader->setFloat("heigth", planeSize);
 
     waterFFTShader->setMat4("projection", projection);
     waterFFTShader->setMat4("view", view);
@@ -96,11 +92,11 @@ void WaterFFT::draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos, uns
 
     waterFFTShader->setInt("displacementTexture", 0);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, displacementTexture);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, displacementTexture);
 
     waterFFTShader->setInt("slopeTexture", 1);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, slopeTexture);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, slopeTexture);
 
     waterFFTShader->setInt("_EnvironmentMap", 2);
     glActiveTexture(GL_TEXTURE2);
@@ -111,6 +107,7 @@ void WaterFFT::draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos, uns
     glm::vec3 lightDir = glm::normalize(GUI::vecColor3(waterFFTParam.waterUniform.lightDirection));
     waterFFTShader->setVec3("lightDirection", lightDir);
     waterFFTShader->setVec3("viewPos", viewPos);
+    waterFFTShader->setInt("arrayTextureSize", waterFFTParam.waterUniform.arrayTextureSize);
     waterFFTShader->setVec4("baseColor", waterColor);
     for (int i = 0;i < 3; i++) {
         waterFFTParam.waterUniform.lightDirection[i] = lightDir[i];
@@ -131,21 +128,11 @@ void WaterFFT::draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos, uns
     waterFFTShader->setFloat("_ScatterShadowStrength", pbr.scatterShadowStrength);
     waterFFTShader->setFloat("_EnvironmentLightStrength", pbr.environmentLightStrength);
 
-    waterFFTShader->setFloat("_FoamSubtract0", waterFFTParam.foamParam.foamSubtract0);
-    waterFFTShader->setFloat("_FoamSubtract1", waterFFTParam.foamParam.foamSubtract1);
-    waterFFTShader->setFloat("_FoamSubtract2", waterFFTParam.foamParam.foamSubtract2);
-    waterFFTShader->setFloat("_FoamSubtract3", waterFFTParam.foamParam.foamSubtract3);
-    //waterFFTShader->setInt("irradianceMap", 6);
-    //glActiveTexture(GL_TEXTURE6);
-    //glBindTexture(GL_TEXTURE_CUBE_MAP, mappers["irradianceMap"]);
-
-    //waterFFTShader->setInt("preFilterMap", 7);
-    //glActiveTexture(GL_TEXTURE7);
-    //glBindTexture(GL_TEXTURE_CUBE_MAP, mappers["preFilterMap"]);
-
-    //waterFFTShader->setInt("brdfLUTTexture", 8);
-    //glActiveTexture(GL_TEXTURE8);
-    //glBindTexture(GL_TEXTURE_2D, mappers["brdfLUTTexture"]);
+    for (int i = 0; i < TEXTURE_ARRAY_SIZE; i++) {
+        waterFFTShader->setBool("useSpectrum[" + std::to_string(i) + "]", spectrumParam[i].useSpectrum);
+        waterFFTShader->setFloat("tile[" + std::to_string(i) + "]", spectrumParam[i].tile);
+        waterFFTShader->setFloat("foamSubtract[" + std::to_string(i) + "]", waterFFTParam.foamParam.foamSubtract[i]);
+    }
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, attr.ebo);
     glDrawElements(GL_PATCHES, attr.indicesSize, GL_UNSIGNED_INT, (void*)0);
@@ -155,31 +142,42 @@ void WaterFFT::draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos, uns
     //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
+void WaterFFT::updateSpectrumParam() {
+    for (int i = 0; i < TEXTURE_ARRAY_SIZE; i++) {
+        GUI::WaterFFTParam::SpectrumParam& sp = waterFFTParam.spectrumParam[i];
+        spectrumParam[i].scale = sp.scale;
+        spectrumParam[i].angle = sp.windDirection / 180.0f * PI;
+        spectrumParam[i].spreadBlend = sp.spreadBlend;
+        spectrumParam[i].swell = sp.swell;
+        spectrumParam[i].alpha = JonswapAlpha(sp.fetch, sp.windSpeed);
+        spectrumParam[i].peakOmega = JonswapPeakFrequency(sp.fetch, sp.windSpeed);
+        spectrumParam[i].gamma = sp.peakEnhancement;
+        spectrumParam[i].shortWavesFade = sp.shortWavesFade;
+        spectrumParam[i].useSpectrum = sp.useSpectrum;
+        spectrumParam[i].tile = sp.tile;
+    }
+}
+
 void WaterFFT::initTexture() {
     if (initialSpectrumTexture == 0) {
-        initialSpectrumTexture = createRenderTexture(debugIndex);
-        debug[debugIndex].tex = initialSpectrumTexture;
-        debugIndex++;
+        initialSpectrumTexture = createRenderTexture(0, TEXTURE_ARRAY_SIZE);
+        debug[0].tex = initialSpectrumTexture;
     }
     if (spectrumTexture == 0) {
-        spectrumTexture = createRenderTexture(debugIndex);
-        debug[debugIndex].tex = spectrumTexture;
-        debugIndex++;
+        spectrumTexture = createRenderTexture(1, TEXTURE_ARRAY_SIZE);
+        debug[1].tex = spectrumTexture;
     }
     if (derivativeTexture == 0) {
-        derivativeTexture = createRenderTexture(debugIndex);
-        debug[debugIndex].tex = derivativeTexture;
-        debugIndex++;
+        derivativeTexture = createRenderTexture(2, TEXTURE_ARRAY_SIZE);
+        debug[2].tex = derivativeTexture;
     }
     if (displacementTexture == 0) {
-        displacementTexture = createRenderTexture(debugIndex);
-        debug[debugIndex].tex = displacementTexture;
-        debugIndex++;
+        displacementTexture = createRenderTexture(3, TEXTURE_ARRAY_SIZE);
+        debug[3].tex = displacementTexture;
     }
     if (slopeTexture == 0) {
-        slopeTexture = createRenderTexture(debugIndex);
-        debug[debugIndex++].tex = slopeTexture;
-        debugIndex++;
+        slopeTexture = createRenderTexture(4, TEXTURE_ARRAY_SIZE);
+        debug[4].tex = slopeTexture;
     }
 }
 
@@ -188,6 +186,7 @@ void WaterFFT::initializeSpectrum() {
     compute_InitialSpectrum->use();
     GUI::WaterFFTParam::WaterUniform& waterUniform = waterFFTParam.waterUniform;
     compute_InitialSpectrum->setInt("_N", textureSize);
+    compute_InitialSpectrum->setInt("_ArrayTextureSize", waterFFTParam.waterUniform.arrayTextureSize);
     compute_InitialSpectrum->setInt("_Seed", waterUniform.seed);
     compute_InitialSpectrum->setFloat("_LowCutoff", waterUniform.lowCutoff);
     compute_InitialSpectrum->setFloat("_HighCutoff", waterUniform.highCutoff);
@@ -199,7 +198,7 @@ void WaterFFT::initializeSpectrum() {
     compute_InitialSpectrum->setInt("_LengthScale3", waterFFTParam.spectrumParam[3].lengthScale);
 
     updateSpectrumParam();
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < TEXTURE_ARRAY_SIZE; i++) {
         compute_InitialSpectrum->setFloat("_Spectrums[" + std::to_string(i) + "].scale", spectrumParam[i].scale);
         compute_InitialSpectrum->setFloat("_Spectrums[" + std::to_string(i) + "].angle", spectrumParam[i].angle);
         compute_InitialSpectrum->setFloat("_Spectrums[" + std::to_string(i) + "].spreadBlend", spectrumParam[i].spreadBlend);
@@ -210,7 +209,7 @@ void WaterFFT::initializeSpectrum() {
         compute_InitialSpectrum->setFloat("_Spectrums[" + std::to_string(i) + "].shortWavesFade", spectrumParam[i].shortWavesFade);
     }
     //glActiveTexture(GL_TEXTURE0);
-    //glBindTexture(GL_TEXTURE_2D, initialSpectrumTexture);
+    //glBindTexture(GL_TEXTURE_2D_ARRAY, initialSpectrumTexture);
     //glBindImageTexture(0, initialSpectrumTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGB32F);
 
     glDispatchCompute((textureSize / 8), (textureSize / 8), 1);
@@ -219,7 +218,7 @@ void WaterFFT::initializeSpectrum() {
 
     compute_PackSpectrumConjugate->use();
     compute_PackSpectrumConjugate->setInt("_N", textureSize);
-
+    compute_PackSpectrumConjugate->setInt("_ArrayTextureSize", waterFFTParam.waterUniform.arrayTextureSize);
     glDispatchCompute((textureSize / 8), (textureSize / 8), 1);
     // make sure writing to image has finished before read
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -228,10 +227,12 @@ void WaterFFT::initializeSpectrum() {
 void WaterFFT::inverseFFT() {
 
     compute_FFTHorizontal->use();
+    compute_FFTHorizontal->setInt("_ArrayTextureSize", waterFFTParam.waterUniform.arrayTextureSize);
     glDispatchCompute(1, textureSize, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     compute_FFTVertical->use();
+    compute_FFTVertical->setInt("_ArrayTextureSize", waterFFTParam.waterUniform.arrayTextureSize);
     glDispatchCompute(1, textureSize, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
@@ -240,6 +241,7 @@ void WaterFFT::updateSpectrumToFFT(float frameTime) {
 
     compute_UpdateSpectrum->use();
     compute_UpdateSpectrum->setInt("_N", textureSize);
+    compute_UpdateSpectrum->setInt("_ArrayTextureSize", waterFFTParam.waterUniform.arrayTextureSize);
     compute_UpdateSpectrum->setFloat("_Gravity", waterFFTParam.waterUniform.gravity);
     compute_UpdateSpectrum->setFloat("_RepeatTime", waterFFTParam.waterUniform.repeatTime);
     compute_UpdateSpectrum->setFloat("_FrameTime", frameTime);
@@ -263,6 +265,7 @@ void WaterFFT::updateSpectrumToFFT(float frameTime) {
     compute_AssembleMaps->use();
     glm::vec2 lambda(waterFFTParam.waterUniform.lambda[0], waterFFTParam.waterUniform.lambda[1]);
     compute_AssembleMaps->setVec2("_Lambda", lambda);
+    compute_AssembleMaps->setInt("_ArrayTextureSize", waterFFTParam.waterUniform.arrayTextureSize);
     compute_AssembleMaps->setFloat("_FoamBias", waterFFTParam.foamParam.foamBias);
     compute_AssembleMaps->setFloat("_FoamDecayRate", waterFFTParam.foamParam.foamDecayRate);
     compute_AssembleMaps->setFloat("_FoamAdd", waterFFTParam.foamParam.foamAdd);
@@ -273,41 +276,32 @@ void WaterFFT::updateSpectrumToFFT(float frameTime) {
 
 }
 
-unsigned int WaterFFT::createRenderTexture(int binding) {
+unsigned int WaterFFT::createRenderTexture(int binding, int arrayTextureSize) {
 
     unsigned int tex;
 
     glGenTextures(1, &tex);
     glActiveTexture(GL_TEXTURE0 + binding);
-    glBindTexture(GL_TEXTURE_2D, tex);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, tex);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, textureSize, textureSize, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA32F, textureSize, textureSize, arrayTextureSize);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA32F, textureSize, textureSize, arrayTextureSize, 0, GL_RGBA, GL_FLOAT, nullptr);
+    for (int i = 0; i < arrayTextureSize; i++) {
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, textureSize, textureSize, 1, GL_RGBA32F, GL_FLOAT, nullptr);
+    }
     glBindImageTexture(binding, tex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
     return tex;
 }
 
-void WaterFFT::updateSpectrumParam() {
-    for (int i = 0; i < 2; i++) {
-        GUI::WaterFFTParam::SpectrumParam& sp = waterFFTParam.spectrumParam[i];
-        spectrumParam[i].scale = sp.scale;
-        spectrumParam[i].angle = sp.windDirection / 180.0f * PI;
-        spectrumParam[i].spreadBlend = sp.spreadBlend;
-        spectrumParam[i].swell = sp.swell;
-        spectrumParam[i].alpha = JonswapAlpha(sp.fetch, sp.windSpeed);
-        spectrumParam[i].peakOmega = JonswapPeakFrequency(sp.fetch, sp.windSpeed);
-        spectrumParam[i].gamma = sp.peakEnhancement;
-        spectrumParam[i].shortWavesFade = sp.shortWavesFade;
-    }
-}
-
 void WaterFFT::initUniform() {
     GUI::WaterFFTParam::WaterUniform& waterUniform = waterFFTParam.waterUniform;
+    waterUniform.arrayTextureSize = 1;
     waterUniform.seed = 1234;
     waterUniform.lightDirection[0] = -1.0f; waterUniform.lightDirection[1] = -1.0f; waterUniform.lightDirection[2] = -1.0f;
     waterUniform.lowCutoff = 0.0001f;
@@ -322,7 +316,7 @@ void WaterFFT::initUniform() {
     waterUniform.normalDepthFalloff = 1.0f;
 
     waterFFTParam.spectrumParam[0].lengthScale = 256.0f;
-    waterFFTParam.spectrumParam[0].tile = 0.01f;
+    waterFFTParam.spectrumParam[0].tile = 128.0f;
     waterFFTParam.spectrumParam[0].scale = 0.2f;
     waterFFTParam.spectrumParam[0].windSpeed = 15.0f;
     waterFFTParam.spectrumParam[0].windDirection = 22.0f;
@@ -331,9 +325,10 @@ void WaterFFT::initUniform() {
     waterFFTParam.spectrumParam[0].swell = 1.0f;
     waterFFTParam.spectrumParam[0].peakEnhancement = 3.3f;
     waterFFTParam.spectrumParam[0].shortWavesFade = 0.01f;
+    waterFFTParam.spectrumParam[0].useSpectrum = true;
 
-    waterFFTParam.spectrumParam[1].lengthScale = 256.0f;
-    waterFFTParam.spectrumParam[1].tile = 0.01f;
+    waterFFTParam.spectrumParam[1].lengthScale = 128.0f;
+    waterFFTParam.spectrumParam[1].tile = 64.0f;
     waterFFTParam.spectrumParam[1].scale = 0.01f;
     waterFFTParam.spectrumParam[1].windSpeed = 2.0f;
     waterFFTParam.spectrumParam[1].windDirection = 59.0f;
@@ -342,6 +337,31 @@ void WaterFFT::initUniform() {
     waterFFTParam.spectrumParam[1].swell = 1.0f;
     waterFFTParam.spectrumParam[1].peakEnhancement = 1.0f;
     waterFFTParam.spectrumParam[1].shortWavesFade = 0.01f;
+    waterFFTParam.spectrumParam[1].useSpectrum = true;
+
+    waterFFTParam.spectrumParam[2].lengthScale = 64.0f;
+    waterFFTParam.spectrumParam[2].tile = 32.0f;
+    waterFFTParam.spectrumParam[2].scale = 0.01f;
+    waterFFTParam.spectrumParam[2].windSpeed = 2.0f;
+    waterFFTParam.spectrumParam[2].windDirection = 59.0f;
+    waterFFTParam.spectrumParam[2].fetch = 1000.0f;
+    waterFFTParam.spectrumParam[2].spreadBlend = 0.0f;
+    waterFFTParam.spectrumParam[2].swell = 1.0f;
+    waterFFTParam.spectrumParam[2].peakEnhancement = 1.0f;
+    waterFFTParam.spectrumParam[2].shortWavesFade = 0.01f;
+    waterFFTParam.spectrumParam[2].useSpectrum = false;
+
+    waterFFTParam.spectrumParam[3].lengthScale = 32.0f;
+    waterFFTParam.spectrumParam[3].tile = 16.0f;
+    waterFFTParam.spectrumParam[3].scale = 0.01f;
+    waterFFTParam.spectrumParam[3].windSpeed = 2.0f;
+    waterFFTParam.spectrumParam[3].windDirection = 59.0f;
+    waterFFTParam.spectrumParam[3].fetch = 1000.0f;
+    waterFFTParam.spectrumParam[3].spreadBlend = 0.0f;
+    waterFFTParam.spectrumParam[3].swell = 1.0f;
+    waterFFTParam.spectrumParam[3].peakEnhancement = 1.0f;
+    waterFFTParam.spectrumParam[3].shortWavesFade = 0.01f;
+    waterFFTParam.spectrumParam[3].useSpectrum = false;
 
     GUI::WaterFFTParam::PBRWaterParam& pbr = waterFFTParam.PBRWater;
     pbr.roughness = 0.075f;
@@ -363,10 +383,10 @@ void WaterFFT::initUniform() {
     waterFFTParam.foamParam.foamAdd = 1.0f;
     waterFFTParam.foamParam.foamThreshold = 0.3f;
     waterFFTParam.foamParam.foamDecayRate = 0.5f;
-    waterFFTParam.foamParam.foamSubtract0 = 0.01f;
-    waterFFTParam.foamParam.foamSubtract1 = 0.02f;
-    waterFFTParam.foamParam.foamSubtract2 = 0.03f;
-    waterFFTParam.foamParam.foamSubtract3 = 0.04f;
+    waterFFTParam.foamParam.foamSubtract[0] = 0.01f;
+    waterFFTParam.foamParam.foamSubtract[1] = -0.02f;
+    waterFFTParam.foamParam.foamSubtract[2] = -0.03f;
+    waterFFTParam.foamParam.foamSubtract[3] = -0.04f;
 }
 
 void WaterFFT::createDebugPlane() {
@@ -381,50 +401,64 @@ void WaterFFT::createDebugPlane() {
         0,2,3,  1,2,0
     };
     for (int i = 0; i < DEBUGSIZE; i++) {
+        for (int j = 0; j < TEXTURE_ARRAY_SIZE; j++) {
+            int indx = i * TEXTURE_ARRAY_SIZE + j;
+            glGenVertexArrays(1, &debug[indx].vao);
+            glBindVertexArray(debug[indx].vao);
 
-        glGenVertexArrays(1, &debug[i].vao);
-        glBindVertexArray(debug[i].vao);
+            glGenBuffers(1, &debug[indx].ebo);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, debug[indx].ebo);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), &indices, GL_STATIC_DRAW);
 
-        glGenBuffers(1, &debug[i].ebo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, debug[i].ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), &indices, GL_STATIC_DRAW);
+            unsigned int vbo;
+            glGenBuffers(1, &vbo);
+            glBindBuffer(GL_ARRAY_BUFFER, vbo);
+            glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(float) * 5, &vertex, GL_STATIC_DRAW);
 
-        unsigned int vbo;
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(float) * 5, &vertex, GL_STATIC_DRAW);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)0);
+            glEnableVertexAttribArray(0);
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)0);
-        glEnableVertexAttribArray(0);
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)(sizeof(float) * 3));
+            glEnableVertexAttribArray(1);
 
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)(sizeof(float) * 3));
-        glEnableVertexAttribArray(1);
-
-        glBindVertexArray(0);
+            glBindVertexArray(0);
+        }
     }
 }
 
 void WaterFFT::drawDebugPlane(Shader *shader, glm::mat4 projection, glm::mat4 view) {
 
+    if (hasCreateDebugPlane == false) {
+        createDebugPlane();
+        hasCreateDebugPlane = true;
+    }
+    float visibleStrength[5] = { 1234.0f, 1.0f, 1.0f, 1.0f, 1.0f };
     for (int i = 0; i < DEBUGSIZE; i++) {
-        glBindVertexArray(debug[i].vao);
-        glm::mat4 m(1.0f);
-        float xx = i * 2.0f;
-        m = glm::translate(m, glm::vec3(-1.0f + xx, 7.0f, 0.0f));
-
         shader->use();
         shader->setMat4("projection", projection);
         shader->setMat4("view", view);
-        shader->setMat4("model", m);
 
         shader->setInt("Textures", 0);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, debug[i].tex);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, debug[i].tex);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, debug[i].ebo);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
+        shader->setFloat("visibleStrength", visibleStrength[i]);
 
-        glBindVertexArray(0);
+        for (int j = 0; j < TEXTURE_ARRAY_SIZE; j++) {
+            int indx = i * TEXTURE_ARRAY_SIZE + j;
+            glBindVertexArray(debug[indx].vao);
+            glm::mat4 m(1.0f);
+            float xx = i * 2.0f;
+            float zz = j * 2.0f;
+            m = glm::translate(m, glm::vec3(-1.0f + xx, 12.0f, 0.0f + zz));
+
+            shader->setMat4("model", m);
+            shader->setFloat("texIndex", j);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, debug[indx].ebo);
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
+
+            glBindVertexArray(0);
+        }
     }
 }
 

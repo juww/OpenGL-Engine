@@ -330,7 +330,7 @@ namespace gltf {
         }
 
         tinygltf::Node& t_node = tinygltf_model->nodes[nodeIndx];
-        //printf("node[%d] name: %s\n", indx, node.name.c_str());
+        //printf("node[%d] name: %s\n", nodeIndx, t_node.name.c_str());
 
         Transformation& nodeTransform = model.nodes[nodeIndx].transform;
         setNodeTransform(t_node, nodeTransform);
@@ -370,9 +370,11 @@ namespace gltf {
             //printf("%d: %s\n", current_animation, animation.name.c_str());
             int sampler_length = animation.samplers.size();
             int channel_length = animation.channels.size();
+            model.animator.animations[current_animation].name = animation.name;
             for (tinygltf::AnimationChannel& channel : animation.channels) {
 
                 if (current_animation > 0) break;
+
                 int indxSampler = channel.sampler;
                 int targetNode = channel.target_node;
 

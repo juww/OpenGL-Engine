@@ -362,6 +362,7 @@ void Renderer::render(float currentTime, float deltaTime) {
         cube->draw(m_LightCubeShader, projection, view);
     }
 
+    GUI::modelAnimation("model", m_Model->animator);
     m_Model->setUniforms(projection, view, m_Camera->Position, currentTime
         , m_FBManager->mappers, lightpos, pbr);
     m_Model->update(deltaTime);

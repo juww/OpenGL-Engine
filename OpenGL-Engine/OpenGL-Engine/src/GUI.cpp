@@ -1,4 +1,5 @@
 #include "GUI.h"
+#include "animator.h"
 
 namespace GUI {
 
@@ -75,20 +76,68 @@ namespace GUI {
     }
 
     // later;
-    void modelAnimation(int animation, int n) {
+    void modelAnimation(std::string name, Animator &animator) {
 
-        //const char* animationName[] = { "Animation 0", "no animation" };
+        ImGui::Begin(name.c_str());
+        ImGui::SeparatorText("animation");
+        int n_animation = animator.animations.size();
+        if (ImGui::BeginCombo("animation", animator.animations[0].name.c_str(), 0)) {
+            for (int i = 0; i < n_animation; i++) {
+                bool isSelected = (animator.currentAnimation == i);
+                if (ImGui::Selectable(animator.animations[i].name.c_str(), isSelected))
+                    animator.currentAnimation = i;
 
-        //static int currentAnimation = animation;
-        //ImGui::Combo("Animation", &currentAnimation, animationName, 2);
-        //if (currentAnimation != animation) {
-        //    if (currentAnimation == 0) {
-        //        //carafe.animator.doAnimation(currentAnimation);
-        //    }
-        //    else {
-        //        //carafe.animator.doAnimation(-1);
-        //    }
-        //}
+                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                if (isSelected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::Text("length : %f", animator.animations[animator.currentAnimation].length);
+        ImGui::Text("count : %d", animator.animations[animator.currentAnimation].count);
+        ImGui::Text("timestamp size : %d", animator.animations[animator.currentAnimation].timestamp.size());
+        ImGui::Text("keyframe size : %d", animator.animations[animator.currentAnimation].keyframes.size());
+
+        bool itemHighlight = false;
+        int itemSelected = 0, itemHighlighted = -1;
+        int indx = 0;
+        if (ImGui::BeginListBox("timestamp list")) {
+            for (auto& time : animator.animations[animator.currentAnimation].timestamp) {
+                bool isSelected = (itemSelected == indx);
+                std::string label = std::to_string(time.first);
+                if (ImGui::Selectable(label.c_str(), isSelected))
+                    itemSelected = indx;
+
+                if (itemHighlight && ImGui::IsItemHovered())
+                    itemHighlighted = indx;
+
+                if (isSelected)
+                    ImGui::SetItemDefaultFocus();
+
+                indx++;
+            }
+            ImGui::EndListBox();
+        }
+
+        if (ImGui::BeginListBox("keyframe time list")) {
+            for (auto& keyframe : animator.animations[animator.currentAnimation].keyframes) {
+                bool isSelected = (itemSelected == indx);
+                std::string label = std::to_string(keyframe.Timestamp);
+                if (ImGui::Selectable(label.c_str(), isSelected))
+                    itemSelected = indx;
+
+                if (itemHighlight && ImGui::IsItemHovered())
+                    itemHighlighted = indx;
+
+                if (isSelected)
+                    ImGui::SetItemDefaultFocus();
+
+                indx++;
+            }
+            ImGui::EndListBox();
+        }
+
+        ImGui::End();
     }
 
     void waterFFTParam(WaterFFTParam &waterFFTParams) {

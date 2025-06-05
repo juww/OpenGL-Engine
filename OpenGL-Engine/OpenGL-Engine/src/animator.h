@@ -77,7 +77,7 @@ public:
 class Animation {
 
 public:
-
+    std::string name;
 	float length;
 	int count = 0;
 	std::map<unsigned int, unsigned int> timestamp; //timeframe -> index time;
@@ -94,7 +94,6 @@ public:
 		count = -1;
 		timestamp.clear();
 	};
-
 
 	void addKeyframe(const std::vector<float>& inputData, const std::vector<glm::vec4>& outputData,
 		const int targetNode, const std::string& interpolation, const std::string& targetPath) {

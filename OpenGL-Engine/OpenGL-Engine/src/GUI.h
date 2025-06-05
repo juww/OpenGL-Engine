@@ -9,6 +9,8 @@
 #include "imGui/imgui_impl_glfw.h"
 #include "imGui/imgui_impl_opengl3.h"
 
+#include "animator.h"
+
 namespace GUI {
 
     // procedural Terrain param
@@ -165,7 +167,7 @@ namespace GUI {
     void GUIFrame();
     void modelTransform(std::string name, glm::vec3& pos, glm::vec3& rot, float& angle, glm::vec3& scale);
     // later;
-    void modelAnimation(int animation, int n);
+    void modelAnimation(std::string name, Animator& animator);
     void PBRWindow(PBRParam &pbr);
     bool proceduralTerrainParam(int& seed, float& scale, int& octaves, float& persistence, float& lacunarity, glm::vec2& offset, float& heightMultiplier);
     void grassParam(GrassParam& gp);

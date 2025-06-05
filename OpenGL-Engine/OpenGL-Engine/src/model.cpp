@@ -146,7 +146,6 @@ namespace gltf {
         }
     }
 
-
     void Model::update(float deltaTime) {
 
         if (!animator.update(deltaTime)) {

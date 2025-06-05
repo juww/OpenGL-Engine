@@ -48,9 +48,9 @@ namespace GUI {
         ImGui::End();
     }
 
-    void modelTransform(glm::vec3& pos, glm::vec3& rot, float& angle, glm::vec3& scale) {
+    void modelTransform(std::string name, glm::vec3& pos, glm::vec3& rot, float& angle, glm::vec3& scale) {
 
-        ImGui::Begin("Model Parameter");
+        ImGui::Begin(name.c_str());
 
         float modelPos[3] = { pos.x, pos.y, pos.z };
         ImGui::DragFloat3("position", modelPos, 0.005f);

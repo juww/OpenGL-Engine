@@ -51,6 +51,7 @@ vec4 applyBoneTransform(vec4 p) {
 void main() {
 
     vec4 position = vec4(aPos, 1.0);
+    vec4 norm = vec4(aNormal, 0.0);
 
     mat3 normalMatrix = transpose(inverse(mat3(model)));
 
@@ -59,9 +60,13 @@ void main() {
     vec3 N = normalize(vec3(normalMatrix * aNormal));
     TBN = mat3(T, B, N);
 
+    if(hasBone == 1){
+        position = applyBoneTransform(vec4(aPos, 1.0));
+        norm = normalize(applyBoneTransform(vec4(aNormal, 0.0)));
+    }
 
-    FragPos = vec3(model * vec4(aPos, 1.0));
-    Normal = normalize(normalMatrix * aNormal);
+    FragPos = vec3(model * position);
+    Normal = normalize(normalMatrix * vec3(norm));
     TexCoords = aTexCoords;
     Tangent = T;
     Bitangent = B;
@@ -72,11 +77,6 @@ void main() {
     //data_out.FragPos = vec3(model * vec4(aPos, 1.0));
     //data_out.Normal = aNormal;
     //data_out.TexCoords = aTexCoords;
-
-    //if(hasBone == 1){
-    //    position = applyBoneTransform(vec4(aPos, 1.0));
-    //    Normal = normalize(applyBoneTransform(vec4(aNormal, 0.0)));
-    //} 
 
     gl_Position = projection * view * model * position;
 }

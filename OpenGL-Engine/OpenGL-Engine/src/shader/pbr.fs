@@ -52,8 +52,6 @@ uniform float _Anisotropic;
 uniform float _ClearCoatGloss;
 uniform float _ClearCoat;
 
-uniform float heightScale;
-
 #define PI 3.14159265358979323846
 
 vec3 blinnPhong();
@@ -86,8 +84,8 @@ vec3 getNormalFromMap() {
     vec2 st2 = dFdy(TexCoords);
 
     vec3 N   = normalize(Normal);
-    //vec3 T  = normalize(Q1 * st2.t - Q2 * st1.t);
-    vec3 T  = Tangent;
+    vec3 T  = normalize(Q1 * st2.t - Q2 * st1.t);
+    //vec3 T  = Tangent;
     vec3 B  = -normalize(cross(N, T));
     mat3 tbn = mat3(T, B, N);
 
@@ -214,7 +212,7 @@ vec3 DisneyBRDF(vec3 N, vec3 surfaceColor, vec3 lightPos, float Roughness, float
     vec3 FClearCoat = vec3(0.25f * _ClearCoat * Gr * Fr * Dr);
 
     vec3 result = (FDiffuse + FSpecular + FClearCoat) * ndotl;
-    //result = vec3(H);
+    //result = vec3(FSpecular);
 
     return result;
 }
@@ -321,7 +319,6 @@ void main (){
     float Metallic = metallicFactor;
     float ao = 1.0f;
     
-    
     if(useAlbedoMapping){
         surfaceColor = texture(albedoMap, TexCoords).rgb;
         surfaceColor *= baseColor.rgb;
@@ -337,15 +334,15 @@ void main (){
 
     if(useMROMapping){
         vec3 mro = texture(MROMap, TexCoords).rgb;
-        Roughness = mro.g * roughnessFactor;
-        Metallic = mro.b * metallicFactor;
+        Roughness = mro.g;
+        Metallic = mro.b;
         ao = mro.r;
     } else {
         if(useRoughnessMapping){
-            Roughness = texture(roughnessMap, TexCoords).g * roughnessFactor;
+            Roughness = texture(roughnessMap, TexCoords).g;
         }
         if(useMetallicMapping){
-            Metallic = texture(metallicMap, TexCoords).r * metallicFactor;
+            Metallic = texture(metallicMap, TexCoords).r;
         }
         if(useOcclusionMapping){
             ao = texture(occlusionMap, TexCoords).r;
@@ -355,7 +352,6 @@ void main (){
     if(useEmissiveMapping){
         emissive = texture(emissiveMap, TexCoords).rgb;
     }
-
 
     vec3 Lo = vec3(0.0);
 
@@ -393,11 +389,13 @@ void main (){
         Lo = Lo * (1.0 - shadow);
         ambient *= (1.0 - (shadow * 0.6));
     }
+
     if(useShadowMapping == 2){
         shadow = ShadowCubeCalculation(FragPos, N, lightPosition[0]);
         Lo = Lo * (1.0 - shadow);
         ambient *= (1.0 - (shadow * 0.75));
     }
+
     // result += ambient * ao;
     vec3 result = (Lo + ambient + emissive) * ao;
     //vec3 result = blinnPhong();

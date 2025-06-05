@@ -3,6 +3,7 @@
 #define GUI_H
 
 #include <glm/glm.hpp>
+#include <string>
 
 #include "imGui/imgui.h"
 #include "imGui/imgui_impl_glfw.h"
@@ -162,7 +163,7 @@ namespace GUI {
 
     void initialize(GLFWwindow* w);
     void GUIFrame();
-    void modelTransform(glm::vec3& pos, glm::vec3& rot, float& angle, glm::vec3& scale);
+    void modelTransform(std::string name, glm::vec3& pos, glm::vec3& rot, float& angle, glm::vec3& scale);
     // later;
     void modelAnimation(int animation, int n);
     void PBRWindow(PBRParam &pbr);

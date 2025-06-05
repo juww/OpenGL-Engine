@@ -3,7 +3,7 @@
 #define PI 3.14159265358979323846
 
 WaterFFT::WaterFFT() {
-    pos = glm::vec3(0.0f);
+    pos = glm::vec3(0.0f, 10.0f, -20.0f);
     planeSize = 0;
     textureSize = 0;
     initialSpectrumTexture = 0;

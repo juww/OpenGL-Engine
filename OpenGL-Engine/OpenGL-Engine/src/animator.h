@@ -13,38 +13,7 @@
 #include<cmath>
 
 #include "interpolate.h"
-
-struct Transformation {
-	glm::mat4 mat;
-
-	glm::vec4 rotation;
-	glm::vec3 translation;
-	glm::vec3 scalation;
-	float weight;
-
-	Transformation() {
-		mat = glm::mat4(1.0f);
-
-		rotation = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-		translation = glm::vec3(0.0f);
-		scalation = glm::vec3(1.0f);
-		weight = 0.0f;
-	}
-
-	inline Transformation operator=(const Transformation& b) {
-		mat = b.mat;
-		rotation = b.rotation;
-		translation = b.translation;
-		scalation = b.scalation;
-		weight = b.weight;
-
-		return b;
-	}
-
-	~Transformation() {
-
-	}
-};
+#include "transformation.h"
 
 class KeyFrame {
 
@@ -83,22 +52,24 @@ public:
 
 		if (targetPath == "rotation") {
 			for (int i = 0; i < 4; i++) {
-				pose.rotation[(i + 1) % 4] = transform[i];
+				pose.rotate[(i + 1) % 4] = transform[i];
 			}
 		}
 		if (targetPath == "translation") {
 			for (int i = 0; i < 3; i++) {
-				pose.translation[i] = transform[i];
+				pose.pos[i] = transform[i];
 			}
 		}
 		if (targetPath == "scale") {
 			for (int i = 0; i < 3; i++) {
-				pose.scalation[i] = transform[i];
+				pose.scale[i] = transform[i];
 			}
 		}
-		if (targetPath == "weights") {
-			pose.weight = transform[0];
-		}
+        // i dunno?
+        // 
+		//if (targetPath == "weights") {
+		//	pose.weight = transform[0];
+		//}
 	}
 
 };
@@ -138,8 +109,8 @@ public:
 				//std::cout << "is not found and create count "<<count << "\n";
 				keyframes.push_back(KeyFrame(inputData[i], targetNode));
 				count++;
+			    itr = timestamp.find(t);
 			}
-			itr = timestamp.find(t);
 			//std::cout << "itr->first " << itr->first << std::endl;
 			//std::cout << "itr->second " << itr->second << std::endl;
 			KeyFrame& keyframe = keyframes[itr->second];
@@ -245,8 +216,8 @@ private:
 	Transformation interpolate(Transformation& previousTransform, Transformation& nextTransform, float& progression) {
 		Transformation result;
 
-		result.translation = interpolate::lerp(previousTransform.translation, nextTransform.translation, progression);
-		result.rotation = interpolate::slerp(previousTransform.rotation, nextTransform.rotation, progression);
+		result.pos = interpolate::lerp(previousTransform.pos, nextTransform.pos, progression);
+		result.rotate = interpolate::slerp(previousTransform.rotate, nextTransform.rotate, progression);
 
 		//nanti
 		//result.scalation = result.lerp(previousTransform.scalation, nextTransform.scalation, progression);

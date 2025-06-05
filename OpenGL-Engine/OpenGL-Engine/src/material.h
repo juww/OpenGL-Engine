@@ -8,6 +8,7 @@
 #include <math.h>
 #include <algorithm>
 #include <string>
+#include <map>
 
 #include "shader_m.h"
 #include <TinyGLTF/stb_image.h>

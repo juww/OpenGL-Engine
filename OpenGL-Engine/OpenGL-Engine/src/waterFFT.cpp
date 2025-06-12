@@ -208,19 +208,22 @@ void WaterFFT::initializeSpectrum() {
         compute_InitialSpectrum->setFloat("_Spectrums[" + std::to_string(i) + "].gamma", spectrumParam[i].gamma);
         compute_InitialSpectrum->setFloat("_Spectrums[" + std::to_string(i) + "].shortWavesFade", spectrumParam[i].shortWavesFade);
     }
-    //glActiveTexture(GL_TEXTURE0);
-    //glBindTexture(GL_TEXTURE_2D_ARRAY, initialSpectrumTexture);
-    //glBindImageTexture(0, initialSpectrumTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGB32F);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, initialSpectrumTexture);
+    glBindImageTexture(0, initialSpectrumTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
 
     glDispatchCompute((textureSize / 8), (textureSize / 8), 1);
-    // make sure writing to image has finished before read
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     compute_PackSpectrumConjugate->use();
     compute_PackSpectrumConjugate->setInt("_N", textureSize);
     compute_PackSpectrumConjugate->setInt("_ArrayTextureSize", waterFFTParam.waterUniform.arrayTextureSize);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, initialSpectrumTexture);
+    glBindImageTexture(0, initialSpectrumTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
     glDispatchCompute((textureSize / 8), (textureSize / 8), 1);
-    // make sure writing to image has finished before read
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
@@ -228,11 +231,27 @@ void WaterFFT::inverseFFT() {
 
     compute_FFTHorizontal->use();
     compute_FFTHorizontal->setInt("_ArrayTextureSize", waterFFTParam.waterUniform.arrayTextureSize);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, spectrumTexture);
+    glBindImageTexture(1, spectrumTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, derivativeTexture);
+    glBindImageTexture(2, derivativeTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
     glDispatchCompute(1, textureSize, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     compute_FFTVertical->use();
     compute_FFTVertical->setInt("_ArrayTextureSize", waterFFTParam.waterUniform.arrayTextureSize);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, spectrumTexture);
+    glBindImageTexture(1, spectrumTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, derivativeTexture);
+    glBindImageTexture(2, derivativeTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
     glDispatchCompute(1, textureSize, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
@@ -249,13 +268,18 @@ void WaterFFT::updateSpectrumToFFT(float frameTime) {
     compute_UpdateSpectrum->setInt("_LengthScale1", waterFFTParam.spectrumParam[1].lengthScale);
     compute_UpdateSpectrum->setInt("_LengthScale2", waterFFTParam.spectrumParam[2].lengthScale);
     compute_UpdateSpectrum->setInt("_LengthScale3", waterFFTParam.spectrumParam[3].lengthScale);
-    //glActiveTexture(GL_TEXTURE0);
-    //glBindTexture(GL_TEXTURE_2D, initialSpectrumTexture);
-    //glBindImageTexture(0, initialSpectrumTexture, 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGB32F);
 
-    //glActiveTexture(GL_TEXTURE1);
-    //glBindTexture(GL_TEXTURE_2D, spectrumTexture);
-    //glBindImageTexture(1, spectrumTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGB32F);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, initialSpectrumTexture);
+    glBindImageTexture(0, initialSpectrumTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, spectrumTexture);
+    glBindImageTexture(1, spectrumTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, derivativeTexture);
+    glBindImageTexture(2, derivativeTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
 
     glDispatchCompute((textureSize / 8), (textureSize / 8), 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -271,9 +295,24 @@ void WaterFFT::updateSpectrumToFFT(float frameTime) {
     compute_AssembleMaps->setFloat("_FoamAdd", waterFFTParam.foamParam.foamAdd);
     compute_AssembleMaps->setFloat("_FoamThreshold", waterFFTParam.foamParam.foamThreshold);
 
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, spectrumTexture);
+    glBindImageTexture(1, spectrumTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, derivativeTexture);
+    glBindImageTexture(2, derivativeTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, displacementTexture);
+    glBindImageTexture(3, displacementTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, slopeTexture);
+    glBindImageTexture(4, slopeTexture, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
     glDispatchCompute((textureSize / 8), (textureSize / 8), 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
 }
 
 unsigned int WaterFFT::createRenderTexture(int binding, int arrayTextureSize) {
@@ -294,7 +333,6 @@ unsigned int WaterFFT::createRenderTexture(int binding, int arrayTextureSize) {
     for (int i = 0; i < arrayTextureSize; i++) {
         glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, textureSize, textureSize, 1, GL_RGBA32F, GL_FLOAT, nullptr);
     }
-    glBindImageTexture(binding, tex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
     return tex;
 }

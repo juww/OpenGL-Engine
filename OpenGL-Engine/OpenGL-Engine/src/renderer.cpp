@@ -16,6 +16,7 @@ Renderer::Renderer() {
     m_Shaders.clear();
     m_Skybox = new Skybox();
     m_Plane = nullptr;
+    m_Terrain = nullptr;
     m_Sphere = nullptr;
     m_PBRShader = nullptr;
 
@@ -160,6 +161,11 @@ void Renderer::start() {
     m_Plane->GenerateNoiseMap(m_LightCubeShader, m_NoiseShader);
     m_Plane->generatePlaneWithPatch(64, 64);
 
+    m_Terrain = new T_Terrain();
+    m_Terrain->createPlane(64, 64);
+    m_Terrain->setShader(m_PatchPlaneShader);
+    m_Terrain->setComputeShader(m_NoiseShader);
+    m_Terrain->generateNoiseTexture(256);
     //m_LightCube->localTransform();
 
     m_Sphere = new Sphere(50, 2.0f);
@@ -334,6 +340,9 @@ void Renderer::render(float currentTime, float deltaTime) {
 
     m_Plane->drawPatchPlane(m_PatchPlaneShader, projection, view, 65, 65);
 
+    m_Terrain->computeNoiseMap();
+    m_Terrain->draw(projection, view);
+
     GUI::waterParam(wp);
     //m_Water->setParameter(m_WaterShader, wp.m_Amplitude, wp.m_Frequency, currentTime, wp.m_Speed, wp.m_Seed, wp.m_SeedIter, wp.m_WaveCount, m_Camera->Position);
     //m_Water->draw(m_WaterShader, projection, view);
@@ -341,7 +350,7 @@ void Renderer::render(float currentTime, float deltaTime) {
     GUI::waterFFTParam(m_WaterFFT->waterFFTParam);
     m_WaterFFT->update(currentTime);
     //m_WaterFFT->drawDebugPlane(m_DebugShader, projection, view);
-    m_WaterFFT->draw(projection, view, m_Camera->Position, m_Skybox->cubemapTexture,m_FBManager->mappers);
+    m_WaterFFT->draw(projection, view, m_Camera->Position, m_Skybox->cubemapTexture);
 
     //m_LightCube->update(currentTime * 0.1f);
     std::vector<glm::vec3> lightpos;

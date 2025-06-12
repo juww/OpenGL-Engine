@@ -12,6 +12,7 @@
 #include "cube.h"
 #include "sphere.h"
 #include "plane.h"
+#include "terrain.h"
 #include "water.h"
 #include "waterFFT.h"
 #include "computeShader.h"
@@ -41,6 +42,7 @@ private:
     loadModel* m_Sponza;
     Skybox* m_Skybox;
     Plane* m_Plane;
+    T_Terrain* m_Terrain;
     std::vector<Cube *> m_LightCube;
     Sphere* m_Sphere;
     Water* m_Water;

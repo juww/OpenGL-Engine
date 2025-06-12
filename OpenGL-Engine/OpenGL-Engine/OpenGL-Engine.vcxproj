@@ -156,6 +156,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\renderer.cpp" />
     <ClCompile Include="src\scene.cpp" />
+    <ClCompile Include="src\terrain.cpp" />
     <ClCompile Include="src\water.cpp" />
     <ClCompile Include="src\waterFFT.cpp" />
   </ItemGroup>
@@ -189,6 +190,7 @@
     <ClInclude Include="src\shader_t.h" />
     <ClInclude Include="src\skybox.h" />
     <ClInclude Include="src\sphere.h" />
+    <ClInclude Include="src\terrain.h" />
     <ClInclude Include="src\water.h" />
     <ClInclude Include="src\waterFFT.h" />
   </ItemGroup>

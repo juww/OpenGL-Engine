@@ -162,8 +162,8 @@ float NormalDistributionFunction(float ndoth, vec3 H, float alpha){
 }
 
 vec3 DisneyBRDF(vec3 N, vec3 surfaceColor, vec3 lightPos, float Roughness, float Metallic){
-    vec3 L = normalize(lightPos - FragPos);
-    //vec3 L = normalize(lightPos);
+    //vec3 L = normalize(lightPos - FragPos);
+    vec3 L = normalize(lightPos);
     vec3 V = normalize(viewPos - FragPos);
 
     vec3 H = normalize(L + V); // Microfacet normal of perfect reflection

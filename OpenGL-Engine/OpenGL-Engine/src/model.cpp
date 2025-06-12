@@ -152,6 +152,7 @@ namespace gltf {
             return;
         }
         shader->use();
+        shader->setInt("hasBone", 1);
         for (auto &skeletal : skeletals) {
             int root = skeletal.first;
             updateSkeletalNode(root, -1);
@@ -192,7 +193,6 @@ namespace gltf {
         shader->setFloat("_ClearCoatGloss", pbr.m_ClearCoatGloss);
         shader->setFloat("_ClearCoat", pbr.m_ClearCoat);
 
-        shader->setInt("hasBone", 0);
         shader->setInt("shadowMap", 10);
         shader->setInt("shadowCubeMap", 11);
         shader->setInt("useShadowMapping", 0);
@@ -218,6 +218,26 @@ namespace gltf {
 
         loadScene(*this);
         loadAnimation(*this);
+        
+        /////////////////////////////////////////////
+        for (auto& skin : skeletals) {
+            int root = skin.first;
+            for (int i = 0; i < skin.second.size(); i++) {
+                int joint = skin.second[i];
+                printf("joint Node - %d\n", joint);
+                auto& t_animation = animator.animations[0];
+                int cnt = 0;
+                for (auto &keyframe : t_animation.keyframes) {
+                    std::unordered_map<int, Transformation>::iterator itr = keyframe.poseTransform.find(joint);
+                    if (itr != keyframe.poseTransform.end()) {
+                        cnt++;
+                        //printf("%.4f ", keyframe.Timestamp);
+                    }
+                }
+                printf("\ncount = %d\n", cnt);
+            }
+        }
+        //////////////////////////////////////////////
     }
 
     void Model::setShader(std::string filename) {

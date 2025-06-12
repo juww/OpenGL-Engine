@@ -39,12 +39,12 @@ public:
 
     void localTransform() {
         // M = T * R * S
-        matrix = glm::scale(matrix, scale);
+        matrix = glm::translate(matrix, pos);
 
         glm::mat4 rotMatrix = glm::mat4_cast(quaternion);
         matrix = matrix * rotMatrix;
 
-        matrix = glm::translate(matrix, pos);
+        matrix = glm::scale(matrix, scale);
     }
 
     void inverseMatrices() {

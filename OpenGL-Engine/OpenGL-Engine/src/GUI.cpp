@@ -97,6 +97,32 @@ namespace GUI {
         ImGui::Text("count : %d", animator.animations[animator.currentAnimation].count);
         ImGui::Text("timestamp size : %d", animator.animations[animator.currentAnimation].timestamp.size());
         ImGui::Text("keyframe size : %d", animator.animations[animator.currentAnimation].keyframes.size());
+        if (ImGui::Button("previous")) {
+            if (animator.currentKeyframe > 0) {
+                animator.currentKeyframe--;
+            }
+            animator.nextKeyframe = animator.currentKeyframe + 1;
+            animator.animationTime = animator.animations[animator.currentAnimation].
+                keyframes[animator.IndexKeyframes[animator.currentKeyframe]].Timestamp;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("play")) {
+            animator.playAnimation = !(animator.playAnimation);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("next")) {
+            if (animator.nextKeyframe < animator.IndexKeyframes.size() - 1) {
+                animator.nextKeyframe++;
+            }
+            animator.currentKeyframe = animator.nextKeyframe - 1;
+            animator.animationTime = animator.animations[animator.currentAnimation].
+                keyframes[animator.IndexKeyframes[animator.currentKeyframe]].Timestamp;
+        }
+
+        float progress = animator.animationTime, lengthTime = animator.animations[animator.currentAnimation].length;
+        char buf[32];
+        sprintf(buf, "%.4f/%.4f", progress, lengthTime);
+        ImGui::ProgressBar(progress/lengthTime, ImVec2(0.f, 0.f), buf);
 
         bool itemHighlight = false;
         int itemSelected = 0, itemHighlighted = -1;
@@ -104,7 +130,7 @@ namespace GUI {
         if (ImGui::BeginListBox("timestamp list")) {
             for (auto& time : animator.animations[animator.currentAnimation].timestamp) {
                 bool isSelected = (itemSelected == indx);
-                std::string label = std::to_string(time.first);
+                std::string label = std::to_string(time.first) + " - " + std::to_string(time.second);
                 if (ImGui::Selectable(label.c_str(), isSelected))
                     itemSelected = indx;
 

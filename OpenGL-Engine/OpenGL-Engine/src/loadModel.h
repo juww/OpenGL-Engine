@@ -371,14 +371,15 @@ namespace gltf {
             int sampler_length = animation.samplers.size();
             int channel_length = animation.channels.size();
             model.animator.animations[current_animation].name = animation.name;
+            printf("sampler : channel\n%d : %d\n", sampler_length, channel_length);
             for (tinygltf::AnimationChannel& channel : animation.channels) {
 
-                if (current_animation > 0) break;
+            if (current_animation > 1) break;
 
                 int indxSampler = channel.sampler;
                 int targetNode = channel.target_node;
 
-                //printf("target node animation: %d\n", targetNode);
+                printf("target node animation: %d\n", targetNode);
 
                 std::string targetPath = channel.target_path;
                 if (indxSampler < 0 || indxSampler >= sampler_length) {
@@ -410,13 +411,13 @@ namespace gltf {
                     tempBuffer[cnt % 4] = bufferInput.data[i];
                     if (cnt % 4 == 3) {
                         float timestamp = HexToFloat(tempBuffer);
-                        //printf("%.7f\n", timestamp);
+                        //printf("%.7f ", timestamp);
                         inputData.push_back(timestamp);
                     }
                     cnt++;
                 }
-                //printf("count = %d,, firstTime = %f - lastTimeStamp = %f\n", inputData.size(), inputData[0], inputData[inputData.size() - 1]);
                 //printf("\n");
+                printf("count = %d,, firstTime = %f - lastTimeStamp = %f\n", inputData.size(), inputData[0], inputData[inputData.size() - 1]);
                 tinygltf::Accessor& accessorOutput = tinygltf_model->accessors[sampler.output];
                 tinygltf::BufferView& bufferViewOutput = tinygltf_model->bufferViews[accessorOutput.bufferView];
                 tinygltf::Buffer& bufferOutput = tinygltf_model->buffers[bufferViewOutput.buffer];
@@ -432,6 +433,7 @@ namespace gltf {
                 }
                 model.animator.animations[current_animation].addKeyframe(inputData, outputData, targetNode, sampler.interpolation, targetPath);
             }
+            //model.animator.animations[current_animation].fillMissingKeyframes(model.skeletals[0].second);
             current_animation++;
         }
     }

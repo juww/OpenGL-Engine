@@ -78,19 +78,22 @@ class Animation {
 
 public:
     std::string name;
-	float length;
+    
+	float startTime, length;
 	int count = 0;
 	std::map<unsigned int, unsigned int> timestamp; //timeframe -> index time;
 	std::vector<KeyFrame> keyframes;
 
 	Animation() {
-		length = 0.0;
+		length = 0.0f;
+        startTime = 1000.0f;
 		count = 0;
 		timestamp.clear();
 	};
 
 	~Animation() {
-		length = -1.0;
+        length = 0.0f;
+        startTime = 1000.0f;
 		count = -1;
 		timestamp.clear();
 	};
@@ -100,7 +103,7 @@ public:
 
 		int n = inputData.size();
 		for (int i = 0; i < n; i++) {
-			unsigned int t = (inputData[i] * 1e7);
+			unsigned int t = (inputData[i] * 1e5);
 			std::map<unsigned int, unsigned int>::iterator itr = timestamp.find(t);
 			//std::cout << "tt >> " << t << std::endl;
 			if (itr == timestamp.end()) {
@@ -116,28 +119,51 @@ public:
 			if (length < inputData[i]) {
 				length = inputData[i];
 			}
+            if (startTime > inputData[i]) {
+                startTime = inputData[i];
+            }
 			keyframe.JointTransform(outputData[i], targetNode, targetPath);
 		}
 	}
+
+    void fillMissingKeyframes(const std::vector<int>& skin) {
+
+        for (int i = 0; i < skin.size(); i++) {
+            int bone = skin[i];
+            for (auto& temp : timestamp) {
+                KeyFrame& keyframe = keyframes[temp.second];
+                if (keyframe.poseTransform.find(bone) == keyframe.poseTransform.end()) {
+                    // WIP: todo
+                    // fill the missing keyframe with interpolate between them.
+                    // if the node is empty keyframe, perhaps make flags isempty.
+                    // 
+                }
+            }
+        }
+    }
 };
 
 class Animator {
 
 public:
 	int currentAnimation;
-	std::map<int, Transformation> currentPose;
-	int currentKeyframe, nextKeyframe;
-	std::vector<Animation> animations;
+    bool playAnimation;
 	float animationTime, lastTime;
+	std::vector<Animation> animations;
 
+	std::map<int, Transformation> currentPose;
+    int currentKeyframe, nextKeyframe;
+    std::vector<int> IndexKeyframes;
 
 	Animator() {
 		currentAnimation = -1;
-		currentKeyframe = -1;
-		nextKeyframe = -1;
+		currentKeyframe = 0;
+		nextKeyframe = 0;
 		animationTime = 0.0f;
 		lastTime = 0.0f;
 		animations.clear();
+        playAnimation = false;
+        IndexKeyframes.clear();
 	}
 
 	~Animator() {
@@ -145,15 +171,24 @@ public:
 
 	void doAnimation(int animation) {
 		currentAnimation = animation;
-		animationTime = 0.0f;
+		animationTime = animations[currentAnimation].startTime;
 		lastTime = static_cast<float>(glfwGetTime());
 		currentKeyframe = 0;
 		nextKeyframe = currentKeyframe + 1;
 		currentPose.clear();
+        IndexKeyframes.clear();
+        playAnimation = true;
+
+        for (auto& timestamp : animations[currentAnimation].timestamp) {
+            IndexKeyframes.push_back(timestamp.second);
+        }
 	}
 
 	bool update(float deltaTime) {
 		if (currentAnimation < 0 || currentAnimation >= animations.size()) return false;
+        if (playAnimation == false) {
+            deltaTime = 0.0f;
+        }
 
 		increaseAnimationTime(deltaTime);
 		calculateCurrentAnimationPose();
@@ -169,7 +204,7 @@ private:
 		if (animationTime > animation.length) {
 			//std::cout << "reset: " << std::endl;
 			//printf("cur = %f --- length = %f\n", animationTime, animation.length);
-			animationTime = 0.0f;
+			animationTime = animations[currentAnimation].startTime;
 			currentKeyframe = 0;
 			nextKeyframe = currentKeyframe + 1;
 		}
@@ -179,14 +214,17 @@ private:
 		Animation& animation = animations[currentAnimation];
 		std::vector<KeyFrame>& kf = animation.keyframes;
 		//printf("cur = %f --- kf = %f\n", animationTime, kf[nextKeyframe].Timestamp);
-		if (animationTime > kf[nextKeyframe].Timestamp) {
+        
+		if (animationTime > kf[IndexKeyframes[nextKeyframe]].Timestamp) {
 			currentKeyframe = nextKeyframe;
 			//std::cout << "current Frame: " << currentKeyframe << std::endl;
 			nextKeyframe++;
-			if (nextKeyframe >= kf.size()) nextKeyframe = kf.size() - 1;
+			if (nextKeyframe >= IndexKeyframes.size()) nextKeyframe = IndexKeyframes.size() - 1;
 		}
-		float progression = calculateProgression(kf[currentKeyframe],kf[nextKeyframe]);
-		interpolatePose(kf[currentKeyframe], kf[nextKeyframe], progression);
+        int curr = IndexKeyframes[currentKeyframe];
+        int next = IndexKeyframes[nextKeyframe];
+		float progression = calculateProgression(kf[curr],kf[next]);
+		interpolatePose(kf[curr], kf[next], progression);
 	}
 
 	float calculateProgression(KeyFrame& currentFrame, KeyFrame& nextFrame) {
@@ -219,11 +257,10 @@ private:
 		result.rotate = interpolate::slerp(previousTransform.rotate, nextTransform.rotate, progression);
 
 		//nanti
-		//result.scalation = result.lerp(previousTransform.scalation, nextTransform.scalation, progression);
+		result.scale = interpolate::lerp(previousTransform.scale, nextTransform.scale, progression);
 
 		return result;
 	}
 };
-
 
 #endif

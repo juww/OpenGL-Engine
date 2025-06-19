@@ -1,4 +1,4 @@
-#include "terrain.h"
+﻿#include "terrain.h"
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -73,9 +73,9 @@ void T_Terrain::computeNoiseMap() {
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void T_Terrain::draw(glm::mat4 projection, glm::mat4 view) {
+void T_Terrain::draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos) {
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glm::mat4 m(1.0f);
     m = glm::translate(m, { -width, 6.0f, 0.0f });
 
@@ -89,7 +89,8 @@ void T_Terrain::draw(glm::mat4 projection, glm::mat4 view) {
 
     glBindVertexArray(vao);
 
-    shader->setInt("Textures", 0);
+    shader->setInt("heightMap", 0);
+    shader->setVec3("viewPos", viewPos);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, noiseTexture);
 
@@ -99,7 +100,7 @@ void T_Terrain::draw(glm::mat4 projection, glm::mat4 view) {
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindImageTexture(0, 0, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void T_Terrain::generateNoiseTexture(int t_size) {

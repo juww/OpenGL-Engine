@@ -341,7 +341,7 @@ void Renderer::render(float currentTime, float deltaTime) {
     m_Plane->drawPatchPlane(m_PatchPlaneShader, projection, view, 65, 65);
 
     m_Terrain->computeNoiseMap();
-    m_Terrain->draw(projection, view);
+    m_Terrain->draw(projection, view, m_Camera->Position);
 
     GUI::waterParam(wp);
     //m_Water->setParameter(m_WaterShader, wp.m_Amplitude, wp.m_Frequency, currentTime, wp.m_Speed, wp.m_Seed, wp.m_SeedIter, wp.m_WaveCount, m_Camera->Position);

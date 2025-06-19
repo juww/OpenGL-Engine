@@ -218,6 +218,7 @@
     <None Include="src\shader\patchPlane.vs" />
     <None Include="src\shader\pbr.fs" />
     <None Include="src\shader\pbr.vs" />
+    <None Include="src\shader\perlinNoise.sc" />
     <None Include="src\shader\plane.fs" />
     <None Include="src\shader\plane.vs" />
     <None Include="src\shader\preFilterShader.fs" />

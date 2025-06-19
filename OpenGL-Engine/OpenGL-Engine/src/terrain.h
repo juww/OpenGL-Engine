@@ -24,7 +24,7 @@ public:
     void generateNoiseTexture(int t_size);
     void computeNoiseMap();
 
-    void draw(glm::mat4 projection, glm::mat4 view);
+    void draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos);
 };
 
 #endif

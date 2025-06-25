@@ -15,6 +15,14 @@
 #include "interpolate.h"
 #include "transformation.h"
 
+class NodeAnimation {
+public:
+    std::vector<std::pair<float, glm::vec4> > translate;
+    std::vector<std::pair<float, glm::vec4> > rotate;
+    std::vector<std::pair<float, glm::vec4> > scale;
+};
+
+
 class KeyFrame {
 
 public:
@@ -52,7 +60,7 @@ public:
 
 		if (targetPath == "rotation") {
 			for (int i = 0; i < 4; i++) {
-				pose.rotate[(i + 1) % 4] = transform[i];
+                pose.rotate[(i + 1) % 4] = transform[i];
 			}
 		}
 		if (targetPath == "translation") {
@@ -103,7 +111,7 @@ public:
 
 		int n = inputData.size();
 		for (int i = 0; i < n; i++) {
-			unsigned int t = (inputData[i] * 1e5);
+			unsigned int t = (inputData[i] * 1e4);
 			std::map<unsigned int, unsigned int>::iterator itr = timestamp.find(t);
 			//std::cout << "tt >> " << t << std::endl;
 			if (itr == timestamp.end()) {
@@ -155,6 +163,8 @@ public:
     int currentKeyframe, nextKeyframe;
     std::vector<int> IndexKeyframes;
 
+    std::vector<std::vector<NodeAnimation> > nodeAnimation;
+
 	Animator() {
 		currentAnimation = -1;
 		currentKeyframe = 0;
@@ -164,7 +174,33 @@ public:
 		animations.clear();
         playAnimation = false;
         IndexKeyframes.clear();
+        nodeAnimation.clear();
 	}
+
+    void reserveSizeNodeAnimation(int n, int m) {
+        nodeAnimation.resize(n);
+        for (int i = 0; i < n; i++) {
+            nodeAnimation[i].resize(m);
+        }
+    }
+
+    void fillNodeAnimation(int animation, int node, 
+        std::vector<float> input, std::vector<glm::vec4> output, std::string targetPath) {
+        NodeAnimation& t_na = nodeAnimation[animation][node];
+        int nn = input.size();
+        for (int i = 0; i < nn; i++) {
+            if (targetPath == "rotation") {
+                t_na.rotate.push_back({ input[i], output[i] });
+            }
+            if (targetPath == "translation") {
+                t_na.translate.push_back({ input[i], output[i] });
+            }
+            if (targetPath == "scale") {
+                t_na.scale.push_back({ input[i], output[i] });
+            }
+
+        }
+    }
 
 	~Animator() {
 	}

@@ -18,6 +18,10 @@ namespace gltf {
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 #define glCheckError() glCheckError_(__FILE__, __LINE__)
+
+    const char HexChar[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+        'A','B','C','D','E','F'
+    };
     static float HexToFloat(unsigned char temp[]);
 
     tinygltf::Model *tinygltf_model = nullptr;
@@ -366,6 +370,7 @@ namespace gltf {
 
         int current_animation = 0;
         model.animator.animations.resize(tinygltf_model->animations.size());
+        model.animator.reserveSizeNodeAnimation(tinygltf_model->animations.size(), model.nodes.size());
         for (tinygltf::Animation& animation : tinygltf_model->animations) {
             //printf("%d: %s\n", current_animation, animation.name.c_str());
             int sampler_length = animation.samplers.size();
@@ -374,7 +379,7 @@ namespace gltf {
             printf("sampler : channel\n%d : %d\n", sampler_length, channel_length);
             for (tinygltf::AnimationChannel& channel : animation.channels) {
 
-            if (current_animation > 1) break;
+                if (current_animation > 1) break;
 
                 int indxSampler = channel.sampler;
                 int targetNode = channel.target_node;
@@ -406,11 +411,19 @@ namespace gltf {
                 int cnt = 0, mi = 0;
                 unsigned char tempBuffer[4];
                 //printf("timestamp: ");
+                
                 std::vector<float> inputData;
                 for (unsigned int i = offsetofData; i < offsetofData + lengthOfData; i++) {
                     tempBuffer[cnt % 4] = bufferInput.data[i];
                     if (cnt % 4 == 3) {
                         float timestamp = HexToFloat(tempBuffer);
+                        for (int k = 0; k < 4; k++) {
+                            int hex1 = tempBuffer[k] / 16;
+                            int hex2 = tempBuffer[k] % 16;
+                            //printf("%c%c", HexChar[hex1], HexChar[hex2]);
+                            //printf("%d%d", hex1, hex2);
+                        }
+                        //printf(" ");
                         //printf("%.7f ", timestamp);
                         inputData.push_back(timestamp);
                     }
@@ -427,11 +440,29 @@ namespace gltf {
                 lengthOfData = accessorOutput.count * stride;
 
                 std::vector<glm::vec4> outputData;
+                int flag = 0;
                 for (int j = 0; j < accessorOutput.count; j++) {
-                    glm::vec4 temp = glm::make_vec4((float*)(bufferOutput.data.data() + offsetofData + stride * j));
-                    outputData.push_back(temp);
+                    glm::vec4 res;
+                    if (accessorOutput.type == 3) {
+                        glm::vec3 temp3 = glm::make_vec3((float*)(bufferOutput.data.data() + offsetofData + stride * j));
+                        res = glm::vec4(temp3.x, temp3.y, temp3.z, 0.0f);
+                    }
+                    if (accessorOutput.type == 4) {
+                        glm::vec4 temp4 = glm::make_vec4((float*)(bufferOutput.data.data() + offsetofData + stride * j));
+                        res = temp4;
+                    }
+                    if (sampler.output == 27) {
+                        printf("%d\n", accessorOutput.type);
+                        for (int k = 0; k < 4; k++) {
+                            printf("%f ", res[k]);
+                        }
+                        printf("\n");
+                    }
+                    outputData.push_back(res);
                 }
+                printf("\n");
                 model.animator.animations[current_animation].addKeyframe(inputData, outputData, targetNode, sampler.interpolation, targetPath);
+                model.animator.fillNodeAnimation(current_animation, targetNode, inputData, outputData, targetPath);
             }
             //model.animator.animations[current_animation].fillMissingKeyframes(model.skeletals[0].second);
             current_animation++;

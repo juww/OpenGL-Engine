@@ -163,6 +163,62 @@ namespace GUI {
             ImGui::EndListBox();
         }
 
+        ImGui::PushID("##HorizontalScrolling");
+        ImGuiStyle& style = ImGui::GetStyle();
+        static int track_item = 3;
+        static bool enable_track = true;
+        auto &nodes = animator.nodeAnimation[0];
+        for (int i = 0; i < nodes.size(); i++) {
+            float child_height = ImGui::GetTextLineHeight() + style.ScrollbarSize + style.WindowPadding.y * 6.0f;
+            ImGuiWindowFlags child_flags = ImGuiWindowFlags_HorizontalScrollbar;
+            ImGuiID child_id = ImGui::GetID((void*)(intptr_t)i);
+            bool child_is_visible = ImGui::BeginChild(child_id, ImVec2(-100, child_height), true, child_flags);
+            if (child_is_visible) {
+                for (int j = 0; j < nodes[i].translate.size(); j++){
+                    if (j == 0) {
+                        ImGui::Text("translation:\t");
+                    }
+                    ImGui::SameLine();
+                    if (enable_track && j == track_item) {
+                        ImGui::TextColored(ImVec4(1, 1, 0, 1), "%.3f", nodes[i].translate[j].first);
+                    } else {
+                        ImGui::Text("%.3f", nodes[i].translate[j].first);
+                    }
+                }
+                for (int j = 0; j < nodes[i].rotate.size(); j++) {
+                    if (j == 0) {
+                        ImGui::Text("rotation:\t");
+                    }
+                    ImGui::SameLine();
+                    if (enable_track && j == track_item) {
+                        ImGui::TextColored(ImVec4(1, 1, 0, 1), "%.3f", nodes[i].rotate[j].first);
+                    } else {
+                        ImGui::Text("%.3f", nodes[i].rotate[j].first);
+                    }
+                }
+                for (int j = 0; j < nodes[i].scale.size(); j++) {
+                    if (j == 0) {
+                        ImGui::Text("scale:\t");
+                    }
+                    ImGui::SameLine();
+                    if (enable_track && j == track_item) {
+                        ImGui::TextColored(ImVec4(1, 1, 0, 1), "%.3f", nodes[i].scale[j].first);
+                    }
+                    else {
+                        ImGui::Text("%.3f", nodes[i].scale[j].first);
+                    }
+                }
+            }
+            float scroll_x = ImGui::GetScrollX();
+            float scroll_max_x = ImGui::GetScrollMaxX();
+            ImGui::EndChild();
+            ImGui::SameLine();
+            
+            ImGui::Text("node %d\n%.0f/%.0f", i, scroll_x, scroll_max_x);
+            ImGui::Spacing();
+        }
+        ImGui::PopID();
+
         ImGui::End();
     }
 

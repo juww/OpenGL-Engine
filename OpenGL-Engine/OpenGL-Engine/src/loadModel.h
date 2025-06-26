@@ -451,7 +451,7 @@ namespace gltf {
                         glm::vec4 temp4 = glm::make_vec4((float*)(bufferOutput.data.data() + offsetofData + stride * j));
                         res = temp4;
                     }
-                    if (sampler.output == 27) {
+                    if (targetNode == 14) {
                         printf("%d\n", accessorOutput.type);
                         for (int k = 0; k < 4; k++) {
                             printf("%f ", res[k]);

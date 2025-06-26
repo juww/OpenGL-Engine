@@ -76,27 +76,16 @@ namespace GUI {
     }
 
     // later;
-    void modelAnimation(std::string name, Animator &animator) {
+    void menuPlayAnimation(Animator& animator) {
+        ImGui::Begin("play Animation");
 
-        ImGui::Begin(name.c_str());
-        ImGui::SeparatorText("animation");
-        int n_animation = animator.animations.size();
-        if (ImGui::BeginCombo("animation", animator.animations[0].name.c_str(), 0)) {
-            for (int i = 0; i < n_animation; i++) {
-                bool isSelected = (animator.currentAnimation == i);
-                if (ImGui::Selectable(animator.animations[i].name.c_str(), isSelected))
-                    animator.currentAnimation = i;
-
-                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                if (isSelected)
-                    ImGui::SetItemDefaultFocus();
+        if (ImGui::Button("-0.001s")) {
+            animator.animationTime -= 0.001f;
+            if (animator.animationTime < 0.0f) {
+                animator.animationTime = 0.0f;
             }
-            ImGui::EndCombo();
         }
-        ImGui::Text("length : %f", animator.animations[animator.currentAnimation].length);
-        ImGui::Text("count : %d", animator.animations[animator.currentAnimation].count);
-        ImGui::Text("timestamp size : %d", animator.animations[animator.currentAnimation].timestamp.size());
-        ImGui::Text("keyframe size : %d", animator.animations[animator.currentAnimation].keyframes.size());
+        ImGui::SameLine();
         if (ImGui::Button("previous")) {
             if (animator.currentKeyframe > 0) {
                 animator.currentKeyframe--;
@@ -119,10 +108,45 @@ namespace GUI {
                 keyframes[animator.IndexKeyframes[animator.currentKeyframe]].Timestamp;
         }
 
+        ImGui::SameLine();
         float progress = animator.animationTime, lengthTime = animator.animations[animator.currentAnimation].length;
+        if (ImGui::Button("+0.001s")) {
+            animator.animationTime += 0.001f;
+            if (animator.animationTime > lengthTime) {
+                animator.animationTime = lengthTime;
+            }
+        }
         char buf[32];
         sprintf(buf, "%.4f/%.4f", progress, lengthTime);
-        ImGui::ProgressBar(progress/lengthTime, ImVec2(0.f, 0.f), buf);
+        ImGui::ProgressBar(progress / lengthTime, ImVec2(0.f, 0.f), buf);
+
+        ImGui::End();
+    }
+
+    void modelAnimation(std::string name, Animator &animator) {
+
+        ImGui::Begin(name.c_str());
+
+        float progress = animator.animationTime, lengthTime = animator.animations[animator.currentAnimation].length;
+
+        ImGui::SeparatorText("animation");
+        int n_animation = animator.animations.size();
+        if (ImGui::BeginCombo("animation", animator.animations[0].name.c_str(), 0)) {
+            for (int i = 0; i < n_animation; i++) {
+                bool isSelected = (animator.currentAnimation == i);
+                if (ImGui::Selectable(animator.animations[i].name.c_str(), isSelected))
+                    animator.currentAnimation = i;
+
+                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                if (isSelected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::Text("length : %f", animator.animations[animator.currentAnimation].length);
+        ImGui::Text("count : %d", animator.animations[animator.currentAnimation].count);
+        ImGui::Text("timestamp size : %d", animator.animations[animator.currentAnimation].timestamp.size());
+        ImGui::Text("keyframe size : %d", animator.animations[animator.currentAnimation].keyframes.size());
 
         bool itemHighlight = false;
         int itemSelected = 0, itemHighlighted = -1;
@@ -163,61 +187,86 @@ namespace GUI {
             ImGui::EndListBox();
         }
 
-        ImGui::PushID("##HorizontalScrolling");
-        ImGuiStyle& style = ImGui::GetStyle();
-        static int track_item = 3;
-        static bool enable_track = true;
-        auto &nodes = animator.nodeAnimation[0];
+        auto& nodes = animator.nodeAnimation[0];
+
+        static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | 
+            ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable 
+            | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
+
+        ImGui::CheckboxFlags("ImGuiTableFlags_ScrollY", &flags, ImGuiTableFlags_ScrollY);
+        const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
+        ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 6);
         for (int i = 0; i < nodes.size(); i++) {
-            float child_height = ImGui::GetTextLineHeight() + style.ScrollbarSize + style.WindowPadding.y * 6.0f;
-            ImGuiWindowFlags child_flags = ImGuiWindowFlags_HorizontalScrollbar;
-            ImGuiID child_id = ImGui::GetID((void*)(intptr_t)i);
-            bool child_is_visible = ImGui::BeginChild(child_id, ImVec2(-100, child_height), true, child_flags);
-            if (child_is_visible) {
-                for (int j = 0; j < nodes[i].translate.size(); j++){
-                    if (j == 0) {
-                        ImGui::Text("translation:\t");
-                    }
-                    ImGui::SameLine();
-                    if (enable_track && j == track_item) {
-                        ImGui::TextColored(ImVec4(1, 1, 0, 1), "%.3f", nodes[i].translate[j].first);
+            if (nodes[i].translate.empty() && nodes[i].rotate.empty() && nodes[i].scale.empty()) {
+                continue;
+            }
+            ImGui::Text("node %d\n", i);
+            ImGui::Text("currTranslate : %f %f %f\n", animator.currentPose[i].pos.x, animator.currentPose[i].pos.y, animator.currentPose[i].pos.z);
+            ImGui::Text("currRotate : %f %f %f %f\n", animator.currentPose[i].rotate.x, animator.currentPose[i].rotate.y, animator.currentPose[i].rotate.z, animator.currentPose[i].rotate.w);
+            ImGui::Text("currScale : %f %f %f\n", animator.currentPose[i].scale.x, animator.currentPose[i].scale.y, animator.currentPose[i].scale.z);
+
+            if (ImGui::BeginTable("table_scrolly", 3, flags, outer_size)) {
+                ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
+                /*ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_None);*/
+                ImGui::TableSetupColumn("translation", ImGuiTableColumnFlags_None);
+                ImGui::TableSetupColumn("rotation", ImGuiTableColumnFlags_None);
+                ImGui::TableSetupColumn("scale", ImGuiTableColumnFlags_None);
+                ImGui::TableHeadersRow();
+                
+                ImGui::TableNextRow();
+                int mcol = std::max(nodes[i].translate.size(), std::max(nodes[i].rotate.size(), nodes[i].scale.size()));
+                for (int j = 0; j < mcol; j++) {
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    if (j < nodes[i].translate.size()) {
+                        bool vis = false;
+                        if (progress >= nodes[i].translate[j].first) {
+                            if (j + 1 < nodes[i].translate.size() && progress <= nodes[i].translate[j + 1].first) {
+                                ImGui::TextColored(ImVec4(1, 1, 0, 1), "%f %f %f", nodes[i].translate[j].second.x, nodes[i].translate[j].second.y, nodes[i].translate[j].second.z);
+                                vis = true;
+                            }
+                        }
+                        if(vis == false) {
+                            ImGui::Text("%f %f %f", nodes[i].translate[j].second.x, nodes[i].translate[j].second.y, nodes[i].translate[j].second.z);
+                        }
                     } else {
-                        ImGui::Text("%.3f", nodes[i].translate[j].first);
+                        ImGui::Text("-");
                     }
-                }
-                for (int j = 0; j < nodes[i].rotate.size(); j++) {
-                    if (j == 0) {
-                        ImGui::Text("rotation:\t");
-                    }
-                    ImGui::SameLine();
-                    if (enable_track && j == track_item) {
-                        ImGui::TextColored(ImVec4(1, 1, 0, 1), "%.3f", nodes[i].rotate[j].first);
+                    ImGui::TableNextColumn();
+                    if (j < nodes[i].rotate.size()) {
+                        bool vis = false;
+                        if (progress >= nodes[i].rotate[j].first) {
+                            if (j + 1 < nodes[i].rotate.size() && progress <= nodes[i].rotate[j + 1].first) {
+                                ImGui::TextColored(ImVec4(1, 1, 0, 1), "%f %f %f %f", nodes[i].rotate[j].second.x, nodes[i].rotate[j].second.y, nodes[i].rotate[j].second.z, nodes[i].rotate[j].second.w);
+                                vis = true;
+                            }
+                        }
+                        if (vis == false) {
+                            ImGui::Text("%f %f %f %f", nodes[i].rotate[j].second.x, nodes[i].rotate[j].second.y, nodes[i].rotate[j].second.z, nodes[i].rotate[j].second.w);
+                        }
                     } else {
-                        ImGui::Text("%.3f", nodes[i].rotate[j].first);
+                        ImGui::Text("-");
                     }
-                }
-                for (int j = 0; j < nodes[i].scale.size(); j++) {
-                    if (j == 0) {
-                        ImGui::Text("scale:\t");
-                    }
-                    ImGui::SameLine();
-                    if (enable_track && j == track_item) {
-                        ImGui::TextColored(ImVec4(1, 1, 0, 1), "%.3f", nodes[i].scale[j].first);
+                    ImGui::TableNextColumn();
+                    if (j < nodes[i].scale.size()) {
+                        bool vis = false;
+                        if (progress >= nodes[i].scale[j].first) {
+                            if (j + 1 < nodes[i].scale.size() && progress <= nodes[i].scale[j + 1].first) {
+                                ImGui::TextColored(ImVec4(1, 1, 0, 1), "%f %f %f", nodes[i].scale[j].second.x, nodes[i].scale[j].second.y, nodes[i].scale[j].second.z);
+                                vis = true;
+                            }
+                        }
+                        if (vis == false) {
+                            ImGui::Text("%f %f %f", nodes[i].scale[j].second.x, nodes[i].scale[j].second.y, nodes[i].scale[j].second.z);
+                        }
                     }
                     else {
-                        ImGui::Text("%.3f", nodes[i].scale[j].first);
+                        ImGui::Text("-");
                     }
                 }
+                ImGui::EndTable();
             }
-            float scroll_x = ImGui::GetScrollX();
-            float scroll_max_x = ImGui::GetScrollMaxX();
-            ImGui::EndChild();
-            ImGui::SameLine();
-            
-            ImGui::Text("node %d\n%.0f/%.0f", i, scroll_x, scroll_max_x);
-            ImGui::Spacing();
         }
-        ImGui::PopID();
 
         ImGui::End();
     }

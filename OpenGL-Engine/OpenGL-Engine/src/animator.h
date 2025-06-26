@@ -190,6 +190,10 @@ public:
         int nn = input.size();
         for (int i = 0; i < nn; i++) {
             if (targetPath == "rotation") {
+                glm::vec4 temp = output[i];
+                for (int j = 0; j < 4; j++) {
+                    output[i][(j + 1) % 4] = temp[j];
+                }
                 t_na.rotate.push_back({ input[i], output[i] });
             }
             if (targetPath == "translation") {

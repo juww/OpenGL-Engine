@@ -18,8 +18,8 @@ namespace interpolate {
     inline glm::vec4 slerp(glm::vec4 v0, glm::vec4 v1, float t) {
 
         // use normalize quaternion, calculation become wrong (result is nan);
-        v0 = glm::normalize(v0);
-        v1 = glm::normalize(v1);
+        //v0 = glm::normalize(v0);
+        //v1 = glm::normalize(v1);
         float dotq = glm::dot(v0, v1);
         if (dotq < 0) {
             v1 = -v1;

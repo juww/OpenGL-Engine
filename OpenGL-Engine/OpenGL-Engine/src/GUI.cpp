@@ -196,6 +196,7 @@ namespace GUI {
         ImGui::CheckboxFlags("ImGuiTableFlags_ScrollY", &flags, ImGuiTableFlags_ScrollY);
         const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
         ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 6);
+
         for (int i = 0; i < nodes.size(); i++) {
             if (nodes[i].translate.empty() && nodes[i].rotate.empty() && nodes[i].scale.empty()) {
                 continue;

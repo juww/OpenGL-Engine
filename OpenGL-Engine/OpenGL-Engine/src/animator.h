@@ -20,6 +20,20 @@ public:
     std::vector<std::pair<float, glm::vec4> > translate;
     std::vector<std::pair<float, glm::vec4> > rotate;
     std::vector<std::pair<float, glm::vec4> > scale;
+
+    NodeAnimation() {
+        translate.clear();
+        rotate.clear();
+        scale.clear();
+    }
+
+    NodeAnimation& operator=(const NodeAnimation &node) {
+        translate = node.translate;
+        rotate = node.rotate;
+        scale = node.scale;
+
+        return *this;
+    }
 };
 
 
@@ -127,6 +141,7 @@ public:
 			if (length < inputData[i]) {
 				length = inputData[i];
 			}
+
             if (startTime > inputData[i]) {
                 startTime = inputData[i];
             }
@@ -134,18 +149,116 @@ public:
 		}
 	}
 
-    void fillMissingKeyframes(const std::vector<int>& skin) {
-
+    void fillMissingKeyframes(const std::vector<int>& skin, const std::vector<NodeAnimation>& nodeAnimations,
+        const std::vector<Transformation>& nodeDefault
+        ) {
+        // wtf is this,, very ugly code...
+        // need to cleaning this shit....
         for (int i = 0; i < skin.size(); i++) {
             int bone = skin[i];
             for (auto& temp : timestamp) {
                 KeyFrame& keyframe = keyframes[temp.second];
-                if (keyframe.poseTransform.find(bone) == keyframe.poseTransform.end()) {
+                bool filling = false;
+                auto poseTransform = keyframe.poseTransform.find(bone);
+                if (poseTransform == keyframe.poseTransform.end()) {
+                    filling = true;
+                    Transformation tempTransform;
+                    keyframe.poseTransform.insert({ bone, tempTransform });
+                    poseTransform = keyframe.poseTransform.find(bone);
                     // WIP: todo
                     // fill the missing keyframe with interpolate between them.
                     // if the node is empty keyframe, perhaps make flags isempty.
                     // 
                 }
+                const NodeAnimation& node = nodeAnimations[bone];
+
+                glm::vec3 resTranslate = nodeDefault[bone].pos;
+                glm::vec4 resRotate = nodeDefault[bone].rotate;
+                glm::vec3 resScale = nodeDefault[bone].scale;
+                //fill translate
+                bool flag = false;
+                for (int j = 0; j < node.translate.size(); j++) {
+                    if (flag == true) break;
+
+                    if (abs(node.translate[j].first - keyframe.Timestamp) <= 1e-4f) {
+                        flag = true;
+                        resTranslate = glm::vec3(node.translate[j].second.x, node.translate[j].second.y, node.translate[j].second.z);
+                        break;
+                    }
+                    if (node.translate[j].first > keyframe.Timestamp && flag == false) {
+                        if (j - 1 >= 0) {
+                            float ta = node.translate[j - 1].first;
+                            float tb = node.translate[j].first;
+                            float tk = keyframe.Timestamp;
+                            float tt = (tk - ta) / (tb - ta);
+
+                            glm::vec3 TA = node.translate[j - 1].second;
+                            glm::vec3 TB = node.translate[j].second;
+                            glm::vec3 res = interpolate::lerp(TA, TB, tt);
+                            resTranslate = res;
+                            flag = true;
+                            break;
+                        }
+                    }
+                }
+                keyframe.poseTransform[bone].pos = resTranslate;
+
+                //fill rotate
+                flag = false;
+                for (int j = 0; j < node.rotate.size(); j++) {
+                    if (flag == true) break;
+
+                    if (abs(node.rotate[j].first - keyframe.Timestamp) <= 1e-4f) {
+                        flag = true;
+                        resRotate = node.rotate[j].second;
+                        break;
+                    }
+                    if (node.rotate[j].first > keyframe.Timestamp && flag == false) {
+                        if (j - 1 >= 0) {
+                            float ta = node.rotate[j - 1].first;
+                            float tb = node.rotate[j].first;
+                            float tk = keyframe.Timestamp;
+                            float tt = (tk - ta) / (tb - ta);
+
+                            glm::vec4 TA = node.rotate[j - 1].second;
+                            glm::vec4 TB = node.rotate[j].second;
+                            glm::vec4 res = interpolate::slerp(TA, TB, tt);
+                            resRotate = res;
+
+                            flag = true;
+                            break;
+                        }
+                    }
+                }
+                keyframe.poseTransform[bone].rotate = resRotate;
+                //fill scale
+                flag = false;
+                for (int j = 0; j < node.scale.size(); j++) {
+                    if (flag == true) break;
+
+                    if (abs(node.scale[j].first - keyframe.Timestamp) <= 1e-4f) {
+                        flag = true;
+                        resScale = glm::vec3(node.scale[j].second.x, node.scale[j].second.y, node.scale[j].second.z);
+                        break;
+                    }
+                    if (node.scale[j].first > keyframe.Timestamp && flag == false) {
+                        if (j - 1 >= 0) {
+                            float ta = node.scale[j - 1].first;
+                            float tb = node.scale[j].first;
+                            float tk = keyframe.Timestamp;
+                            float tt = (tk - ta) / (tb - ta);
+
+                            glm::vec3 TA = node.scale[j - 1].second;
+                            glm::vec3 TB = node.scale[j].second;
+                            glm::vec3 res = interpolate::lerp(TA, TB, tt);
+
+                            resScale = res;
+                            flag = true;
+                            break;
+                        }
+                    }
+                }
+                keyframe.poseTransform[bone].scale = resScale;
             }
         }
     }
@@ -164,6 +277,7 @@ public:
     std::vector<int> IndexKeyframes;
 
     std::vector<std::vector<NodeAnimation> > nodeAnimation;
+    std::vector<Transformation> nodeDefaultTransform;
 
 	Animator() {
 		currentAnimation = -1;
@@ -182,6 +296,7 @@ public:
         for (int i = 0; i < n; i++) {
             nodeAnimation[i].resize(m);
         }
+        nodeDefaultTransform.resize(m);
     }
 
     void fillNodeAnimation(int animation, int node, 

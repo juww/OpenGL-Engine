@@ -57,6 +57,7 @@ namespace gltf {
         if (!node.rotation.empty()) {
             for (int i = 0; i < node.rotation.size(); i++) {
                 transform.quaternion[(i + 1) % 4] = node.rotation[i];
+                transform.rotate[(i + 1) % 4] = node.rotation[i];
             }
         }
 
@@ -371,20 +372,20 @@ namespace gltf {
         int current_animation = 0;
         model.animator.animations.resize(tinygltf_model->animations.size());
         model.animator.reserveSizeNodeAnimation(tinygltf_model->animations.size(), model.nodes.size());
+        for (int i = 0; i < model.animator.nodeDefaultTransform.size(); i++) {
+            model.animator.nodeDefaultTransform[i] = model.nodes[i].transform;
+        }
         for (tinygltf::Animation& animation : tinygltf_model->animations) {
+            //if (current_animation > 1) break;
             //printf("%d: %s\n", current_animation, animation.name.c_str());
             int sampler_length = animation.samplers.size();
             int channel_length = animation.channels.size();
             model.animator.animations[current_animation].name = animation.name;
-            printf("sampler : channel\n%d : %d\n", sampler_length, channel_length);
+            //printf("sampler : channel\n%d : %d\n", sampler_length, channel_length);
             for (tinygltf::AnimationChannel& channel : animation.channels) {
-
-                if (current_animation > 1) break;
 
                 int indxSampler = channel.sampler;
                 int targetNode = channel.target_node;
-
-                printf("target node animation: %d\n", targetNode);
 
                 std::string targetPath = channel.target_path;
                 if (indxSampler < 0 || indxSampler >= sampler_length) {
@@ -429,8 +430,7 @@ namespace gltf {
                     }
                     cnt++;
                 }
-                //printf("\n");
-                printf("count = %d,, firstTime = %f - lastTimeStamp = %f\n", inputData.size(), inputData[0], inputData[inputData.size() - 1]);
+
                 tinygltf::Accessor& accessorOutput = tinygltf_model->accessors[sampler.output];
                 tinygltf::BufferView& bufferViewOutput = tinygltf_model->bufferViews[accessorOutput.bufferView];
                 tinygltf::Buffer& bufferOutput = tinygltf_model->buffers[bufferViewOutput.buffer];
@@ -451,20 +451,13 @@ namespace gltf {
                         glm::vec4 temp4 = glm::make_vec4((float*)(bufferOutput.data.data() + offsetofData + stride * j));
                         res = temp4;
                     }
-                    if (targetNode == 14) {
-                        printf("%d\n", accessorOutput.type);
-                        for (int k = 0; k < 4; k++) {
-                            printf("%f ", res[k]);
-                        }
-                        printf("\n");
-                    }
                     outputData.push_back(res);
                 }
-                printf("\n");
                 model.animator.animations[current_animation].addKeyframe(inputData, outputData, targetNode, sampler.interpolation, targetPath);
                 model.animator.fillNodeAnimation(current_animation, targetNode, inputData, outputData, targetPath);
             }
-            //model.animator.animations[current_animation].fillMissingKeyframes(model.skeletals[0].second);
+            model.animator.animations[current_animation].fillMissingKeyframes(model.skeletals[0].second, 
+                model.animator.nodeAnimation[current_animation], model.animator.nodeDefaultTransform);
             current_animation++;
         }
     }

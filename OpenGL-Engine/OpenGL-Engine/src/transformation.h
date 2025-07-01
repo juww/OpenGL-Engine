@@ -21,7 +21,7 @@ public:
 
         pos = glm::vec3(0.0f);
         scale = glm::vec3(1.0f, 1.0f, 1.0f);
-        rotate = glm::vec4(0.0f);
+        rotate = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
         quaternion = glm::quat();
     }
 

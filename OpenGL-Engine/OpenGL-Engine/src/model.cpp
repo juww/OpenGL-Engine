@@ -85,14 +85,16 @@ namespace gltf {
             return;
         }
         NodeObject& node = nodes[nodeIndx];
-        glm::mat4 mat = nodes[nodeIndx].transform.matrix;
         //glm::mat4 mat(1.0f);
-        mat = glm::translate(mat, pos);
+        glm::mat4 S = glm::scale(glm::mat4(1.0f), scale);
         //model = glm::rotate(model, (float)glfwGetTime(), { 1.0f,0.0f,0.0f });
-        mat = glm::rotate(mat, angle, rot);
+        glm::mat4 R = glm::rotate(glm::mat4(1.0f), angle, rot);
         //scale = glm::vec3(0.01f);
-        mat = glm::scale(mat, scale);
         //std::cout << glm::to_string(mat) << "\n";
+        glm::mat4 T = glm::translate(glm::mat4(1.0f), pos);
+
+        glm::mat4 mat = T * R * S;
+        mat = mat * nodes[nodeIndx].transform.matrix;
         shader->setMat4("model", mat);
         
         for (auto& meshIndex : nodes[nodeIndx].meshIndices) {
@@ -121,21 +123,13 @@ namespace gltf {
 
         std::map<int, Transformation>::iterator itr = animator.currentPose.find(nodeIndx);
         if (itr == animator.currentPose.end()) {
-            Transformation tmp;
-            animator.currentPose.insert({ nodeIndx, tmp });
+            animator.currentPose.insert({ nodeIndx, animator.nodeDefaultTransform[nodeIndx] });
             itr = animator.currentPose.find(nodeIndx);
         }
-        Transformation& transform = itr->second;
+        Transformation& transform = animator.currentPose[nodeIndx];
         transform.matrix = glm::mat4(1.0f);
 
-        transform.matrix = glm::scale(transform.matrix, transform.scale);
-
-        glm::quat q(transform.rotate[0], transform.rotate[1], transform.rotate[2], transform.rotate[3]);
-        glm::mat4 rot = glm::toMat4(q);
-        transform.matrix = rot * transform.matrix;
-
-        transform.matrix = glm::translate(transform.matrix, transform.pos);
-
+        transform.localTransform();
         if (parent != -1) {
             Transformation& par = animator.currentPose.find(parent)->second;
             transform.matrix = par.matrix * transform.matrix;
@@ -148,11 +142,14 @@ namespace gltf {
 
     void Model::update(float deltaTime) {
 
+        shader->use();
         if (!animator.update(deltaTime)) {
+            playAnimation = false;
+            shader->setInt("hasBone", 0);
             return;
         }
-        shader->use();
         shader->setInt("hasBone", 1);
+        playAnimation = true;
         for (auto &skeletal : skeletals) {
             int root = skeletal.first;
             updateSkeletalNode(root, -1);
@@ -218,26 +215,6 @@ namespace gltf {
 
         loadScene(*this);
         loadAnimation(*this);
-        
-        /////////////////////////////////////////////
-        for (auto& skin : skeletals) {
-            int root = skin.first;
-            for (int i = 0; i < skin.second.size(); i++) {
-                int joint = skin.second[i];
-                printf("joint Node - %d\n", joint);
-                auto& t_animation = animator.animations[0];
-                int cnt = 0;
-                for (auto &keyframe : t_animation.keyframes) {
-                    std::unordered_map<int, Transformation>::iterator itr = keyframe.poseTransform.find(joint);
-                    if (itr != keyframe.poseTransform.end()) {
-                        cnt++;
-                        //printf("%.4f ", keyframe.Timestamp);
-                    }
-                }
-                printf("\ncount = %d\n", cnt);
-            }
-        }
-        //////////////////////////////////////////////
     }
 
     void Model::setShader(std::string filename) {

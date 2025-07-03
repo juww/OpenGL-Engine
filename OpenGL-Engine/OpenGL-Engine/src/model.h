@@ -31,6 +31,7 @@ namespace gltf {
         };
         struct NodeObject {
         public:
+            std::string name;
             Transformation transform;
             std::vector<unsigned int> childNode;
             std::vector<unsigned int> meshIndices;
@@ -40,6 +41,7 @@ namespace gltf {
         std::vector<Materials> materials;
         std::vector<NodeObject> nodes;
         std::vector<std::pair<int, std::vector<int> > > skeletals;
+        bool playAnimation;
         Animator animator;
         Shader* shader;
 

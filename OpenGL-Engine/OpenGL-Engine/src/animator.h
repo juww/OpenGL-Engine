@@ -17,17 +17,20 @@
 
 class NodeAnimation {
 public:
+    std::string name;
     std::vector<std::pair<float, glm::vec4> > translate;
     std::vector<std::pair<float, glm::vec4> > rotate;
     std::vector<std::pair<float, glm::vec4> > scale;
 
     NodeAnimation() {
+        name = "";
         translate.clear();
         rotate.clear();
         scale.clear();
     }
 
     NodeAnimation& operator=(const NodeAnimation &node) {
+        name = node.name;
         translate = node.translate;
         rotate = node.rotate;
         scale = node.scale;
@@ -129,9 +132,9 @@ public:
 			std::map<unsigned int, unsigned int>::iterator itr = timestamp.find(t);
 			//std::cout << "tt >> " << t << std::endl;
 			if (itr == timestamp.end()) {
-				timestamp.insert({ t,count });
-				//std::cout << "is not found and create count "<<count << "\n";
 				keyframes.push_back(KeyFrame(inputData[i], targetNode));
+                timestamp.insert({ t, keyframes.size() - 1 });
+				//std::cout << "is not found and create count "<<count << "\n";
 				count++;
 			    itr = timestamp.find(t);
 			}
@@ -152,8 +155,7 @@ public:
     void fillMissingKeyframes(const std::vector<int>& skin, const std::vector<NodeAnimation>& nodeAnimations,
         const std::vector<Transformation>& nodeDefault
         ) {
-        // wtf is this,, very ugly code...
-        // need to cleaning this shit....
+
         for (int i = 0; i < skin.size(); i++) {
             int bone = skin[i];
             for (auto& temp : timestamp) {
@@ -162,8 +164,7 @@ public:
                 auto poseTransform = keyframe.poseTransform.find(bone);
                 if (poseTransform == keyframe.poseTransform.end()) {
                     filling = true;
-                    Transformation tempTransform;
-                    keyframe.poseTransform.insert({ bone, tempTransform });
+                    keyframe.poseTransform.insert({ bone, nodeDefault[bone] });
                     poseTransform = keyframe.poseTransform.find(bone);
                     // WIP: todo
                     // fill the missing keyframe with interpolate between them.
@@ -299,9 +300,12 @@ public:
         nodeDefaultTransform.resize(m);
     }
 
-    void fillNodeAnimation(int animation, int node, 
-        std::vector<float> input, std::vector<glm::vec4> output, std::string targetPath) {
+    void fillNodeAnimation(int animation, int node,
+        std::vector<float> input, std::vector<glm::vec4> output,
+        std::string targetPath, std::string nodeName) {
+
         NodeAnimation& t_na = nodeAnimation[animation][node];
+        t_na.name = nodeName;
         int nn = input.size();
         for (int i = 0; i < nn; i++) {
             if (targetPath == "rotation") {

@@ -187,7 +187,7 @@ namespace GUI {
             ImGui::EndListBox();
         }
 
-        auto& nodes = animator.nodeAnimation[0];
+        auto& nodes = animator.nodeAnimation[animator.currentAnimation];
 
         static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | 
             ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable 
@@ -201,7 +201,7 @@ namespace GUI {
             if (nodes[i].translate.empty() && nodes[i].rotate.empty() && nodes[i].scale.empty()) {
                 continue;
             }
-            ImGui::Text("node %d\n", i);
+            ImGui::Text("node %d : %s\n", i, nodes[i].name.c_str());
             ImGui::Text("currTranslate : %f %f %f\n", animator.currentPose[i].pos.x, animator.currentPose[i].pos.y, animator.currentPose[i].pos.z);
             ImGui::Text("currRotate : %f %f %f %f\n", animator.currentPose[i].rotate.x, animator.currentPose[i].rotate.y, animator.currentPose[i].rotate.z, animator.currentPose[i].rotate.w);
             ImGui::Text("currScale : %f %f %f\n", animator.currentPose[i].scale.x, animator.currentPose[i].scale.y, animator.currentPose[i].scale.z);

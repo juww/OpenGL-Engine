@@ -41,7 +41,6 @@ vec4 applyBoneTransform(vec4 p) {
     mat4 result = mat4(1.0);
 
     for (int i = 0; i < 4; ++i) {
-         if(aJoint[i] < 0) continue;
          result += (boneTransform[aJoint[i]] * aWeight[i]);
     }
     vec4 res = result * p;

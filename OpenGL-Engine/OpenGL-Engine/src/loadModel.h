@@ -337,6 +337,7 @@ namespace gltf {
         tinygltf::Node& t_node = tinygltf_model->nodes[nodeIndx];
         //printf("node[%d] name: %s\n", nodeIndx, t_node.name.c_str());
 
+        model.nodes[nodeIndx].name = t_node.name;
         Transformation& nodeTransform = model.nodes[nodeIndx].transform;
         setNodeTransform(t_node, nodeTransform);
         nodeTransform.localTransform();
@@ -454,7 +455,7 @@ namespace gltf {
                     outputData.push_back(res);
                 }
                 model.animator.animations[current_animation].addKeyframe(inputData, outputData, targetNode, sampler.interpolation, targetPath);
-                model.animator.fillNodeAnimation(current_animation, targetNode, inputData, outputData, targetPath);
+                model.animator.fillNodeAnimation(current_animation, targetNode, inputData, outputData, targetPath, model.nodes[targetNode].name);
             }
             model.animator.animations[current_animation].fillMissingKeyframes(model.skeletals[0].second, 
                 model.animator.nodeAnimation[current_animation], model.animator.nodeDefaultTransform);

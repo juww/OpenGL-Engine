@@ -138,8 +138,8 @@ void Renderer::initModel() {
     m_Model = new gltf::Model();
     m_Model->loadModel(pathfile.c_str());
     m_Model->setShader(m_PBRShader);
-    m_Model->setPosition(glm::vec3(-3.0f, 530.0f, 0.0f));
-    m_Model->setScale(glm::vec3(0.11f));
+    m_Model->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+    m_Model->setScale(glm::vec3(0.01f));
     m_Model->animator.doAnimation(0);
 
     const std::string& sponzaPathFile = "res/models/Sponza/glTF/Sponza.gltf";
@@ -366,7 +366,7 @@ void Renderer::render(float currentTime, float deltaTime) {
     GUI::modelAnimation("model", m_Model->animator);
     m_Model->setUniforms(projection, view, m_Camera->Position, currentTime
         , m_FBManager->mappers, lightpos, pbr);
-    m_Model->update(deltaTime);
+    m_Model->update(0.033f);
     m_Model->draw();
 
     m_Sponza->setUniforms(projection, view, m_Camera->Position, currentTime

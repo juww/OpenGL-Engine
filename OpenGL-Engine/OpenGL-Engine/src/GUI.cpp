@@ -117,6 +117,8 @@ namespace GUI {
             }
         }
         char buf[32];
+        progress -= animator.animations[animator.currentAnimation].startTime;
+        lengthTime -= animator.animations[animator.currentAnimation].startTime;
         sprintf(buf, "%.4f/%.4f", progress, lengthTime);
         ImGui::ProgressBar(progress / lengthTime, ImVec2(0.f, 0.f), buf);
 
@@ -135,7 +137,7 @@ namespace GUI {
             for (int i = 0; i < n_animation; i++) {
                 bool isSelected = (animator.currentAnimation == i);
                 if (ImGui::Selectable(animator.animations[i].name.c_str(), isSelected))
-                    animator.currentAnimation = i;
+                    animator.doAnimation(i);
 
                 // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                 if (isSelected)

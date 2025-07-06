@@ -334,7 +334,7 @@ public:
 		lastTime = static_cast<float>(glfwGetTime());
 		currentKeyframe = 0;
 		nextKeyframe = currentKeyframe + 1;
-		currentPose.clear();
+		//currentPose.clear();
         IndexKeyframes.clear();
         playAnimation = true;
 
@@ -360,7 +360,8 @@ private:
 		//std::cout << "before : " << animationTime << std::endl;
 		animationTime += deltaTime;
 		//std::cout << "animation time: " << animationTime << std::endl;
-		if (animationTime > animation.length) {
+
+		if (animationTime > animation.length || animationTime < animations[currentAnimation].startTime) {
 			//std::cout << "reset: " << std::endl;
 			//printf("cur = %f --- length = %f\n", animationTime, animation.length);
 			animationTime = animations[currentAnimation].startTime;
@@ -374,11 +375,14 @@ private:
 		std::vector<KeyFrame>& kf = animation.keyframes;
 		//printf("cur = %f --- kf = %f\n", animationTime, kf[nextKeyframe].Timestamp);
         
-		if (animationTime > kf[IndexKeyframes[nextKeyframe]].Timestamp) {
+		while (animationTime > kf[IndexKeyframes[nextKeyframe]].Timestamp) {
+            if (nextKeyframe >= IndexKeyframes.size()) {
+                nextKeyframe = IndexKeyframes.size() - 1;
+                break;
+            }
 			currentKeyframe = nextKeyframe;
 			//std::cout << "current Frame: " << currentKeyframe << std::endl;
 			nextKeyframe++;
-			if (nextKeyframe >= IndexKeyframes.size()) nextKeyframe = IndexKeyframes.size() - 1;
 		}
         int curr = IndexKeyframes[currentKeyframe];
         int next = IndexKeyframes[nextKeyframe];

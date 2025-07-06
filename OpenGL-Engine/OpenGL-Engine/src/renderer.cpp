@@ -366,7 +366,7 @@ void Renderer::render(float currentTime, float deltaTime) {
     GUI::modelAnimation("model", m_Model->animator);
     m_Model->setUniforms(projection, view, m_Camera->Position, currentTime
         , m_FBManager->mappers, lightpos, pbr);
-    m_Model->update(0.033f);
+    m_Model->update(deltaTime);
     m_Model->draw();
 
     m_Sponza->setUniforms(projection, view, m_Camera->Position, currentTime

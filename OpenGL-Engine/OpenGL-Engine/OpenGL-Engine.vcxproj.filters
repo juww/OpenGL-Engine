@@ -93,6 +93,9 @@
     <ClCompile Include="src\model.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\terrain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\animator.h">
@@ -193,6 +196,9 @@
     </ClInclude>
     <ClInclude Include="src\transformation.h">
       <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -353,6 +359,9 @@
       <Filter>Resource Files\computeShader</Filter>
     </None>
     <None Include="src\shader\waterFFT_AssembleMaps.sc">
+      <Filter>Resource Files\computeShader</Filter>
+    </None>
+    <None Include="src\shader\perlinNoise.sc">
       <Filter>Resource Files\computeShader</Filter>
     </None>
   </ItemGroup>

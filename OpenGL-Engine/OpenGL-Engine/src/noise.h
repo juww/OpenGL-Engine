@@ -30,9 +30,6 @@ public:
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGBA, GL_FLOAT, NULL);
         glBindImageTexture(0, noiseTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, noiseTex);
-
         //coutLimitation();
     }
 

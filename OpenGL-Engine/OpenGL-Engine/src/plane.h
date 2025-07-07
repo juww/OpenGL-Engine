@@ -105,12 +105,14 @@ public:
         shader->setInt("Textures", 0);
         Noise noise;
         noise.generateNoiseMap_Compute(qp.tex, noiseTextureSize, noiseTextureSize);
-
     }
 
     void drawNoiseTexture(Shader *shader, ComputeShader *noiseShader, glm::mat4 projection, glm::mat4 view, float frameTime) {
         noiseShader->use();
         noiseShader->setFloat("t", frameTime);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, qp.tex);
+        glBindImageTexture(0, qp.tex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
         glDispatchCompute((noiseTextureSize / 8), (noiseTextureSize / 8), 1);
         // make sure writing to image has finished before read
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -133,6 +135,8 @@ public:
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
 
         glBindVertexArray(0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindImageTexture(0, 0, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
     }
 
     void createQuad() {
@@ -234,6 +238,8 @@ public:
         glDrawElements(GL_PATCHES, patchSize, GL_UNSIGNED_INT, (void*)0);
 
         glBindVertexArray(0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindImageTexture(0, 0, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
@@ -256,6 +262,7 @@ public:
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
 
         glBindVertexArray(0);
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
 
 

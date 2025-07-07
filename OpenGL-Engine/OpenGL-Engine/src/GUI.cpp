@@ -75,10 +75,36 @@ namespace GUI {
         ImGui::End();
     }
 
-    // later;
-    void menuPlayAnimation(Animator& animator) {
-        ImGui::Begin("play Animation");
+    void modelAnimation(std::string name, Animator &animator, bool &playAnimation) {
 
+        ImGui::Begin(name.c_str());
+
+        float progress = animator.animationTime, lengthTime = animator.animations[animator.currentAnimation].length;
+
+        ImGui::SeparatorText("animation");
+        int n_animation = animator.animations.size();
+        if (ImGui::BeginCombo("animation", animator.animations[animator.currentAnimation].name.c_str(), 0)) {
+            for (int i = 0; i < n_animation; i++) {
+                bool isSelected = (animator.currentAnimation == i);
+                if (ImGui::Selectable(animator.animations[i].name.c_str(), isSelected)) {
+                    playAnimation = true;
+                    animator.doAnimation(i);
+                }
+
+                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                if (isSelected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::Text("length : %f", animator.animations[animator.currentAnimation].length - animator.animations[animator.currentAnimation].startTime);
+        ImGui::Text("count : %d", animator.animations[animator.currentAnimation].count);
+        ImGui::Text("timestamp size : %d", animator.animations[animator.currentAnimation].timestamp.size());
+        ImGui::Text("keyframe size : %d", animator.animations[animator.currentAnimation].keyframes.size());
+        if (ImGui::Button("play Animation")) {
+            playAnimation = !(playAnimation);
+            animator.play = playAnimation;
+        }
         if (ImGui::Button("-0.001s")) {
             animator.animationTime -= 0.001f;
             if (animator.animationTime < 0.0f) {
@@ -96,7 +122,7 @@ namespace GUI {
         }
         ImGui::SameLine();
         if (ImGui::Button("play")) {
-            animator.playAnimation = !(animator.playAnimation);
+            animator.play = !(animator.play);
         }
         ImGui::SameLine();
         if (ImGui::Button("next")) {
@@ -109,7 +135,6 @@ namespace GUI {
         }
 
         ImGui::SameLine();
-        float progress = animator.animationTime, lengthTime = animator.animations[animator.currentAnimation].length;
         if (ImGui::Button("+0.001s")) {
             animator.animationTime += 0.001f;
             if (animator.animationTime > lengthTime) {
@@ -121,155 +146,6 @@ namespace GUI {
         lengthTime -= animator.animations[animator.currentAnimation].startTime;
         sprintf(buf, "%.4f/%.4f", progress, lengthTime);
         ImGui::ProgressBar(progress / lengthTime, ImVec2(0.f, 0.f), buf);
-
-        ImGui::End();
-    }
-
-    void modelAnimation(std::string name, Animator &animator) {
-
-        ImGui::Begin(name.c_str());
-
-        float progress = animator.animationTime, lengthTime = animator.animations[animator.currentAnimation].length;
-
-        ImGui::SeparatorText("animation");
-        int n_animation = animator.animations.size();
-        if (ImGui::BeginCombo("animation", animator.animations[0].name.c_str(), 0)) {
-            for (int i = 0; i < n_animation; i++) {
-                bool isSelected = (animator.currentAnimation == i);
-                if (ImGui::Selectable(animator.animations[i].name.c_str(), isSelected))
-                    animator.doAnimation(i);
-
-                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                if (isSelected)
-                    ImGui::SetItemDefaultFocus();
-            }
-            ImGui::EndCombo();
-        }
-        ImGui::Text("length : %f", animator.animations[animator.currentAnimation].length);
-        ImGui::Text("count : %d", animator.animations[animator.currentAnimation].count);
-        ImGui::Text("timestamp size : %d", animator.animations[animator.currentAnimation].timestamp.size());
-        ImGui::Text("keyframe size : %d", animator.animations[animator.currentAnimation].keyframes.size());
-
-        bool itemHighlight = false;
-        int itemSelected = 0, itemHighlighted = -1;
-        int indx = 0;
-        if (ImGui::BeginListBox("timestamp list")) {
-            for (auto& time : animator.animations[animator.currentAnimation].timestamp) {
-                bool isSelected = (itemSelected == indx);
-                std::string label = std::to_string(time.first) + " - " + std::to_string(time.second);
-                if (ImGui::Selectable(label.c_str(), isSelected))
-                    itemSelected = indx;
-
-                if (itemHighlight && ImGui::IsItemHovered())
-                    itemHighlighted = indx;
-
-                if (isSelected)
-                    ImGui::SetItemDefaultFocus();
-
-                indx++;
-            }
-            ImGui::EndListBox();
-        }
-
-        if (ImGui::BeginListBox("keyframe time list")) {
-            for (auto& keyframe : animator.animations[animator.currentAnimation].keyframes) {
-                bool isSelected = (itemSelected == indx);
-                std::string label = std::to_string(keyframe.Timestamp);
-                if (ImGui::Selectable(label.c_str(), isSelected))
-                    itemSelected = indx;
-
-                if (itemHighlight && ImGui::IsItemHovered())
-                    itemHighlighted = indx;
-
-                if (isSelected)
-                    ImGui::SetItemDefaultFocus();
-
-                indx++;
-            }
-            ImGui::EndListBox();
-        }
-
-        auto& nodes = animator.nodeAnimation[animator.currentAnimation];
-
-        static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | 
-            ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable 
-            | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
-
-        ImGui::CheckboxFlags("ImGuiTableFlags_ScrollY", &flags, ImGuiTableFlags_ScrollY);
-        const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
-        ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 6);
-
-        for (int i = 0; i < nodes.size(); i++) {
-            if (nodes[i].translate.empty() && nodes[i].rotate.empty() && nodes[i].scale.empty()) {
-                continue;
-            }
-            ImGui::Text("node %d : %s\n", i, nodes[i].name.c_str());
-            ImGui::Text("currTranslate : %f %f %f\n", animator.currentPose[i].pos.x, animator.currentPose[i].pos.y, animator.currentPose[i].pos.z);
-            ImGui::Text("currRotate : %f %f %f %f\n", animator.currentPose[i].rotate.x, animator.currentPose[i].rotate.y, animator.currentPose[i].rotate.z, animator.currentPose[i].rotate.w);
-            ImGui::Text("currScale : %f %f %f\n", animator.currentPose[i].scale.x, animator.currentPose[i].scale.y, animator.currentPose[i].scale.z);
-
-            if (ImGui::BeginTable("table_scrolly", 3, flags, outer_size)) {
-                ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
-                /*ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_None);*/
-                ImGui::TableSetupColumn("translation", ImGuiTableColumnFlags_None);
-                ImGui::TableSetupColumn("rotation", ImGuiTableColumnFlags_None);
-                ImGui::TableSetupColumn("scale", ImGuiTableColumnFlags_None);
-                ImGui::TableHeadersRow();
-                
-                ImGui::TableNextRow();
-                int mcol = std::max(nodes[i].translate.size(), std::max(nodes[i].rotate.size(), nodes[i].scale.size()));
-                for (int j = 0; j < mcol; j++) {
-                    ImGui::TableNextRow();
-                    ImGui::TableNextColumn();
-                    if (j < nodes[i].translate.size()) {
-                        bool vis = false;
-                        if (progress >= nodes[i].translate[j].first) {
-                            if (j + 1 < nodes[i].translate.size() && progress <= nodes[i].translate[j + 1].first) {
-                                ImGui::TextColored(ImVec4(1, 1, 0, 1), "%f %f %f", nodes[i].translate[j].second.x, nodes[i].translate[j].second.y, nodes[i].translate[j].second.z);
-                                vis = true;
-                            }
-                        }
-                        if(vis == false) {
-                            ImGui::Text("%f %f %f", nodes[i].translate[j].second.x, nodes[i].translate[j].second.y, nodes[i].translate[j].second.z);
-                        }
-                    } else {
-                        ImGui::Text("-");
-                    }
-                    ImGui::TableNextColumn();
-                    if (j < nodes[i].rotate.size()) {
-                        bool vis = false;
-                        if (progress >= nodes[i].rotate[j].first) {
-                            if (j + 1 < nodes[i].rotate.size() && progress <= nodes[i].rotate[j + 1].first) {
-                                ImGui::TextColored(ImVec4(1, 1, 0, 1), "%f %f %f %f", nodes[i].rotate[j].second.x, nodes[i].rotate[j].second.y, nodes[i].rotate[j].second.z, nodes[i].rotate[j].second.w);
-                                vis = true;
-                            }
-                        }
-                        if (vis == false) {
-                            ImGui::Text("%f %f %f %f", nodes[i].rotate[j].second.x, nodes[i].rotate[j].second.y, nodes[i].rotate[j].second.z, nodes[i].rotate[j].second.w);
-                        }
-                    } else {
-                        ImGui::Text("-");
-                    }
-                    ImGui::TableNextColumn();
-                    if (j < nodes[i].scale.size()) {
-                        bool vis = false;
-                        if (progress >= nodes[i].scale[j].first) {
-                            if (j + 1 < nodes[i].scale.size() && progress <= nodes[i].scale[j + 1].first) {
-                                ImGui::TextColored(ImVec4(1, 1, 0, 1), "%f %f %f", nodes[i].scale[j].second.x, nodes[i].scale[j].second.y, nodes[i].scale[j].second.z);
-                                vis = true;
-                            }
-                        }
-                        if (vis == false) {
-                            ImGui::Text("%f %f %f", nodes[i].scale[j].second.x, nodes[i].scale[j].second.y, nodes[i].scale[j].second.z);
-                        }
-                    }
-                    else {
-                        ImGui::Text("-");
-                    }
-                }
-                ImGui::EndTable();
-            }
-        }
 
         ImGui::End();
     }

@@ -18,9 +18,9 @@
 class NodeAnimation {
 public:
     std::string name;
-    std::vector<std::pair<float, glm::vec4> > translate;
+    std::vector<std::pair<float, glm::vec3> > translate;
     std::vector<std::pair<float, glm::vec4> > rotate;
-    std::vector<std::pair<float, glm::vec4> > scale;
+    std::vector<std::pair<float, glm::vec3> > scale;
 
     NodeAnimation() {
         name = "";
@@ -57,6 +57,7 @@ public:
 	}
 
 	~KeyFrame() {
+        poseTransform.clear();
 	}
 
 	void JointTransform(const glm::vec4 &transform, const int targetNode, const std::string targetPath) {
@@ -111,17 +112,19 @@ public:
 
 	Animation() {
 		length = 0.0f;
-        startTime = 1000.0f;
+        startTime = 1e9f;
 		count = 0;
 		timestamp.clear();
-	};
+        keyframes.clear();
+	}
 
 	~Animation() {
         length = 0.0f;
-        startTime = 1000.0f;
+        startTime = 0.0f;
 		count = -1;
 		timestamp.clear();
-	};
+        keyframes.clear();
+	}
 
 	void addKeyframe(const std::vector<float>& inputData, const std::vector<glm::vec4>& outputData,
 		const int targetNode, const std::string& interpolation, const std::string& targetPath) {
@@ -129,17 +132,15 @@ public:
 		int n = inputData.size();
 		for (int i = 0; i < n; i++) {
 			unsigned int t = (inputData[i] * 1e4);
-			std::map<unsigned int, unsigned int>::iterator itr = timestamp.find(t);
-			//std::cout << "tt >> " << t << std::endl;
+
+			std::map<unsigned int, unsigned int>::iterator itr = timestamp.find(t);			
 			if (itr == timestamp.end()) {
 				keyframes.push_back(KeyFrame(inputData[i], targetNode));
                 timestamp.insert({ t, keyframes.size() - 1 });
-				//std::cout << "is not found and create count "<<count << "\n";
 				count++;
 			    itr = timestamp.find(t);
 			}
-			//std::cout << "itr->first " << itr->first << std::endl;
-			//std::cout << "itr->second " << itr->second << std::endl;
+
 			KeyFrame& keyframe = keyframes[itr->second];
 			if (length < inputData[i]) {
 				length = inputData[i];
@@ -166,10 +167,6 @@ public:
                     filling = true;
                     keyframe.poseTransform.insert({ bone, nodeDefault[bone] });
                     poseTransform = keyframe.poseTransform.find(bone);
-                    // WIP: todo
-                    // fill the missing keyframe with interpolate between them.
-                    // if the node is empty keyframe, perhaps make flags isempty.
-                    // 
                 }
                 const NodeAnimation& node = nodeAnimations[bone];
 
@@ -269,7 +266,7 @@ class Animator {
 
 public:
 	int currentAnimation;
-    bool playAnimation;
+    bool play;
 	float animationTime, lastTime;
 	std::vector<Animation> animations;
 
@@ -287,13 +284,14 @@ public:
 		animationTime = 0.0f;
 		lastTime = 0.0f;
 		animations.clear();
-        playAnimation = false;
+        play = false;
         IndexKeyframes.clear();
         nodeAnimation.clear();
 	}
 
     void reserveSizeNodeAnimation(int n, int m) {
         nodeAnimation.resize(n);
+        animations.resize(n);
         for (int i = 0; i < n; i++) {
             nodeAnimation[i].resize(m);
         }
@@ -334,9 +332,8 @@ public:
 		lastTime = static_cast<float>(glfwGetTime());
 		currentKeyframe = 0;
 		nextKeyframe = currentKeyframe + 1;
-		//currentPose.clear();
         IndexKeyframes.clear();
-        playAnimation = true;
+        play = true;
 
         for (auto& timestamp : animations[currentAnimation].timestamp) {
             IndexKeyframes.push_back(timestamp.second);
@@ -345,7 +342,7 @@ public:
 
 	bool update(float deltaTime) {
 		if (currentAnimation < 0 || currentAnimation >= animations.size()) return false;
-        if (playAnimation == false) {
+        if (play == false) {
             deltaTime = 0.0f;
         }
 
@@ -356,14 +353,11 @@ public:
 
 private:
 	void increaseAnimationTime(float deltaTime) {
+
 		Animation& animation = animations[currentAnimation];
-		//std::cout << "before : " << animationTime << std::endl;
 		animationTime += deltaTime;
-		//std::cout << "animation time: " << animationTime << std::endl;
 
 		if (animationTime > animation.length || animationTime < animations[currentAnimation].startTime) {
-			//std::cout << "reset: " << std::endl;
-			//printf("cur = %f --- length = %f\n", animationTime, animation.length);
 			animationTime = animations[currentAnimation].startTime;
 			currentKeyframe = 0;
 			nextKeyframe = currentKeyframe + 1;
@@ -373,15 +367,13 @@ private:
 	void calculateCurrentAnimationPose() {
 		Animation& animation = animations[currentAnimation];
 		std::vector<KeyFrame>& kf = animation.keyframes;
-		//printf("cur = %f --- kf = %f\n", animationTime, kf[nextKeyframe].Timestamp);
-        
+
 		while (animationTime > kf[IndexKeyframes[nextKeyframe]].Timestamp) {
             if (nextKeyframe >= IndexKeyframes.size()) {
                 nextKeyframe = IndexKeyframes.size() - 1;
                 break;
             }
 			currentKeyframe = nextKeyframe;
-			//std::cout << "current Frame: " << currentKeyframe << std::endl;
 			nextKeyframe++;
 		}
         int curr = IndexKeyframes[currentKeyframe];
@@ -403,7 +395,6 @@ private:
 			Transformation& previousTransform = t.second;
 			std::unordered_map<int, Transformation>::iterator itr = nextFrame.poseTransform.find(t.first);
 			if (itr == nextFrame.poseTransform.end()) {
-				//nanti di benerin
 				nextFrame.poseTransform[t.first] = t.second;
 				itr = nextFrame.poseTransform.find(t.first);
 			}
@@ -418,8 +409,6 @@ private:
 
 		result.pos = interpolate::lerp(previousTransform.pos, nextTransform.pos, progression);
 		result.rotate = interpolate::slerp(previousTransform.rotate, nextTransform.rotate, progression);
-
-		//nanti
 		result.scale = interpolate::lerp(previousTransform.scale, nextTransform.scale, progression);
 
 		return result;

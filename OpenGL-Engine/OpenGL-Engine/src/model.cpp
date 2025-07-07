@@ -10,6 +10,8 @@ namespace gltf {
         rot = glm::normalize(glm::vec3(0.0f, 0.0f, 1.0f));
         scale = glm::vec3(1.0f);
         angle = 0.0f;
+
+        playAnimation = false;
     }
 
     Model::~Model() {
@@ -90,7 +92,6 @@ namespace gltf {
         //model = glm::rotate(model, (float)glfwGetTime(), { 1.0f,0.0f,0.0f });
         glm::mat4 R = glm::rotate(glm::mat4(1.0f), angle, rot);
         //scale = glm::vec3(0.01f);
-        //std::cout << glm::to_string(mat) << "\n";
         glm::mat4 T = glm::translate(glm::mat4(1.0f), pos);
 
         glm::mat4 mat = T * R * S;
@@ -143,13 +144,11 @@ namespace gltf {
     void Model::update(float deltaTime) {
 
         shader->use();
-        if (!animator.update(deltaTime)) {
-            playAnimation = false;
+        if (!animator.update(deltaTime) || !playAnimation) {
             shader->setInt("hasBone", 0);
             return;
         }
         shader->setInt("hasBone", 1);
-        playAnimation = true;
         for (auto &skeletal : skeletals) {
             int root = skeletal.first;
             updateSkeletalNode(root, -1);

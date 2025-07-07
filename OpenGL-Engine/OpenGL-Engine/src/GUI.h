@@ -166,9 +166,7 @@ namespace GUI {
     void initialize(GLFWwindow* w);
     void GUIFrame();
     void modelTransform(std::string name, glm::vec3& pos, glm::vec3& rot, float& angle, glm::vec3& scale);
-    // later;
-    void modelAnimation(std::string name, Animator& animator);
-    void menuPlayAnimation(Animator& animator);
+    void modelAnimation(std::string name, Animator& animator, bool &playAnimation);
     void PBRWindow(PBRParam &pbr);
     bool proceduralTerrainParam(int& seed, float& scale, int& octaves, float& persistence, float& lacunarity, glm::vec2& offset, float& heightMultiplier);
     void grassParam(GrassParam& gp);

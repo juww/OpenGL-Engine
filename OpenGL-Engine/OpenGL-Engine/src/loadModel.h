@@ -228,9 +228,6 @@ namespace gltf {
         }
 
         tinygltf::Mesh& mesh = tinygltf_model->meshes[meshIndx];
-        //printf("---------------------------------\n");
-        //printf("Mesh ke - %d\n", meshIndx);
-        //printf("mesh name: %s\n", mesh.name.c_str());
 
         for (int i = 0; i < mesh.primitives.size(); i++) {
 
@@ -253,11 +250,6 @@ namespace gltf {
                 return;
             }
             tinygltf::Buffer& buffer = tinygltf_model->buffers[bufferView.buffer];
-
-            //printf("primitive[%d]\n", i);
-            //printf("prim.indices = %d\n", prim.indices);
-            //printf("accessor.bufferView = %d\n", accessor.bufferView);
-            //printf("bufferView.buffer = %d\n", bufferView.buffer);
 
             unsigned int vao;
             glGenVertexArrays(1, &vao);
@@ -289,7 +281,7 @@ namespace gltf {
         if (skinIndx == -1) return;
 
         tinygltf::Skin& skin = tinygltf_model->skins[skinIndx];
-        //printf("skin name ---- %s\n", skin.name.c_str());
+        
         if (skin.inverseBindMatrices < 0 || skin.inverseBindMatrices >= tinygltf_model->accessors.size()) {
             printf("Skin Inverse Bind Matrices is not found!\n");
             return;
@@ -319,9 +311,6 @@ namespace gltf {
             glm::mat4 mt = glm::make_mat4((float*)(buffer.data.data() + offsetofData + stride * j));
             int joint = tinygltf_model->skins[skinIndx].joints[j];
             model.nodes[joint].transform.inverseMatrix = mt;
-            //tinygltf::Node& nodeTemp = model.nodes[joint];
-            //printf("joint %d : %s\n", joint, nodeTemp.name.c_str());
-            //std::cout << to_string(mt) << "\n";
         }
         model.skeletals[skinIndx].first = tinygltf_model->skins[skinIndx].skeleton;
         model.skeletals[skinIndx].second = tinygltf_model->skins[skinIndx].joints;
@@ -371,18 +360,17 @@ namespace gltf {
         bool ret = false;
 
         int current_animation = 0;
-        model.animator.animations.resize(tinygltf_model->animations.size());
+
         model.animator.reserveSizeNodeAnimation(tinygltf_model->animations.size(), model.nodes.size());
         for (int i = 0; i < model.animator.nodeDefaultTransform.size(); i++) {
             model.animator.nodeDefaultTransform[i] = model.nodes[i].transform;
         }
         for (tinygltf::Animation& animation : tinygltf_model->animations) {
-            //if (current_animation > 1) break;
-            //printf("%d: %s\n", current_animation, animation.name.c_str());
+            
             int sampler_length = animation.samplers.size();
             int channel_length = animation.channels.size();
             model.animator.animations[current_animation].name = animation.name;
-            //printf("sampler : channel\n%d : %d\n", sampler_length, channel_length);
+            
             for (tinygltf::AnimationChannel& channel : animation.channels) {
 
                 int indxSampler = channel.sampler;
@@ -390,8 +378,8 @@ namespace gltf {
 
                 std::string targetPath = channel.target_path;
                 if (indxSampler < 0 || indxSampler >= sampler_length) {
-                    printf("E| animation index sampler is not found!\n");
-                    printf("E| indxSampler: %d\n", indxSampler);
+                    printf("animation index sampler is not found!\n");
+                    printf("indxSampler: %d\n", indxSampler);
                     break;
                 }
                 tinygltf::AnimationSampler& sampler = animation.samplers[indxSampler];
@@ -400,9 +388,9 @@ namespace gltf {
                 tinygltf::Buffer& bufferInput = tinygltf_model->buffers[bufferViewInput.buffer];
 
                 if (accessorInput.type != 65 || accessorInput.componentType != GL_FLOAT) {
-                    printf("E| animation input is not correct!\n");
-                    printf("E| accessor type: %d\n", accessorInput.type);
-                    printf("E| accessor ComponentType: %d\n", accessorInput.componentType);
+                    printf("animation input is not correct!\n");
+                    printf("accessor type: %d\n", accessorInput.type);
+                    printf("accessor ComponentType: %d\n", accessorInput.componentType);
                     break;
                 }
 
@@ -412,21 +400,12 @@ namespace gltf {
 
                 int cnt = 0, mi = 0;
                 unsigned char tempBuffer[4];
-                //printf("timestamp: ");
                 
                 std::vector<float> inputData;
                 for (unsigned int i = offsetofData; i < offsetofData + lengthOfData; i++) {
                     tempBuffer[cnt % 4] = bufferInput.data[i];
                     if (cnt % 4 == 3) {
                         float timestamp = HexToFloat(tempBuffer);
-                        for (int k = 0; k < 4; k++) {
-                            int hex1 = tempBuffer[k] / 16;
-                            int hex2 = tempBuffer[k] % 16;
-                            //printf("%c%c", HexChar[hex1], HexChar[hex2]);
-                            //printf("%d%d", hex1, hex2);
-                        }
-                        //printf(" ");
-                        //printf("%.7f ", timestamp);
                         inputData.push_back(timestamp);
                     }
                     cnt++;

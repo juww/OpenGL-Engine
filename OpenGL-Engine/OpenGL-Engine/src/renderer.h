@@ -6,7 +6,7 @@
 #include "shader_m.h"
 #include "shader_t.h"
 #include "skybox.h"
-#include "loadModel.h"
+#include "model.h"
 #include "FramebufferManager.h"
 
 #include "cube.h"
@@ -38,8 +38,8 @@ private:
     FramebufferManager* m_FBManager;
 
     std::vector<Light> m_Lights;
-    loadModel* m_Model;
-    loadModel* m_Sponza;
+    gltf::Model* m_Model;
+    gltf::Model* m_Sponza;
     Skybox* m_Skybox;
     Plane* m_Plane;
     T_Terrain* m_Terrain;
@@ -77,14 +77,10 @@ private:
     void setupShaders();
     void initModel();
 
-    void setModelShader(const glm::mat4& projection, const glm::mat4& view);
-
     // blm tentu mau dimasukin ke sini
     // global shader storage
     // 1 object - 1 shader
     std::map<std::string, Shader*> m_Shaders;
-    // jadiin pointer param global
-    void initGUIParam();
 };
 
 #endif

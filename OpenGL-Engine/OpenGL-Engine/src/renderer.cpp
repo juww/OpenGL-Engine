@@ -135,14 +135,18 @@ void Renderer::initModel() {
     // loadModel has problem with texture take to each other texture
     // the texture applied in other model
 
-    /*
-    const std::string& pathfile = "res/models/BoomBox/scene.gltf";
-    m_Model = new loadModel(pathfile.c_str());
+    const std::string& pathfile = "res/models/monster_skull/scene.gltf";
+    m_Model = new gltf::Model();
+    m_Model->loadModel(pathfile.c_str());
+    m_Model->setShader(m_PBRShader);
+    m_Model->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+    m_Model->setScale(glm::vec3(0.01f));
     m_Model->animator.doAnimation(0);
-    */
 
     const std::string& sponzaPathFile = "res/models/Sponza/glTF/Sponza.gltf";
-    m_Sponza = new loadModel(sponzaPathFile.c_str());
+    m_Sponza = new gltf::Model();
+    m_Sponza->loadModel(sponzaPathFile.c_str());
+    m_Sponza->setShader(m_PBRShader);
 }
 
 void Renderer::start() {
@@ -202,10 +206,10 @@ void Renderer::start() {
     m_FBManager->CubeShadowMapping();
 
     m_Sphere->materials.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader, m_Sphere->materials.Map, m_Sphere->materials.width, m_Sphere->materials.height);
-    //for (Materials& material : m_Model->materials) {
-    //    material.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
-    //        material.Map, material.width, material.height);
-    //}
+    for (Materials& material : m_Model->materials) {
+        material.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
+            material.Map, material.width, material.height);
+    }
     for (Materials& material : m_Sponza->materials) {
         material.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
             material.Map, material.width, material.height);
@@ -238,8 +242,8 @@ void Renderer::shadowRender(int shadowType) {
         m_ShadowMappingShader->use();
         m_ShadowMappingShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
-        m_Sponza->DrawModel(m_ShadowMappingShader);
-        m_Sphere->drawInDepthMap(m_ShadowMappingShader);
+        //m_Sponza->DrawModel(m_ShadowMappingShader);
+        //m_Sphere->drawInDepthMap(m_ShadowMappingShader);
 
         unsigned int shadowMap = m_FBManager->mappers["shadowDepthMap"];
         m_ModelShader->use();
@@ -277,7 +281,7 @@ void Renderer::shadowRender(int shadowType) {
         m_ShadowCubeMappingShader->setFloat("far_plane", far_plane);
         m_ShadowCubeMappingShader->setVec3("lightPos", lightPos);
 
-        m_Sponza->DrawModel(m_ShadowCubeMappingShader);
+        //m_Sponza->DrawModel(m_ShadowCubeMappingShader);
         m_Sphere->drawInDepthMap(m_ShadowCubeMappingShader);
 
 
@@ -308,22 +312,22 @@ void Renderer::render(float currentTime, float deltaTime) {
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    shadowRender(m_FBManager->shadowType);
+    //shadowRender(m_FBManager->shadowType);
 
-    // reset viewport
-    int SCR_WIDTH = 1280;
-    int SCR_HEIGHT = 720;
+    //// reset viewport
+    //int SCR_WIDTH = 1280;
+    //int SCR_HEIGHT = 720;
 
-    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    //glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // view/projection transformations
     glm::mat4 projection = glm::perspective(glm::radians(m_Camera->Zoom), m_Camera->Aspect, 0.1f, 512.0f);
     glm::mat4 view = m_Camera->GetViewMatrix();
 
-    //GUI::modelTransform(m_Model->pos, m_Model->rot, m_Model->angle, m_Model->scale);
-    GUI::modelTransform(m_Sponza->pos, m_Sponza->rot, m_Sponza->angle, m_Sponza->scale);
+    GUI::modelTransform("model", m_Model->pos, m_Model->rot, m_Model->angle, m_Model->scale);
+    GUI::modelTransform("sponza", m_Sponza->pos, m_Sponza->rot, m_Sponza->angle, m_Sponza->scale);
     
     bool changeParam = GUI::proceduralTerrainParam(tp.m_Seed, tp.m_Scale, tp.m_Octaves, tp.m_Persistence, tp.m_Lacunarity, tp.m_OffsetV, tp.m_Amplitude);
 
@@ -367,15 +371,16 @@ void Renderer::render(float currentTime, float deltaTime) {
         cube->draw(m_LightCubeShader, projection, view);
     }
 
-    //m_Model->setUniformModel(m_ModelShader, projection, view, m_Camera->Position, currentTime
-    //    , m_FBManager->mappers, lightpos, pbr);
-    //m_Model->update(m_ModelShader, deltaTime);
-    //m_Model->DrawModel(m_ModelShader);
-
-    m_Sponza->setUniformModel(m_ModelShader, projection, view, m_Camera->Position, currentTime
+    GUI::modelAnimation("model", m_Model->animator, m_Model->playAnimation);
+    m_Model->setUniforms(projection, view, m_Camera->Position, currentTime
         , m_FBManager->mappers, lightpos, pbr);
-    m_Sponza->update(m_ModelShader, deltaTime);
-    m_Sponza->DrawModel(m_ModelShader);
+    m_Model->update(deltaTime);
+    m_Model->draw();
+
+    m_Sponza->setUniforms(projection, view, m_Camera->Position, currentTime
+        , m_FBManager->mappers, lightpos, pbr);
+    m_Sponza->update(deltaTime);
+    m_Sponza->draw();
 
     m_Sphere->draw(m_PBRShader, projection, view, m_Camera->Position, 
                    currentTime * 0.1f, m_FBManager->mappers, lightpos, pbr);

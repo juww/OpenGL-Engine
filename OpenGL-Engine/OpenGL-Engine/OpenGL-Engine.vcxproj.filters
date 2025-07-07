@@ -90,6 +90,9 @@
     <ClCompile Include="src\waterFFT.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\model.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\terrain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -187,6 +190,12 @@
     </ClInclude>
     <ClInclude Include="src\shader_t.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\model.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\transformation.h">
+      <Filter>Header Files\utils</Filter>
     </ClInclude>
     <ClInclude Include="src\terrain.h">
       <Filter>Header Files</Filter>

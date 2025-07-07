@@ -3,10 +3,13 @@
 #define GUI_H
 
 #include <glm/glm.hpp>
+#include <string>
 
 #include "imGui/imgui.h"
 #include "imGui/imgui_impl_glfw.h"
 #include "imGui/imgui_impl_opengl3.h"
+
+#include "animator.h"
 
 namespace GUI {
 
@@ -162,9 +165,8 @@ namespace GUI {
 
     void initialize(GLFWwindow* w);
     void GUIFrame();
-    void modelTransform(glm::vec3& pos, glm::vec3& rot, float& angle, glm::vec3& scale);
-    // later;
-    void modelAnimation(int animation, int n);
+    void modelTransform(std::string name, glm::vec3& pos, glm::vec3& rot, float& angle, glm::vec3& scale);
+    void modelAnimation(std::string name, Animator& animator, bool &playAnimation);
     void PBRWindow(PBRParam &pbr);
     bool proceduralTerrainParam(int& seed, float& scale, int& octaves, float& persistence, float& lacunarity, glm::vec2& offset, float& heightMultiplier);
     void grassParam(GrassParam& gp);

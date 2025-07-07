@@ -13,38 +13,32 @@
 #include<cmath>
 
 #include "interpolate.h"
+#include "transformation.h"
 
-struct Transformation {
-	glm::mat4 mat;
+class NodeAnimation {
+public:
+    std::string name;
+    std::vector<std::pair<float, glm::vec3> > translate;
+    std::vector<std::pair<float, glm::vec4> > rotate;
+    std::vector<std::pair<float, glm::vec3> > scale;
 
-	glm::vec4 rotation;
-	glm::vec3 translation;
-	glm::vec3 scalation;
-	float weight;
+    NodeAnimation() {
+        name = "";
+        translate.clear();
+        rotate.clear();
+        scale.clear();
+    }
 
-	Transformation() {
-		mat = glm::mat4(1.0f);
+    NodeAnimation& operator=(const NodeAnimation &node) {
+        name = node.name;
+        translate = node.translate;
+        rotate = node.rotate;
+        scale = node.scale;
 
-		rotation = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-		translation = glm::vec3(0.0f);
-		scalation = glm::vec3(1.0f);
-		weight = 0.0f;
-	}
-
-	inline Transformation operator=(const Transformation& b) {
-		mat = b.mat;
-		rotation = b.rotation;
-		translation = b.translation;
-		scalation = b.scalation;
-		weight = b.weight;
-
-		return b;
-	}
-
-	~Transformation() {
-
-	}
+        return *this;
+    }
 };
+
 
 class KeyFrame {
 
@@ -63,6 +57,7 @@ public:
 	}
 
 	~KeyFrame() {
+        poseTransform.clear();
 	}
 
 	void JointTransform(const glm::vec4 &transform, const int targetNode, const std::string targetPath) {
@@ -83,22 +78,24 @@ public:
 
 		if (targetPath == "rotation") {
 			for (int i = 0; i < 4; i++) {
-				pose.rotation[(i + 1) % 4] = transform[i];
+                pose.rotate[(i + 1) % 4] = transform[i];
 			}
 		}
 		if (targetPath == "translation") {
 			for (int i = 0; i < 3; i++) {
-				pose.translation[i] = transform[i];
+				pose.pos[i] = transform[i];
 			}
 		}
 		if (targetPath == "scale") {
 			for (int i = 0; i < 3; i++) {
-				pose.scalation[i] = transform[i];
+				pose.scale[i] = transform[i];
 			}
 		}
-		if (targetPath == "weights") {
-			pose.weight = transform[0];
-		}
+        // i dunno?
+        // 
+		//if (targetPath == "weights") {
+		//	pose.weight = transform[0];
+		//}
 	}
 
 };
@@ -106,84 +103,248 @@ public:
 class Animation {
 
 public:
-
-	float length;
+    std::string name;
+    
+	float startTime, length;
 	int count = 0;
 	std::map<unsigned int, unsigned int> timestamp; //timeframe -> index time;
 	std::vector<KeyFrame> keyframes;
 
 	Animation() {
-		length = 0.0;
+		length = 0.0f;
+        startTime = 1e9f;
 		count = 0;
 		timestamp.clear();
-	};
+        keyframes.clear();
+	}
 
 	~Animation() {
-		length = -1.0;
+        length = 0.0f;
+        startTime = 0.0f;
 		count = -1;
 		timestamp.clear();
-	};
-
+        keyframes.clear();
+	}
 
 	void addKeyframe(const std::vector<float>& inputData, const std::vector<glm::vec4>& outputData,
 		const int targetNode, const std::string& interpolation, const std::string& targetPath) {
 
 		int n = inputData.size();
 		for (int i = 0; i < n; i++) {
-			unsigned int t = (inputData[i] * 1e7);
-			std::map<unsigned int, unsigned int>::iterator itr = timestamp.find(t);
-			//std::cout << "tt >> " << t << std::endl;
+			unsigned int t = (inputData[i] * 1e4);
+
+			std::map<unsigned int, unsigned int>::iterator itr = timestamp.find(t);			
 			if (itr == timestamp.end()) {
-				timestamp.insert({ t,count });
-				//std::cout << "is not found and create count "<<count << "\n";
 				keyframes.push_back(KeyFrame(inputData[i], targetNode));
+                timestamp.insert({ t, keyframes.size() - 1 });
 				count++;
+			    itr = timestamp.find(t);
 			}
-			itr = timestamp.find(t);
-			//std::cout << "itr->first " << itr->first << std::endl;
-			//std::cout << "itr->second " << itr->second << std::endl;
+
 			KeyFrame& keyframe = keyframes[itr->second];
 			if (length < inputData[i]) {
 				length = inputData[i];
 			}
+
+            if (startTime > inputData[i]) {
+                startTime = inputData[i];
+            }
 			keyframe.JointTransform(outputData[i], targetNode, targetPath);
 		}
 	}
+
+    void fillMissingKeyframes(const std::vector<int>& skin, const std::vector<NodeAnimation>& nodeAnimations,
+        const std::vector<Transformation>& nodeDefault
+        ) {
+
+        for (int i = 0; i < skin.size(); i++) {
+            int bone = skin[i];
+            for (auto& temp : timestamp) {
+                KeyFrame& keyframe = keyframes[temp.second];
+                bool filling = false;
+                auto poseTransform = keyframe.poseTransform.find(bone);
+                if (poseTransform == keyframe.poseTransform.end()) {
+                    filling = true;
+                    keyframe.poseTransform.insert({ bone, nodeDefault[bone] });
+                    poseTransform = keyframe.poseTransform.find(bone);
+                }
+                const NodeAnimation& node = nodeAnimations[bone];
+
+                glm::vec3 resTranslate = nodeDefault[bone].pos;
+                glm::vec4 resRotate = nodeDefault[bone].rotate;
+                glm::vec3 resScale = nodeDefault[bone].scale;
+                //fill translate
+                bool flag = false;
+                for (int j = 0; j < node.translate.size(); j++) {
+                    if (flag == true) break;
+
+                    if (abs(node.translate[j].first - keyframe.Timestamp) <= 1e-4f) {
+                        flag = true;
+                        resTranslate = glm::vec3(node.translate[j].second.x, node.translate[j].second.y, node.translate[j].second.z);
+                        break;
+                    }
+                    if (node.translate[j].first > keyframe.Timestamp && flag == false) {
+                        if (j - 1 >= 0) {
+                            float ta = node.translate[j - 1].first;
+                            float tb = node.translate[j].first;
+                            float tk = keyframe.Timestamp;
+                            float tt = (tk - ta) / (tb - ta);
+
+                            glm::vec3 TA = node.translate[j - 1].second;
+                            glm::vec3 TB = node.translate[j].second;
+                            glm::vec3 res = interpolate::lerp(TA, TB, tt);
+                            resTranslate = res;
+                            flag = true;
+                            break;
+                        }
+                    }
+                }
+                keyframe.poseTransform[bone].pos = resTranslate;
+
+                //fill rotate
+                flag = false;
+                for (int j = 0; j < node.rotate.size(); j++) {
+                    if (flag == true) break;
+
+                    if (abs(node.rotate[j].first - keyframe.Timestamp) <= 1e-4f) {
+                        flag = true;
+                        resRotate = node.rotate[j].second;
+                        break;
+                    }
+                    if (node.rotate[j].first > keyframe.Timestamp && flag == false) {
+                        if (j - 1 >= 0) {
+                            float ta = node.rotate[j - 1].first;
+                            float tb = node.rotate[j].first;
+                            float tk = keyframe.Timestamp;
+                            float tt = (tk - ta) / (tb - ta);
+
+                            glm::vec4 TA = node.rotate[j - 1].second;
+                            glm::vec4 TB = node.rotate[j].second;
+                            glm::vec4 res = interpolate::slerp(TA, TB, tt);
+                            resRotate = res;
+
+                            flag = true;
+                            break;
+                        }
+                    }
+                }
+                keyframe.poseTransform[bone].rotate = resRotate;
+                //fill scale
+                flag = false;
+                for (int j = 0; j < node.scale.size(); j++) {
+                    if (flag == true) break;
+
+                    if (abs(node.scale[j].first - keyframe.Timestamp) <= 1e-4f) {
+                        flag = true;
+                        resScale = glm::vec3(node.scale[j].second.x, node.scale[j].second.y, node.scale[j].second.z);
+                        break;
+                    }
+                    if (node.scale[j].first > keyframe.Timestamp && flag == false) {
+                        if (j - 1 >= 0) {
+                            float ta = node.scale[j - 1].first;
+                            float tb = node.scale[j].first;
+                            float tk = keyframe.Timestamp;
+                            float tt = (tk - ta) / (tb - ta);
+
+                            glm::vec3 TA = node.scale[j - 1].second;
+                            glm::vec3 TB = node.scale[j].second;
+                            glm::vec3 res = interpolate::lerp(TA, TB, tt);
+
+                            resScale = res;
+                            flag = true;
+                            break;
+                        }
+                    }
+                }
+                keyframe.poseTransform[bone].scale = resScale;
+            }
+        }
+    }
 };
 
 class Animator {
 
 public:
 	int currentAnimation;
-	std::map<int, Transformation> currentPose;
-	int currentKeyframe, nextKeyframe;
-	std::vector<Animation> animations;
+    bool play;
 	float animationTime, lastTime;
+	std::vector<Animation> animations;
 
+	std::map<int, Transformation> currentPose;
+    int currentKeyframe, nextKeyframe;
+    std::vector<int> IndexKeyframes;
+
+    std::vector<std::vector<NodeAnimation> > nodeAnimation;
+    std::vector<Transformation> nodeDefaultTransform;
 
 	Animator() {
 		currentAnimation = -1;
-		currentKeyframe = -1;
-		nextKeyframe = -1;
+		currentKeyframe = 0;
+		nextKeyframe = 0;
 		animationTime = 0.0f;
 		lastTime = 0.0f;
 		animations.clear();
+        play = false;
+        IndexKeyframes.clear();
+        nodeAnimation.clear();
 	}
+
+    void reserveSizeNodeAnimation(int n, int m) {
+        nodeAnimation.resize(n);
+        animations.resize(n);
+        for (int i = 0; i < n; i++) {
+            nodeAnimation[i].resize(m);
+        }
+        nodeDefaultTransform.resize(m);
+    }
+
+    void fillNodeAnimation(int animation, int node,
+        std::vector<float> input, std::vector<glm::vec4> output,
+        std::string targetPath, std::string nodeName) {
+
+        NodeAnimation& t_na = nodeAnimation[animation][node];
+        t_na.name = nodeName;
+        int nn = input.size();
+        for (int i = 0; i < nn; i++) {
+            if (targetPath == "rotation") {
+                glm::vec4 temp = output[i];
+                for (int j = 0; j < 4; j++) {
+                    output[i][(j + 1) % 4] = temp[j];
+                }
+                t_na.rotate.push_back({ input[i], output[i] });
+            }
+            if (targetPath == "translation") {
+                t_na.translate.push_back({ input[i], output[i] });
+            }
+            if (targetPath == "scale") {
+                t_na.scale.push_back({ input[i], output[i] });
+            }
+
+        }
+    }
 
 	~Animator() {
 	}
 
 	void doAnimation(int animation) {
 		currentAnimation = animation;
-		animationTime = 0.0f;
+		animationTime = animations[currentAnimation].startTime;
 		lastTime = static_cast<float>(glfwGetTime());
 		currentKeyframe = 0;
 		nextKeyframe = currentKeyframe + 1;
-		currentPose.clear();
+        IndexKeyframes.clear();
+        play = true;
+
+        for (auto& timestamp : animations[currentAnimation].timestamp) {
+            IndexKeyframes.push_back(timestamp.second);
+        }
 	}
 
 	bool update(float deltaTime) {
 		if (currentAnimation < 0 || currentAnimation >= animations.size()) return false;
+        if (play == false) {
+            deltaTime = 0.0f;
+        }
 
 		increaseAnimationTime(deltaTime);
 		calculateCurrentAnimationPose();
@@ -192,14 +353,12 @@ public:
 
 private:
 	void increaseAnimationTime(float deltaTime) {
+
 		Animation& animation = animations[currentAnimation];
-		//std::cout << "before : " << animationTime << std::endl;
 		animationTime += deltaTime;
-		//std::cout << "animation time: " << animationTime << std::endl;
-		if (animationTime > animation.length) {
-			//std::cout << "reset: " << std::endl;
-			//printf("cur = %f --- length = %f\n", animationTime, animation.length);
-			animationTime = 0.0f;
+
+		if (animationTime > animation.length || animationTime < animations[currentAnimation].startTime) {
+			animationTime = animations[currentAnimation].startTime;
 			currentKeyframe = 0;
 			nextKeyframe = currentKeyframe + 1;
 		}
@@ -208,15 +367,19 @@ private:
 	void calculateCurrentAnimationPose() {
 		Animation& animation = animations[currentAnimation];
 		std::vector<KeyFrame>& kf = animation.keyframes;
-		//printf("cur = %f --- kf = %f\n", animationTime, kf[nextKeyframe].Timestamp);
-		if (animationTime > kf[nextKeyframe].Timestamp) {
+
+		while (animationTime > kf[IndexKeyframes[nextKeyframe]].Timestamp) {
+            if (nextKeyframe >= IndexKeyframes.size()) {
+                nextKeyframe = IndexKeyframes.size() - 1;
+                break;
+            }
 			currentKeyframe = nextKeyframe;
-			//std::cout << "current Frame: " << currentKeyframe << std::endl;
 			nextKeyframe++;
-			if (nextKeyframe >= kf.size()) nextKeyframe = kf.size() - 1;
 		}
-		float progression = calculateProgression(kf[currentKeyframe],kf[nextKeyframe]);
-		interpolatePose(kf[currentKeyframe], kf[nextKeyframe], progression);
+        int curr = IndexKeyframes[currentKeyframe];
+        int next = IndexKeyframes[nextKeyframe];
+		float progression = calculateProgression(kf[curr],kf[next]);
+		interpolatePose(kf[curr], kf[next], progression);
 	}
 
 	float calculateProgression(KeyFrame& currentFrame, KeyFrame& nextFrame) {
@@ -232,7 +395,6 @@ private:
 			Transformation& previousTransform = t.second;
 			std::unordered_map<int, Transformation>::iterator itr = nextFrame.poseTransform.find(t.first);
 			if (itr == nextFrame.poseTransform.end()) {
-				//nanti di benerin
 				nextFrame.poseTransform[t.first] = t.second;
 				itr = nextFrame.poseTransform.find(t.first);
 			}
@@ -245,15 +407,12 @@ private:
 	Transformation interpolate(Transformation& previousTransform, Transformation& nextTransform, float& progression) {
 		Transformation result;
 
-		result.translation = interpolate::lerp(previousTransform.translation, nextTransform.translation, progression);
-		result.rotation = interpolate::slerp(previousTransform.rotation, nextTransform.rotation, progression);
-
-		//nanti
-		//result.scalation = result.lerp(previousTransform.scalation, nextTransform.scalation, progression);
+		result.pos = interpolate::lerp(previousTransform.pos, nextTransform.pos, progression);
+		result.rotate = interpolate::slerp(previousTransform.rotate, nextTransform.rotate, progression);
+		result.scale = interpolate::lerp(previousTransform.scale, nextTransform.scale, progression);
 
 		return result;
 	}
 };
-
 
 #endif

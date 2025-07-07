@@ -1,4 +1,5 @@
 #include "GUI.h"
+#include "animator.h"
 
 namespace GUI {
 
@@ -48,9 +49,9 @@ namespace GUI {
         ImGui::End();
     }
 
-    void modelTransform(glm::vec3& pos, glm::vec3& rot, float& angle, glm::vec3& scale) {
+    void modelTransform(std::string name, glm::vec3& pos, glm::vec3& rot, float& angle, glm::vec3& scale) {
 
-        ImGui::Begin("Model Parameter");
+        ImGui::Begin(name.c_str());
 
         float modelPos[3] = { pos.x, pos.y, pos.z };
         ImGui::DragFloat3("position", modelPos, 0.005f);
@@ -74,21 +75,79 @@ namespace GUI {
         ImGui::End();
     }
 
-    // later;
-    void modelAnimation(int animation, int n) {
+    void modelAnimation(std::string name, Animator &animator, bool &playAnimation) {
 
-        //const char* animationName[] = { "Animation 0", "no animation" };
+        ImGui::Begin(name.c_str());
 
-        //static int currentAnimation = animation;
-        //ImGui::Combo("Animation", &currentAnimation, animationName, 2);
-        //if (currentAnimation != animation) {
-        //    if (currentAnimation == 0) {
-        //        //carafe.animator.doAnimation(currentAnimation);
-        //    }
-        //    else {
-        //        //carafe.animator.doAnimation(-1);
-        //    }
-        //}
+        float progress = animator.animationTime, lengthTime = animator.animations[animator.currentAnimation].length;
+
+        ImGui::SeparatorText("animation");
+        int n_animation = animator.animations.size();
+        if (ImGui::BeginCombo("animation", animator.animations[animator.currentAnimation].name.c_str(), 0)) {
+            for (int i = 0; i < n_animation; i++) {
+                bool isSelected = (animator.currentAnimation == i);
+                if (ImGui::Selectable(animator.animations[i].name.c_str(), isSelected)) {
+                    playAnimation = true;
+                    animator.doAnimation(i);
+                }
+
+                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                if (isSelected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::Text("length : %f", animator.animations[animator.currentAnimation].length - animator.animations[animator.currentAnimation].startTime);
+        ImGui::Text("count : %d", animator.animations[animator.currentAnimation].count);
+        ImGui::Text("timestamp size : %d", animator.animations[animator.currentAnimation].timestamp.size());
+        ImGui::Text("keyframe size : %d", animator.animations[animator.currentAnimation].keyframes.size());
+        if (ImGui::Button("play Animation")) {
+            playAnimation = !(playAnimation);
+            animator.play = playAnimation;
+        }
+        if (ImGui::Button("-0.001s")) {
+            animator.animationTime -= 0.001f;
+            if (animator.animationTime < 0.0f) {
+                animator.animationTime = 0.0f;
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("previous")) {
+            if (animator.currentKeyframe > 0) {
+                animator.currentKeyframe--;
+            }
+            animator.nextKeyframe = animator.currentKeyframe + 1;
+            animator.animationTime = animator.animations[animator.currentAnimation].
+                keyframes[animator.IndexKeyframes[animator.currentKeyframe]].Timestamp;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("play")) {
+            animator.play = !(animator.play);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("next")) {
+            if (animator.nextKeyframe < animator.IndexKeyframes.size() - 1) {
+                animator.nextKeyframe++;
+            }
+            animator.currentKeyframe = animator.nextKeyframe - 1;
+            animator.animationTime = animator.animations[animator.currentAnimation].
+                keyframes[animator.IndexKeyframes[animator.currentKeyframe]].Timestamp;
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("+0.001s")) {
+            animator.animationTime += 0.001f;
+            if (animator.animationTime > lengthTime) {
+                animator.animationTime = lengthTime;
+            }
+        }
+        char buf[32];
+        progress -= animator.animations[animator.currentAnimation].startTime;
+        lengthTime -= animator.animations[animator.currentAnimation].startTime;
+        sprintf(buf, "%.4f/%.4f", progress, lengthTime);
+        ImGui::ProgressBar(progress / lengthTime, ImVec2(0.f, 0.f), buf);
+
+        ImGui::End();
     }
 
     void waterFFTParam(WaterFFTParam &waterFFTParams) {

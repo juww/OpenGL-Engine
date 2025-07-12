@@ -13,12 +13,29 @@ WIP, use visual studio 2022
 
 ## Current Features
 1. Terrain Generation
-![Example Image](screenshots/terrain_generation_1.png)
+
+   simple terrain generation
+   ![terrain_generation_1](screenshots/terrain_generation_1.png)
 2. grass on terrain
+   ![grass_1](screenshots/grass.png)
 3. wave ocean simulation (sine wave and FFT)
-4. load gltf Model
-5. PBR, BRDF and IBL
+
+   sine waves + blind-phong lighting
+   ![sine_waves](screenshots/sine_waves_water.png)
+
+   Wave Ocean use spectrum and FFT
+  ![ocean_FFT](screenshots/ocean_waves_FFT.png)
+4. PBR, BRDF and IBL
+   ![example_PBR](screenshots/pbr.png)
+5. load gltf Model
+   ![model_1](screenshots/pbr_1.png)
+   ![model_2](screenshots/pbr_2.png)
+   ![model_3](screenshots/sponza.png)
 6. play model animation
+   
+   https://github.com/user-attachments/assets/a05a1b30-f211-4552-b9ee-e554d008867b
+   
+   https://github.com/user-attachments/assets/0733f9a5-ce67-4a6d-91fe-b7c0d26f659f
 
 ## Future Progress
 1. ray tracing

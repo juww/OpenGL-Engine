@@ -89,7 +89,7 @@ public:
 		maxHeight = MIN_VALUE;
 
 		generatePlane(planeSize);
-		generateColorTerrain();
+		//generateColorTerrain();
 	
 		glBindVertexArray(0);
 	}
@@ -385,9 +385,18 @@ public:
 				for (int k = 0; k < grass.density; k++) {
 
 					float t = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-					glm::vec3 l1 = interpolate::lerp(pos1, pos2, t);
+                    glm::vec3 p1 = pos1;
+                    glm::vec3 p2 = pos2;
+                    glm::vec3 p3 = pos3;
+                    if (k % 2 == 1) {
+                        p1.x += 0.5; p1.z += 0.5;
+                        p2.x += 0.5; p2.z += 0.5;
+                        p3.x += 0.5; p3.z += 0.5;
+
+                    }
+					glm::vec3 l1 = interpolate::lerp(p1, p2, t);
 					t = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-					glm::vec3 l2 = interpolate::lerp(pos1, pos3, t);
+					glm::vec3 l2 = interpolate::lerp(p1, p3, t);
 					t = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 					glm::vec3 l3 = interpolate::lerp(l1, l2, t);
 
@@ -488,7 +497,7 @@ public:
 		shader->setInt("colorCount", terrains.size());
 		for (int i = 0; i < terrains.size(); i++) {
 			shader->setVec3("baseColor[" + std::to_string(i) + "]", terrains[i].color);
-			shader->setFloat("colorStrength" +std::to_string(i) + "]", terrains[i].colorStrength);
+			shader->setFloat("colorStrength[" +std::to_string(i) + "]", terrains[i].colorStrength);
 			shader->setFloat("baseStartHeight[" + std::to_string(i) + "]", terrains[i].height);
 			shader->setFloat("baseBlend[" + std::to_string(i) + "]", terrains[i].blend);
 		}
@@ -660,19 +669,19 @@ private:
 	void generateColorTerrain() {
 
 		Terrain region;
-		region.setRegion("water", { 0.058, 0.368, 0.611 }, 0.0f, 0.0f, 0.25f, "assets/textures/Water.png");
+		region.setRegion("water", { 0.058, 0.368, 0.611 }, 0.0f, 0.0f, 0.25f, "res/textures/terrains/Water.png");
 		terrains.push_back(region);
-		region.setRegion("sandy grass", { 0.941 ,0.929, 0.643 }, 0.0f, 0.3, 0.05f, "assets/textures/Sandy grass.png");
+		region.setRegion("sandy grass", { 0.941 ,0.929, 0.643 }, 0.0f, 0.3, 0.05f, "res/textures/terrains/Sandy grass.png");
 		terrains.push_back(region);
-		region.setRegion("Stony ground", { 0.325, 0.82, 0.204 }, 0.0f, 0.4, 0.1f, "assets/textures/Stony ground.png");
+		region.setRegion("Stony ground", { 0.325, 0.82, 0.204 }, 0.0f, 0.4, 0.1f, "res/textures/terrains/Stony ground.png");
 		terrains.push_back(region);
-		region.setRegion("grass", { 0.066, 0.486, 0.074 }, 0.0f, 0.5, 0.2f, "assets/textures/Grass.png");
+		region.setRegion("grass", { 0.066, 0.486, 0.074 }, 0.0f, 0.5, 0.2f, "res/textures/terrains/Grass.png");
 		terrains.push_back(region);
-		region.setRegion("rock 1", { 0.333, 0.254, 0.141 }, 0.0f, 0.7, 0.1f, "assets/textures/Rocks 1.png");
+		region.setRegion("rock 1", { 0.333, 0.254, 0.141 }, 0.0f, 0.7, 0.1f, "res/textures/terrains/Rocks 1.png");
 		terrains.push_back(region);
-		region.setRegion("rock 2", { 0.235, 0.145, 0.082 }, 0.0f, 0.8, 0.1f, "assets/textures/Rocks 2.png");
+		region.setRegion("rock 2", { 0.235, 0.145, 0.082 }, 0.0f, 0.8, 0.1f, "res/textures/terrains/Rocks 2.png");
 		terrains.push_back(region);
-		region.setRegion("snow", { 1.000, 1.000, 1.000 }, 0.0f, 0.85, 0.1f, "assets/textures/Snow.png");
+		region.setRegion("snow", { 1.000, 1.000, 1.000 }, 0.0f, 0.85, 0.1f, "res/textures/terrains/Snow.png");
 		terrains.push_back(region);
 	}
 	

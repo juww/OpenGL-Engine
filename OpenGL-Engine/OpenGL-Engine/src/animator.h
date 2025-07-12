@@ -4,6 +4,8 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #include<string>
 #include<cstring>
@@ -19,20 +21,20 @@ class NodeAnimation {
 public:
     std::string name;
     std::vector<std::pair<float, glm::vec3> > translate;
-    std::vector<std::pair<float, glm::vec4> > rotate;
+    std::vector<std::pair<float, glm::quat> > quat;
     std::vector<std::pair<float, glm::vec3> > scale;
 
     NodeAnimation() {
         name = "";
         translate.clear();
-        rotate.clear();
+        quat.clear();
         scale.clear();
     }
 
     NodeAnimation& operator=(const NodeAnimation &node) {
         name = node.name;
         translate = node.translate;
-        rotate = node.rotate;
+        quat = node.quat;
         scale = node.scale;
 
         return *this;
@@ -67,19 +69,13 @@ public:
 			poseTransform.insert({ targetNode,transform });
 			itr = poseTransform.find(targetNode);
 		}
-		//std::cout << "targetnode : " << targetNode << "\n";
-		//std::cout << "targetpath : " << targetPath << "\n";
-		//for (int i = 0; i < 4; i++) {
-		//	printf("%f ", transform[i]);
-		//}
-		//printf("\n");
 		Transformation& pose = itr->second;
-		//std::cout << "\n";
 
 		if (targetPath == "rotation") {
-			for (int i = 0; i < 4; i++) {
-                pose.rotate[(i + 1) % 4] = transform[i];
-			}
+            pose.quaternion.w = transform.w;
+            pose.quaternion.x = transform.x;
+            pose.quaternion.y = transform.y;
+            pose.quaternion.z = transform.z;
 		}
 		if (targetPath == "translation") {
 			for (int i = 0; i < 3; i++) {
@@ -171,7 +167,7 @@ public:
                 const NodeAnimation& node = nodeAnimations[bone];
 
                 glm::vec3 resTranslate = nodeDefault[bone].pos;
-                glm::vec4 resRotate = nodeDefault[bone].rotate;
+                glm::quat resQuat = nodeDefault[bone].quaternion;
                 glm::vec3 resScale = nodeDefault[bone].scale;
                 //fill translate
                 bool flag = false;
@@ -203,32 +199,31 @@ public:
 
                 //fill rotate
                 flag = false;
-                for (int j = 0; j < node.rotate.size(); j++) {
+                for (int j = 0; j < node.quat.size(); j++) {
                     if (flag == true) break;
 
-                    if (abs(node.rotate[j].first - keyframe.Timestamp) <= 1e-4f) {
+                    if (abs(node.quat[j].first - keyframe.Timestamp) <= 1e-4f) {
                         flag = true;
-                        resRotate = node.rotate[j].second;
+                        resQuat = node.quat[j].second;
                         break;
                     }
-                    if (node.rotate[j].first > keyframe.Timestamp && flag == false) {
+                    if (node.quat[j].first > keyframe.Timestamp && flag == false) {
                         if (j - 1 >= 0) {
-                            float ta = node.rotate[j - 1].first;
-                            float tb = node.rotate[j].first;
+                            float ta = node.quat[j - 1].first;
+                            float tb = node.quat[j].first;
                             float tk = keyframe.Timestamp;
                             float tt = (tk - ta) / (tb - ta);
-
-                            glm::vec4 TA = node.rotate[j - 1].second;
-                            glm::vec4 TB = node.rotate[j].second;
-                            glm::vec4 res = interpolate::slerp(TA, TB, tt);
-                            resRotate = res;
+                             
+                            glm::quat QA = node.quat[j - 1].second;
+                            glm::quat QB = node.quat[j].second;
+                            resQuat = glm::slerp(QA, QB, tt);
 
                             flag = true;
                             break;
                         }
                     }
                 }
-                keyframe.poseTransform[bone].rotate = resRotate;
+                keyframe.poseTransform[bone].quaternion = resQuat;
                 //fill scale
                 flag = false;
                 for (int j = 0; j < node.scale.size(); j++) {
@@ -307,11 +302,8 @@ public:
         int nn = input.size();
         for (int i = 0; i < nn; i++) {
             if (targetPath == "rotation") {
-                glm::vec4 temp = output[i];
-                for (int j = 0; j < 4; j++) {
-                    output[i][(j + 1) % 4] = temp[j];
-                }
-                t_na.rotate.push_back({ input[i], output[i] });
+                glm::quat qtemp(output[i].w, output[i].x, output[i].y, output[i].z);
+                t_na.quat.push_back({ input[i], qtemp });
             }
             if (targetPath == "translation") {
                 t_na.translate.push_back({ input[i], output[i] });
@@ -327,6 +319,9 @@ public:
 	}
 
 	void doAnimation(int animation) {
+
+        if (animation >= animations.size() || animations.empty()) return;
+
 		currentAnimation = animation;
 		animationTime = animations[currentAnimation].startTime;
 		lastTime = static_cast<float>(glfwGetTime());
@@ -408,7 +403,7 @@ private:
 		Transformation result;
 
 		result.pos = interpolate::lerp(previousTransform.pos, nextTransform.pos, progression);
-		result.rotate = interpolate::slerp(previousTransform.rotate, nextTransform.rotate, progression);
+        result.quaternion = glm::slerp(previousTransform.quaternion, nextTransform.quaternion, progression);
 		result.scale = interpolate::lerp(previousTransform.scale, nextTransform.scale, progression);
 
 		return result;

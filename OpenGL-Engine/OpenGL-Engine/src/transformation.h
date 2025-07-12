@@ -22,7 +22,7 @@ public:
         pos = glm::vec3(0.0f);
         scale = glm::vec3(1.0f, 1.0f, 1.0f);
         rotate = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-        quaternion = glm::quat();
+        quaternion = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
     }
 
     Transformation& operator=(const Transformation& t) {
@@ -41,7 +41,6 @@ public:
         // M = T * R * S
         glm::mat4 S = glm::scale(glm::mat4(1.0f), scale);
 
-        quaternion = glm::quat(rotate.x, rotate.y, rotate.z, rotate.w);
         glm::mat4 R = glm::mat4_cast(quaternion);
 
         glm::mat4 T = glm::translate(glm::mat4(1.0f), pos);

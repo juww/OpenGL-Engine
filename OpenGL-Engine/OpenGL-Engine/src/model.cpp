@@ -141,6 +141,11 @@ namespace gltf {
         }
     }
 
+    void Model::startPlayAnimation(int animation) {
+        playAnimation = true;
+        animator.doAnimation(animation);
+    }
+
     void Model::update(float deltaTime) {
 
         shader->use();

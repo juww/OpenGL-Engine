@@ -1,36 +1,34 @@
-# OpenGL-GLTF
-maybe later to add some of topic that i have learned in this project...
+## About
+A modern OpenGL Engine written in C++. The purpose about this project, primarily a playground for me to learn and implement different graphics programming techniques or/and physics engine game.
 
+## Library
+1. [`OpenGL/GLAD`](https://glad.dav1d.de/) - Allows for drawing of graphics via the GPU
+2. [`GLFW`](https://www.glfw.org/) - For creating the window and handling OS-specific operations
+3. [`glm`](https://github.com/g-truc/glm) - mathematics library for OpenGL Shading Language (GLSL) specification.
+4. [`ImGui`](https://github.com/ocornut/imgui) - For graphical user interfaces (GUIs) for development and debugging tools
+5. [`tinyGLTF`](https://github.com/syoyo/tinygltf) - For parsing and loading glTF 3D models
 
-# how to get run on visual studio
-1. Project tab -> Properties -> C/C++ -> General -> Additional Include Directories -> edit -> add the folder/directory include in this project
-2. if some error like cannot use scanf and printf add some on Project -> Properties -> C/C++ -> Preprocessor -> add Definitions "_CRT_SECURE_NO_WARNINGS"
-3. go to the Linker select Additional Library Directories -> edit -> add -> glad and glfw-lib-vc2022 (use a same version visual studio currently use)
-4. go to the linker input -> select Additional Dependencies -> add all this below
-    glfw3.lib
-    opengl32.lib
-    user32.lib
-    gdi32.lib
-    shell32.lib
+## How to run
+WIP, use visual studio 2022
 
-# issue
-1. make transformation matrix on model can be set in the while loop
-2. some of object .gltf is render very messy and not rendered
-3. in loadmodel need to add something that have many of texcoord and color
-4. not apply yet about skins, joint, animation(interpolation).
+## Current Features
+1. Terrain Generation
+![Example Image](screenshots/terrain_generation_1.png)
+2. grass on terrain
+3. wave ocean simulation (sine wave and FFT)
+4. load gltf Model
+5. PBR, BRDF and IBL
+6. play model animation
 
-
-# learn self
-1. learning about Image Based Rendering(IBL) on Physical Based Rendering(PBR);
-    1. need to learn about IBL itself, HDR, cubemap, Reflection and Refrection
-2. interpolation (lerp / slerp)
-
-
-# maybe next time to learn about these
-1. try to apply inworld.ai in this project
-
-2. ray tracing
-3. ray marching
-4. navMesh
-5. QuadTree and collision
-6. 
+## Future Progress
+1. ray tracing
+2. global illumination
+3. fluid simulation
+4. ray marching
+5. smoke and fog
+6. HDR or tonemapping
+7. bloom
+8. cloth simulation
+9. collision detection
+10. smooth step for transition animation
+11. procedural animation

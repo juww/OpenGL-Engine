@@ -40,11 +40,12 @@ private:
     std::vector<Light> m_Lights;
     gltf::Model* m_Model;
     gltf::Model* m_Sponza;
+    gltf::Model* m_Dragonskin;
     Skybox* m_Skybox;
     Plane* m_Plane;
     T_Terrain* m_Terrain;
     std::vector<Cube *> m_LightCube;
-    Sphere* m_Sphere;
+    std::vector<Sphere *> m_Spheres;
     Water* m_Water;
     WaterFFT* m_WaterFFT;
 

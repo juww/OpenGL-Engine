@@ -18,8 +18,8 @@ void main(){
     vec3 ambient = ambientStrength * vec3(1.0);
 
     vec3 norm = normalize(Normal);
-    //vec3 lightDir = normalize(lightPos - FragPos);
-    vec3 lightDir = normalize(-lightDirection);
+    vec3 lightDir = normalize(lightPos - FragPos);
+    //vec3 lightDir = normalize(-lightDirection);
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = diff * color;
 

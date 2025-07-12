@@ -55,25 +55,61 @@ public:
 
     unsigned int loadTexture(std::string& path) {
         unsigned int tex = 0;
-        glGenTextures(1, &tex);
-        glBindTexture(GL_TEXTURE_2D, tex);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
         int w, h, nrChannels;
         unsigned char* data = stbi_load(FileSystem::getPath(path).c_str(), &w, &h, &nrChannels, 4);
+        if (!data) {
+            stbi_image_free(data);
+            bool flag = false;
+            size_t pos = path.find(".jpg");
+            if (pos != std::string::npos && !flag) {
+                path.replace(pos, 4, ".png");
+                flag = true;
+            }
+            pos = path.find(".png");
+            if (pos != std::string::npos && !flag) {
+                path.replace(pos, 4, ".jng");
+                flag = true;
+            }
+            unsigned char* tdata = stbi_load(FileSystem::getPath(path).c_str(), &w, &h, &nrChannels, 4);
+            if (tdata) {
+
+                glGenTextures(1, &tex);
+                glBindTexture(GL_TEXTURE_2D, tex);
+                glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, tdata);
+            }
+            if (!tdata) {
+                stbi_image_free(tdata);
+                return 0;
+            }
+            width = (float)w;
+            height = (float)h;
+            stbi_image_free(tdata);
+            return tex;
+        }
         if (data) {
+
+            glGenTextures(1, &tex);
+            glBindTexture(GL_TEXTURE_2D, tex);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         }
         width = (float)w;
         height = (float)h;
         stbi_image_free(data);
 
-        printf("load materials = %s\nresult = %d\n", path.c_str(), tex);
         return tex;
     }
 

@@ -43,11 +43,9 @@ public:
         lengthInv = 1.0f / radius;
         countVertex = 0;
         tex = 0, cubeTex = 0;
-        pos = glm::vec3(5.0f, 10.0f, -3.0f);
         BUFFER_SIZE = 14;
         duplicatedVertex.clear();
-        
-        model = glm::translate(model, pos);
+
         getTexturePath();
     }
 
@@ -228,7 +226,7 @@ public:
         setbuffer();
     }
 
-    void loadMaterials() {
+    void loadMaterials(std::string materialPath) {
         materials.useMaterial = true;
         //std::string materialPath = "res/textures/materials/windswept-wasteland-bl/";
         //std::string albedo = materialPath + "windswept-wasteland_albedo.png";
@@ -242,7 +240,7 @@ public:
         //std::string normal = materialPath + "sphere_DefaultMaterial_Normal.png";
         //std::string roughness = materialPath + "sphere_DefaultMaterial_Roughness.png";
 
-        std::string materialPath = "res/textures/materials/metal_hole/";
+        //std::string materialPath = "res/textures/materials/metal_hole/";
         std::string albedo = materialPath + "albedo.jpg";
         std::string normal = materialPath + "normal.png";
         std::string roughness = materialPath + "roughness.jpg";
@@ -299,11 +297,12 @@ public:
               const float &_time, std::map<std::string, unsigned int>& mappers, std::vector<glm::vec3> lightPos, GUI::PBRParam& pbr) {
         shader->use();
 
-        //glm::mat4 m = glm::rotate(model, _time, glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::mat4 m = glm::translate(model, pos);
 
-        shader->setMat4("model", model);
+        shader->setMat4("model", m);
         shader->setMat4("projection", projection);
         shader->setMat4("view", view);
+        shader->setInt("hasBone", 0);
 
         for (int i = 0; i < lightPos.size(); i++) {
             shader->setVec3("lightPosition[" + std::to_string(i) + "]", lightPos[i]);
@@ -395,9 +394,17 @@ public:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0);
 
+        for (int i = 0; i < 6; i++) {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+        glActiveTexture(GL_TEXTURE9);
+        glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
         //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
+
+
 
     ~Sphere() {
 

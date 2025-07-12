@@ -55,10 +55,10 @@ namespace gltf {
         }
 
         if (!node.rotation.empty()) {
-            for (int i = 0; i < node.rotation.size(); i++) {
-                transform.quaternion[(i + 1) % 4] = node.rotation[i];
-                transform.rotate[(i + 1) % 4] = node.rotation[i];
-            }
+            transform.quaternion.w = node.rotation[3];
+            transform.quaternion.x = node.rotation[0];
+            transform.quaternion.y = node.rotation[1];
+            transform.quaternion.z = node.rotation[2];
         }
 
         if (!node.translation.empty()) {

@@ -15,7 +15,7 @@ Water::~Water() {
 void Water::initialize(const int& width, const int& height, const float& scale) {
     m_Model = glm::mat4(1.0f);
     //m_Model = glm::scale(m_Model, glm::vec3(0.1));
-    m_Model = glm::translate(m_Model, { -width / (scale * 2.0), 5.0f, -height / (scale * 1.05)});
+    m_Model = glm::translate(m_Model, { -width / (scale * 2.0), 50.0f, -height / (scale * 1.05)});
     
     m_Width = width;
     m_Height = height;

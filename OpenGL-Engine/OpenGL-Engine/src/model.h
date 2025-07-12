@@ -55,6 +55,7 @@ namespace gltf {
         void drawMesh(int indx);
         void drawNodes(int indx);
         void draw();
+        void startPlayAnimation(int animation);
         void update(float deltaTime);
         void updateSkeletalNode(int nodeIndx, int parent);
         bool loadModel(const char* filename);

@@ -38,13 +38,14 @@ out vec4 FragPosLightSpace;
 
 vec4 applyBoneTransform(vec4 p) {
 
-    mat4 result = mat4(1.0);
+    vec4 ret = vec4(0.0f);
 
     for (int i = 0; i < 4; ++i) {
-         result += (boneTransform[aJoint[i]] * aWeight[i]);
+         vec4 temp = (boneTransform[aJoint[i]] * p);
+         ret += (temp * aWeight[i]);
     }
-    vec4 res = result * p;
-    return res;
+
+    return ret;
 }
 
 void main() {

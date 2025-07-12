@@ -18,15 +18,14 @@ void main() {
     float occlusion = 1.0;
 
     vec3 mro = texture(roughnessMap, TexCoords).rgb;
-    roughness = mro.g;
-    if(mro.b != mro.g) {
-        metallic = mro.b;
-    } else {
-        if(useMetallicMapping) {
-            metallic = texture(metallicMap, TexCoords).r;
-        }
-    }
 
+    //occlusion = mro.r;
+    roughness = mro.g;
+    metallic = mro.b;
+
+    if(useMetallicMapping) {
+        metallic = texture(metallicMap, TexCoords).r;
+    }
     if(useOcclusionMapping) {
         occlusion = texture(occlusionMap, TexCoords).r;
     }

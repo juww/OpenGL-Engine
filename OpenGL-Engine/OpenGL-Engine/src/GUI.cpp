@@ -77,6 +77,7 @@ namespace GUI {
 
     void modelAnimation(std::string name, Animator &animator, bool &playAnimation) {
 
+        if (animator.animations.empty() || animator.currentAnimation == -1) return;
         ImGui::Begin(name.c_str());
 
         float progress = animator.animationTime, lengthTime = animator.animations[animator.currentAnimation].length;

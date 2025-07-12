@@ -17,7 +17,7 @@ Renderer::Renderer() {
     m_Skybox = new Skybox();
     m_Plane = nullptr;
     m_Terrain = nullptr;
-    m_Sphere = nullptr;
+    m_Spheres.clear();
     m_PBRShader = nullptr;
 
     m_FBManager = m_FBManager->getInstance();
@@ -59,8 +59,8 @@ void Renderer::setupLights() {
     lightdir.setDirectionLight(glm::vec3(-2.0f, 3.0f, 1.0f) * 3.0f);
     lightdir.setLightView(glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
     lightdir.setProjectionOrtho(glm::vec4(-20.0f, 20.0f, -20.0f, 20.0f), 1.0f, 15.5f);
-    //lightdir.setProjectionPerspective(glm::radians(45.0f), (1.7778f), 0.1f, 50.0f);
-    //m_Lights.push_back(lightdir);
+    lightdir.setProjectionPerspective(glm::radians(45.0f), (1.7778f), 0.1f, 50.0f);
+    m_Lights.push_back(lightdir);
 
     glm::vec3 lpos = glm::vec3(0.0f, 3.0f, 0.0f);
     Light lp;
@@ -131,22 +131,26 @@ void Renderer::initModel() {
     //const std::string& pathfile = "res/models/simpleSkin/scene.gltf";
     //const std::string& pathfile = "res/models/model_avatar/model_external.gltf";
 
-    // bugged;
-    // loadModel has problem with texture take to each other texture
-    // the texture applied in other model
-
-    const std::string& pathfile = "res/models/monster_skull/scene.gltf";
+    const std::string& pathfile = "res/models/water-bottle/scene.gltf";
     m_Model = new gltf::Model();
     m_Model->loadModel(pathfile.c_str());
     m_Model->setShader(m_PBRShader);
     m_Model->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
     m_Model->setScale(glm::vec3(0.01f));
-    m_Model->animator.doAnimation(0);
+    m_Model->startPlayAnimation(0);
 
     const std::string& sponzaPathFile = "res/models/Sponza/glTF/Sponza.gltf";
     m_Sponza = new gltf::Model();
     m_Sponza->loadModel(sponzaPathFile.c_str());
     m_Sponza->setShader(m_PBRShader);
+
+    const std::string& dragonskinPathFile = "res/models/silver_dragonkin/scene.gltf";
+    m_Dragonskin = new gltf::Model();
+    m_Dragonskin->loadModel(dragonskinPathFile.c_str());
+    m_Dragonskin->setShader(m_PBRShader);
+    m_Dragonskin->setPosition(glm::vec3(0.0f, 15.0f, 0.0f));
+    m_Dragonskin->setScale(glm::vec3(0.01f));
+    m_Dragonskin->startPlayAnimation(0);
 }
 
 void Renderer::start() {
@@ -172,11 +176,19 @@ void Renderer::start() {
     m_Terrain->generateNoiseTexture(256);
     //m_LightCube->localTransform();
 
-    m_Sphere = new Sphere(50, 2.0f);
-    //m_Sphere->createHemisphere();
-    m_Sphere->icosphere(5);
-    m_Sphere->loadMaterials();
-    //m_Sphere->cubesphere(5);
+    for (int i = 0; i < 1; i++) {
+        m_Spheres.push_back(new Sphere(50, 1.0f));
+        m_Spheres[i]->icosphere(4);
+        //m_Sphere->createHemisphere();
+        //m_Sphere->cubesphere(5);
+        m_Spheres[i]->pos = glm::vec3(15.0f, 15.0f, i * 3.0f);
+        if (i == 0) m_Spheres[i]->loadMaterials("res/textures/materials/wood/");
+        if (i == 1) m_Spheres[i]->loadMaterials("res/textures/materials/tiles_wall/");
+        if (i == 2) m_Spheres[i]->loadMaterials("res/textures/materials/windswept-wasteland-bl/");
+        if (i == 3) m_Spheres[i]->loadMaterials("res/textures/materials/mud/");
+        if (i == 4) m_Spheres[i]->loadMaterials("res/textures/materials/metal_hole/");
+    }
+    
 
     m_Water = new Water();
     m_Water->initialize(256, 256, 8.0f);
@@ -202,15 +214,22 @@ void Renderer::start() {
     m_FBManager->PreFilterMapping(m_PreFilterShader, m_Skybox->cubemapTexture, m_Skybox->width, m_Skybox->height);
     m_FBManager->BrdfLUT(m_LUTShader, m_Skybox->width, m_Skybox->height);
 
-    //m_FBManager->ShadowMapping();
-    m_FBManager->CubeShadowMapping();
+    m_FBManager->ShadowMapping();
+    //m_FBManager->CubeShadowMapping();
 
-    m_Sphere->materials.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader, m_Sphere->materials.Map, m_Sphere->materials.width, m_Sphere->materials.height);
+    for (auto sphere : m_Spheres) {
+        sphere->materials.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader, 
+            sphere->materials.Map, sphere->materials.width, sphere->materials.height);
+    }
     for (Materials& material : m_Model->materials) {
         material.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
             material.Map, material.width, material.height);
     }
     for (Materials& material : m_Sponza->materials) {
+        material.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
+            material.Map, material.width, material.height);
+    }
+    for (Materials& material : m_Dragonskin->materials) {
         material.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
             material.Map, material.width, material.height);
     }
@@ -282,7 +301,7 @@ void Renderer::shadowRender(int shadowType) {
         m_ShadowCubeMappingShader->setVec3("lightPos", lightPos);
 
         //m_Sponza->DrawModel(m_ShadowCubeMappingShader);
-        m_Sphere->drawInDepthMap(m_ShadowCubeMappingShader);
+        //m_Sphere->drawInDepthMap(m_ShadowCubeMappingShader);
 
 
         //glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -328,6 +347,7 @@ void Renderer::render(float currentTime, float deltaTime) {
 
     GUI::modelTransform("model", m_Model->pos, m_Model->rot, m_Model->angle, m_Model->scale);
     GUI::modelTransform("sponza", m_Sponza->pos, m_Sponza->rot, m_Sponza->angle, m_Sponza->scale);
+    GUI::modelTransform("dragonskin", m_Dragonskin->pos, m_Dragonskin->rot, m_Dragonskin->angle, m_Dragonskin->scale);
     
     bool changeParam = GUI::proceduralTerrainParam(tp.m_Seed, tp.m_Scale, tp.m_Octaves, tp.m_Persistence, tp.m_Lacunarity, tp.m_OffsetV, tp.m_Amplitude);
 
@@ -347,7 +367,7 @@ void Renderer::render(float currentTime, float deltaTime) {
     m_Terrain->computeNoiseMap();
     m_Terrain->draw(projection, view, m_Camera->Position);
 
-    GUI::waterParam(wp);
+    //GUI::waterParam(wp);
     //m_Water->setParameter(m_WaterShader, wp.m_Amplitude, wp.m_Frequency, currentTime, wp.m_Speed, wp.m_Seed, wp.m_SeedIter, wp.m_WaveCount, m_Camera->Position);
     //m_Water->draw(m_WaterShader, projection, view);
 
@@ -382,12 +402,20 @@ void Renderer::render(float currentTime, float deltaTime) {
     m_Sponza->update(deltaTime);
     m_Sponza->draw();
 
-    m_Sphere->draw(m_PBRShader, projection, view, m_Camera->Position, 
-                   currentTime * 0.1f, m_FBManager->mappers, lightpos, pbr);
+    GUI::modelAnimation("dragonskin", m_Dragonskin->animator, m_Dragonskin->playAnimation);
+    m_Dragonskin->setUniforms(projection, view, m_Camera->Position, currentTime
+        , m_FBManager->mappers, lightpos, pbr);
+    m_Dragonskin->update(deltaTime);
+    m_Dragonskin->draw();
+
+    for (auto sphere : m_Spheres) {
+        sphere->draw(m_PBRShader, projection, view, m_Camera->Position,
+            currentTime * 0.1f, m_FBManager->mappers, lightpos, pbr);
+    }
     m_Skybox->draw(m_SkyboxShader, projection, glm::mat4(glm::mat3(m_Camera->GetViewMatrix())));
     //m_Sphere->drawNormalLine(m_NormalLineShader, projection, view);
 
-    GUI::fogDistanceParam(fdp);
+    //GUI::fogDistanceParam(fdp);
 
     //m_FBManager->bindFramebuffers();
     //m_FBManager->setFogDistance(m_FramebufferShader, fdp.m_Near, fdp.m_Far, fdp.m_Density, fdp.m_Color);

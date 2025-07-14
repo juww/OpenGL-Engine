@@ -55,19 +55,13 @@ void Renderer::configureGlobalState() {
 
 void Renderer::setupLights() {
     Light lightdir;
-    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
     lightdir.setDirectionLight(glm::vec3(-2.0f, 3.0f, 1.0f) * 3.0f);
-    lightdir.setLightView(glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
-    lightdir.setProjectionOrtho(glm::vec4(-20.0f, 20.0f, -20.0f, 20.0f), 1.0f, 15.5f);
-    lightdir.setProjectionPerspective(glm::radians(45.0f), (1.7778f), 0.1f, 50.0f);
     m_Lights.push_back(lightdir);
 
     glm::vec3 lpos = glm::vec3(0.0f, 3.0f, 0.0f);
     Light lp;
     Cube* c = new Cube();
-    float aspect = (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT;
     lp.setPosLight(lpos, 0.0f, 0.0f, 0.0f);
-    lp.setProjectionPerspective(glm::radians(90.0f), aspect, 1.0f, 25.0f);
     c->initialize();
     c->scale = glm::vec3(0.2f);
     c->pos = lpos;
@@ -246,7 +240,7 @@ void Renderer::shadowRender(int shadowType) {
             lightPos = light.m_Position;
         } else if (light.m_LightType == light.DIRECTION_LIGHT && shadowType == 1) {
             lightPos = light.m_Direction;
-            lightSpaceMatrix = light.m_LightProjection * light.m_LightView;
+            //lightSpaceMatrix = light.m_LightProjection * light.m_LightView;
         }
     }
     const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;

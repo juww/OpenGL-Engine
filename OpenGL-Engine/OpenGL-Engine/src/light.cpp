@@ -35,28 +35,3 @@ void Light::setSpotLight(const glm::vec3& spotlight) {
 void Light::setColor(glm::vec3 color) {
     m_Color = color;
 }
-
-void Light::setLightView(const glm::vec3& lookAtPosition, const glm::vec3& up) {
-    
-    switch (m_LightType) {
-        case (POSITION_LIGHT):
-            m_LightView = glm::lookAt(m_Position, lookAtPosition, up);
-            break;
-
-        case (DIRECTION_LIGHT):
-            m_LightView = glm::lookAt(m_Direction, lookAtPosition, up);
-            break;
-
-        default:
-            m_LightView = glm::lookAt(m_Direction, lookAtPosition, up);
-            break;
-    }
-}
-
-void Light::setProjectionOrtho(const glm::vec4& dimension, const float& near, const float& far) {
-    m_LightProjection = glm::ortho(dimension.x, dimension.y, dimension.z, dimension.w, near, far);
-}
-
-void Light::setProjectionPerspective(const float& fow, const float &aspect, const float& near, const float& far) {
-    m_LightProjection = glm::perspective(fow, aspect, near, far);
-}

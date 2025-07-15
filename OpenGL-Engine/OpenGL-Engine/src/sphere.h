@@ -228,19 +228,6 @@ public:
 
     void loadMaterials(std::string materialPath) {
         materials.useMaterial = true;
-        //std::string materialPath = "res/textures/materials/windswept-wasteland-bl/";
-        //std::string albedo = materialPath + "windswept-wasteland_albedo.png";
-        //std::string normal = materialPath + "windswept-wasteland_normal-ogl.png";
-        //std::string roughness = materialPath + "windswept-wasteland_roughness.png";
-        //std::string depth = materialPath + "windswept-wasteland_height.png";
-        //std::string metallic = materialPath + "windswept-wasteland_metallic.png";
-
-        //std::string materialPath = "res/textures/materials/mud/";
-        //std::string albedo = materialPath + "sphere_DefaultMaterial_Albedo.png";
-        //std::string normal = materialPath + "sphere_DefaultMaterial_Normal.png";
-        //std::string roughness = materialPath + "sphere_DefaultMaterial_Roughness.png";
-
-        //std::string materialPath = "res/textures/materials/metal_hole/";
         std::string albedo = materialPath + "albedo.jpg";
         std::string normal = materialPath + "normal.png";
         std::string roughness = materialPath + "roughness.jpg";

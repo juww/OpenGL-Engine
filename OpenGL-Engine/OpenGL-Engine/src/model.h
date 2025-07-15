@@ -6,6 +6,8 @@
 #include <glm/gtx/quaternion.hpp>
 #include <vector>
 
+#include "camera.h"
+#include "renderObject.h"
 #include "material.h"
 #include "transformation.h"
 #include "animator.h"
@@ -55,12 +57,13 @@ namespace gltf {
         void drawMesh(int indx);
         void drawNodes(int indx);
         void draw();
+        void getRenderObject(std::map<unsigned int, RenderObject>& pRenderObject);
         void startPlayAnimation(int animation);
         void update(float deltaTime);
         void updateSkeletalNode(int nodeIndx, int parent);
         bool loadModel(const char* filename);
-        void setUniforms(const glm::mat4& projection, const glm::mat4& view, glm::vec3& cameraPos,
-            const float& _time, std::map<std::string, unsigned int>& mappers, std::vector<glm::vec3> lightPos, GUI::PBRParam& pbr);
+        void setUniforms(Camera *camera, const float& _time, std::map<std::string, unsigned int>& mappers, 
+            std::vector<glm::vec3> lightPos, GUI::PBRParam& pbr, glm::mat4 lightSpaceMatrix);
         void setShader(std::string filename);
         void setShader(Shader *p_shader);
         void turnOffAllTexture();

@@ -45,6 +45,10 @@ public:
     float Zoom;
     float Aspect;
 
+    float Near;
+    float Far;
+    glm::mat4 view, projection;
+
     // constructor with vectors
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM), Aspect(ASPECT)
     {
@@ -68,10 +72,18 @@ public:
         Aspect = p_width / p_height;
     }
 
+    void setNearAndFarProjection(const float _near, const float _far) {
+        Near = _near;
+        Far = _far;
+    }
+
     // returns the view matrix calculated using Euler Angles and the LookAt Matrix
-    glm::mat4 GetViewMatrix()
-    {
-        return glm::lookAt(Position, Position + Front, Up);
+    glm::mat4 GetViewMatrix() {
+        return view = glm::lookAt(Position, Position + Front, Up);
+    }
+
+    glm::mat4 GetProjectionMatrix() {
+        return projection = glm::perspective(glm::radians(Zoom), Aspect, Near, Far);
     }
 
     // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)

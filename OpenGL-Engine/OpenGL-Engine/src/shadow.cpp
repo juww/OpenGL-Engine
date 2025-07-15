@@ -10,9 +10,14 @@ Shadow::Shadow() {
 
     lightProjection = glm::mat4(1.0f);
     lightView = glm::mat4(1.0f);
+    lightSpaceMatrix = glm::mat4(1.0f);
     width = 0;
     height = 0;
     aspect = 0.0f;
+
+    shadowMappingShader = nullptr;
+    depthFBO = 0;
+    depthMap = 0;
 }
 
 Shadow::~Shadow() {
@@ -25,7 +30,11 @@ void Shadow::setShadowSizeScreen(unsigned int w, unsigned int h) {
     aspect = (float)width / (float)height;
 }
 
-void Shadow::setLightView(const glm::vec3& lookAtPosition, const glm::vec3& up) {
+void Shadow::setShader(Shader* shader) {
+    shadowMappingShader = shader;
+}
+
+void Shadow::setLightView(glm::vec3 lookAtPosition, const glm::vec3& up) {
     lightView = glm::lookAt(lightDirection, lookAtPosition, up);
 }
 
@@ -43,7 +52,10 @@ void Shadow::framebufferDepthMap() {
         glGenFramebuffers(1, &depthFBO);
     }
 
-    glGenTextures(1, &depthMap);
+    if (depthMap == 0) {
+        glGenTextures(1, &depthMap);
+    }
+
     glBindTexture(GL_TEXTURE_2D, depthMap);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -64,17 +76,25 @@ void Shadow::framebufferDepthMap() {
 
 void Shadow::renderDepthBuffer() {
 
-    glm::mat4 lightSpaceMatrix;
     lightSpaceMatrix = lightProjection * lightView;
 
-    glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
+    glViewport(0, 0, width, height);
     glClear(GL_DEPTH_BUFFER_BIT);
 
     shadowMappingShader->use();
     shadowMappingShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
+    for (auto& obj : objects) {
+        RenderObject& ro = obj.second;
+        shadowMappingShader->setMat4("model", ro.model);
 
+        glBindVertexArray(ro.vao);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ro.ebo);
+        glDrawElements(GL_TRIANGLES, ro.count, ro.type, (void*)0);
+
+        glBindVertexArray(0);
+    }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

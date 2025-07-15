@@ -1,6 +1,8 @@
 #include "model.h"
 #include "loadModel.h"
 
+#include <queue>
+
 namespace gltf {
 
     Model::Model() {
@@ -107,6 +109,35 @@ namespace gltf {
         }
     }
 
+    void Model::getRenderObject(std::map<unsigned int, RenderObject>& pRenderObject) {
+        std::queue<int> q;
+        for (int node : rootNode) {
+            q.push(node);
+        }
+        while (!q.empty()) {
+            int nodeIndx = q.front();
+            q.pop();
+            if (nodeIndx < 0 || nodeIndx >= (int)nodes.size()) continue;
+            NodeObject& node = nodes[nodeIndx];
+            glm::mat4 S = glm::scale(glm::mat4(1.0f), scale);
+            glm::mat4 R = glm::rotate(glm::mat4(1.0f), angle, rot);
+            glm::mat4 T = glm::translate(glm::mat4(1.0f), pos);
+
+            glm::mat4 mat = T * R * S;
+            mat = mat * nodes[nodeIndx].transform.matrix;
+
+            for (auto& meshIndex : nodes[nodeIndx].meshIndices) {
+                AttributeObject& attr = attributes[meshIndex];
+                RenderObject ro(mat, attr.vao, attr.ebo, attr.count, attr.type);
+                pRenderObject[attr.vao] = ro;
+            }
+
+            for (int i = 0; i < node.childNode.size(); i++) {
+                q.push(node.childNode[i]);
+            }
+        }
+    }
+
     void Model::draw() {
 
         shader->use();
@@ -168,18 +199,18 @@ namespace gltf {
         }
     }
 
-    void Model::setUniforms(const glm::mat4& projection, const glm::mat4& view, glm::vec3& cameraPos,
-        const float& _time, std::map<std::string, unsigned int>& mappers, std::vector<glm::vec3> lightPos, GUI::PBRParam& pbr) {
+    void Model::setUniforms(Camera* camera, const float& _time, std::map<std::string, unsigned int>& mappers, 
+        std::vector<glm::vec3> lightPos, GUI::PBRParam& pbr, glm::mat4 lightSpaceMatrix) {
         shader->use();
 
-        shader->setMat4("projection", projection);
-        shader->setMat4("view", view);
+        shader->setMat4("projection", camera->projection);
+        shader->setMat4("view", camera->view);
 
         for (int i = 0; i < lightPos.size(); i++) {
             shader->setVec3("lightPosition[" + std::to_string(i) + "]", lightPos[i]);
         }
         //shader->setVec3("lightPos", lightPos);
-        shader->setVec3("viewPos", cameraPos);
+        shader->setVec3("viewPos", camera->Position);
 
         shader->setVec4("baseColor", pbr.m_BaseColor);
         shader->setFloat("roughnessFactor", pbr.m_RoughnessFactor);
@@ -209,6 +240,11 @@ namespace gltf {
         shader->setInt("brdfLUTTexture", 8);
         glActiveTexture(GL_TEXTURE8);
         glBindTexture(GL_TEXTURE_2D, mappers["brdfLUTTexture"]);
+
+        shader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        shader->setInt("shadowMap", 10);
+        glActiveTexture(GL_TEXTURE10);
+        glBindTexture(GL_TEXTURE_2D, mappers["shadowMapping"]);
     }
 
     bool Model::loadModel(const char* filename) {

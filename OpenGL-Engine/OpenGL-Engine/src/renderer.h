@@ -8,6 +8,7 @@
 #include "skybox.h"
 #include "model.h"
 #include "FramebufferManager.h"
+#include "shadow.h"
 
 #include "cube.h"
 #include "sphere.h"
@@ -48,6 +49,7 @@ private:
     std::vector<Sphere *> m_Spheres;
     Water* m_Water;
     WaterFFT* m_WaterFFT;
+    Shadow *m_Shadow;
 
     Shader* m_ModelShader;
     Shader* m_GrassShader;

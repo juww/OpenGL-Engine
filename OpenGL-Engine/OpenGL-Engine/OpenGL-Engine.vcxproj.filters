@@ -96,6 +96,9 @@
     <ClCompile Include="src\terrain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\shadow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\animator.h">
@@ -198,6 +201,12 @@
       <Filter>Header Files\utils</Filter>
     </ClInclude>
     <ClInclude Include="src\terrain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\shadow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\renderObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

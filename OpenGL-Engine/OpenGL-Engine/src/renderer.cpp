@@ -27,6 +27,7 @@ Renderer::Renderer() {
         cube = nullptr;
     }
     m_LightCube.clear();
+    m_Shadow = nullptr;
 }
 
 Renderer::~Renderer() {
@@ -68,24 +69,6 @@ void Renderer::setupLights() {
 
     m_Lights.push_back(lp);
     m_LightCube.push_back(c);
-
-    /*for (int i = 0; i < 4; i++) {
-        Cube* cube = new Cube();
-
-        cube->initialize();
-        cube->scale = glm::vec3(0.2f);
-
-        if (i == 0) cube->pos = glm::vec3(5.0f, 5.0f, 5.0f);
-        if (i == 1) cube->pos = glm::vec3(5.0f, 12.0f, -5.0f);
-        if (i == 2) cube->pos = glm::vec3(-5.0f, 10.0f, 5.0f);
-        if (i == 3) cube->pos = glm::vec3(-5.0f, 7.0f, -5.0f);
-
-        Light lightpos;
-        lightpos.setPosLight(cube->pos, 0.0f, 0.0f, 0.0f);
-
-        m_Lights.push_back(lightpos);
-        m_LightCube.push_back(cube);
-    }*/
 }
 
 void Renderer::setupShaders() {
@@ -137,6 +120,8 @@ void Renderer::initModel() {
     m_Sponza = new gltf::Model();
     m_Sponza->loadModel(sponzaPathFile.c_str());
     m_Sponza->setShader(m_PBRShader);
+    m_Sponza->setPosition(glm::vec3(0.0f, 0.0f, -15.0f));
+    m_Sponza->getRenderObject(m_Shadow->objects);
 
     const std::string& dragonskinPathFile = "res/models/silver_dragonkin/scene.gltf";
     m_Dragonskin = new gltf::Model();
@@ -151,6 +136,16 @@ void Renderer::start() {
     configureGlobalState();
     setupShaders();
     setupLights();
+
+    m_Shadow = new Shadow();
+    //float near_plane = 1.0f, far_plane = 7.5f;
+    m_Shadow->setShadowSizeScreen(1024, 1024);
+    m_Shadow->setShader(m_ShadowMappingShader);
+    m_Shadow->lightDirection = (glm::vec3(-2.0f, 3.0f, 1.0f) * 4.0f) + glm::vec3(0.0f, 0.0f, -15.0f);
+    m_Shadow->setLightView(glm::vec3(0.0f, 0.0f, -15.0f), glm::vec3(0.0, 1.0, 0.0));
+    m_Shadow->setProjectionOrtho(glm::vec4(-40.0f, 40.0f, -40.0f, 40.0f), 0.1f, 40.5f);
+    //m_Shadow->setProjectionPerspective(glm::radians(45.0f), 0.1f, 50.0f);
+    m_Shadow->framebufferDepthMap();
 
     initModel();
 
@@ -208,7 +203,7 @@ void Renderer::start() {
     m_FBManager->PreFilterMapping(m_PreFilterShader, m_Skybox->cubemapTexture, m_Skybox->width, m_Skybox->height);
     m_FBManager->BrdfLUT(m_LUTShader, m_Skybox->width, m_Skybox->height);
 
-    m_FBManager->ShadowMapping();
+    //m_FBManager->ShadowMapping();
     //m_FBManager->CubeShadowMapping();
 
     for (auto sphere : m_Spheres) {
@@ -246,7 +241,7 @@ void Renderer::shadowRender(int shadowType) {
     const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
     glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-    glBindFramebuffer(GL_FRAMEBUFFER, m_FBManager->depthFBO);
+    //glBindFramebuffer(GL_FRAMEBUFFER, m_FBManager->depthFBO);
     glClear(GL_DEPTH_BUFFER_BIT);
 
 
@@ -322,21 +317,15 @@ void Renderer::render(float currentTime, float deltaTime) {
 
     //m_FBManager->bindFramebuffers();
 
+    m_Shadow->renderDepthBuffer();
+    m_FBManager->mappers["shadowMapping"] = m_Shadow->depthMap;
+
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    glViewport(0, 0, 1280, 720);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    //shadowRender(m_FBManager->shadowType);
-
-    //// reset viewport
-    //int SCR_WIDTH = 1280;
-    //int SCR_HEIGHT = 720;
-
-    //glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-    //glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     // view/projection transformations
-    glm::mat4 projection = glm::perspective(glm::radians(m_Camera->Zoom), m_Camera->Aspect, 0.1f, 512.0f);
+    glm::mat4 projection = m_Camera->GetProjectionMatrix();
     glm::mat4 view = m_Camera->GetViewMatrix();
 
     GUI::modelTransform("model", m_Model->pos, m_Model->rot, m_Model->angle, m_Model->scale);
@@ -373,10 +362,12 @@ void Renderer::render(float currentTime, float deltaTime) {
     //m_LightCube->update(currentTime * 0.1f);
     std::vector<glm::vec3> lightpos;
 
+    // for now,, will be deleted or change.
+    int shadowType = 1;
     for (Light light : m_Lights) {
-        if (light.m_LightType == light.POSITION_LIGHT && m_FBManager->shadowType == 2) {
+        if (light.m_LightType == light.POSITION_LIGHT && shadowType == 2) {
             lightpos.push_back(light.m_Position);
-        } else if(light.m_LightType == light.DIRECTION_LIGHT && m_FBManager->shadowType == 1){
+        } else if(light.m_LightType == light.DIRECTION_LIGHT && shadowType == 1){
             lightpos.push_back(light.m_Direction);
         }
     }
@@ -386,19 +377,17 @@ void Renderer::render(float currentTime, float deltaTime) {
     }
 
     GUI::modelAnimation("model", m_Model->animator, m_Model->playAnimation);
-    m_Model->setUniforms(projection, view, m_Camera->Position, currentTime
-        , m_FBManager->mappers, lightpos, pbr);
+    m_Model->setUniforms(m_Camera, currentTime, m_FBManager->mappers, lightpos, pbr, m_Shadow->lightSpaceMatrix);
     m_Model->update(deltaTime);
     m_Model->draw();
 
-    m_Sponza->setUniforms(projection, view, m_Camera->Position, currentTime
-        , m_FBManager->mappers, lightpos, pbr);
+    m_Sponza->setUniforms(m_Camera, currentTime, m_FBManager->mappers, lightpos, pbr, m_Shadow->lightSpaceMatrix);
+    m_Sponza->shader->setInt("useShadowMapping", 1);
     m_Sponza->update(deltaTime);
     m_Sponza->draw();
 
     GUI::modelAnimation("dragonskin", m_Dragonskin->animator, m_Dragonskin->playAnimation);
-    m_Dragonskin->setUniforms(projection, view, m_Camera->Position, currentTime
-        , m_FBManager->mappers, lightpos, pbr);
+    m_Dragonskin->setUniforms(m_Camera, currentTime, m_FBManager->mappers, lightpos, pbr, m_Shadow->lightSpaceMatrix);
     m_Dragonskin->update(deltaTime);
     m_Dragonskin->draw();
 

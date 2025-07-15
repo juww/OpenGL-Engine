@@ -130,6 +130,7 @@ int Scene::run() {
 
         GUI::GUIFrame();
         m_Camera->setAspect(m_SceneWidth, m_SceneHeight);
+        m_Camera->setNearAndFarProjection(0.1f, 512.0f);
 
         m_Renderer->render(m_CurrentTime, m_DeltaTime);
 

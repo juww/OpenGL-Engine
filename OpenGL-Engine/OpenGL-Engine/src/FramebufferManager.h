@@ -27,19 +27,12 @@ public:
     unsigned int brdfLUTTexture;
     std::map<std::string, unsigned int> mappers;
 
-    unsigned int depthMap, depthFBO;
-    unsigned int cubeDepthMap;
-    int shadowType;
-
     void setScreenSpace();
     void createDepthStencilFramebuffer();
     void IrradianceMapping(Shader* irradianceShader, unsigned int envCubemap, int width, int height);
     void PreFilterMapping(Shader* preFilterShader, unsigned int envCubemap, int width, int height);
     void BrdfLUT(Shader* LUTShader, int width, int height);
     void shaderConfig(Shader* shader);
-
-    void ShadowMapping();
-    void CubeShadowMapping();
 
     void bindFramebuffers();
     void setFogDistance(Shader* shader, float& near, float& far, float& density, glm::vec3& fogColor);

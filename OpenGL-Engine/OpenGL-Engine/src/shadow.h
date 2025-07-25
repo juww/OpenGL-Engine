@@ -10,7 +10,7 @@
 class Shadow {
 public:
     glm::vec3 lightDirection;
-    glm::vec3 lightPosition;
+    glm::vec3 lightPoV;
 
     glm::mat4 lightProjection;
     glm::mat4 lightView;
@@ -29,9 +29,11 @@ public:
 
     void setShadowSizeScreen(unsigned int w, unsigned int h);
     void setShader(Shader* shader);
+    void setLightPoV(glm::vec3 lightDir, float distance, glm::vec3 LookAtPosition);
     void setLightView(glm::vec3 lookAtPosition, const glm::vec3& up);
     void setProjectionOrtho(const glm::vec4& dimension, const float& near, const float& far);
     void setProjectionPerspective(const float& fow, const float& near, const float& far);
+    void update();
 
     void framebufferDepthMap();
     void renderDepthBuffer();

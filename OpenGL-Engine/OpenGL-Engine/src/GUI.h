@@ -169,6 +169,7 @@ namespace GUI {
     void modelAnimation(std::string name, Animator& animator, bool &playAnimation);
     void PBRWindow(PBRParam &pbr);
     bool proceduralTerrainParam(int& seed, float& scale, int& octaves, float& persistence, float& lacunarity, glm::vec2& offset, float& heightMultiplier);
+    bool lightSunParam(glm::vec3 &lightDirection);
     void grassParam(GrassParam& gp);
     void waterFFTParam(WaterFFTParam& waterFFTParams);
     void color01(float temp[], int n);

@@ -54,10 +54,15 @@ void Renderer::configureGlobalState() {
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 }
 
+// temporary global variable light
+glm::vec3 g_LightDirection;
+float g_LightDist;
+
 void Renderer::setupLights() {
-    Light lightdir;
-    lightdir.setDirectionLight(glm::vec3(-2.0f, 3.0f, 1.0f) * 3.0f);
-    m_Lights.push_back(lightdir);
+    //class Light is shit,, need to change
+    
+    g_LightDirection = glm::normalize(glm::vec3(-2.0f, 3.0f, 1.0f));
+    g_LightDist = 32.0f;
 
     glm::vec3 lpos = glm::vec3(0.0f, 3.0f, 0.0f);
     Light lp;
@@ -138,16 +143,17 @@ void Renderer::start() {
     setupLights();
 
     m_Shadow = new Shadow();
+
+    initModel();
+
     //float near_plane = 1.0f, far_plane = 7.5f;
     m_Shadow->setShadowSizeScreen(1024, 1024);
     m_Shadow->setShader(m_ShadowMappingShader);
-    m_Shadow->lightDirection = (glm::vec3(-2.0f, 3.0f, 1.0f) * 4.0f) + glm::vec3(0.0f, 0.0f, -15.0f);
-    m_Shadow->setLightView(glm::vec3(0.0f, 0.0f, -15.0f), glm::vec3(0.0, 1.0, 0.0));
-    m_Shadow->setProjectionOrtho(glm::vec4(-40.0f, 40.0f, -40.0f, 40.0f), 0.1f, 40.5f);
+    m_Shadow->setLightPoV(g_LightDirection, g_LightDist, m_Sponza->pos);
+    m_Shadow->setLightView(m_Sponza->pos, glm::vec3(0.0, 1.0, 0.0));
+    m_Shadow->setProjectionOrtho(glm::vec4(-64.0f, 64.0f, -64.0f, 64.0f), 0.1f, 65.0f);
     //m_Shadow->setProjectionPerspective(glm::radians(45.0f), 0.1f, 50.0f);
     m_Shadow->framebufferDepthMap();
-
-    initModel();
 
     m_Plane = new Plane(65);
     m_Plane->InitTerrainChunk(1, 64.0f, m_Camera->Position);
@@ -317,6 +323,21 @@ void Renderer::render(float currentTime, float deltaTime) {
 
     //m_FBManager->bindFramebuffers();
 
+    std::vector<glm::vec3> lightpos;
+    // for now,, will be deleted or change.
+    int shadowType = 1;
+    if (GUI::lightSunParam(g_LightDirection)) {
+        m_Shadow->setLightPoV(g_LightDirection, g_LightDist, m_Sponza->pos);
+        m_Shadow->setLightView(m_Sponza->pos, glm::vec3(0.0, 1.0, 0.0));
+        m_Shadow->setProjectionOrtho(glm::vec4(-64.0f, 64.0f, -64.0f, 64.0f), 0.1f, 65.0f);
+    }
+    lightpos.push_back(g_LightDirection);
+    for (Light light : m_Lights) {
+        if (light.m_LightType == light.POSITION_LIGHT && shadowType == 2) {
+            lightpos.push_back(light.m_Position);
+        }
+    }
+
     m_Shadow->renderDepthBuffer();
     m_FBManager->mappers["shadowMapping"] = m_Shadow->depthMap;
 
@@ -360,17 +381,6 @@ void Renderer::render(float currentTime, float deltaTime) {
     m_WaterFFT->draw(projection, view, m_Camera->Position, m_Skybox->cubemapTexture);
 
     //m_LightCube->update(currentTime * 0.1f);
-    std::vector<glm::vec3> lightpos;
-
-    // for now,, will be deleted or change.
-    int shadowType = 1;
-    for (Light light : m_Lights) {
-        if (light.m_LightType == light.POSITION_LIGHT && shadowType == 2) {
-            lightpos.push_back(light.m_Position);
-        } else if(light.m_LightType == light.DIRECTION_LIGHT && shadowType == 1){
-            lightpos.push_back(light.m_Direction);
-        }
-    }
 
     for (Cube* cube : m_LightCube) {
         cube->draw(m_LightCubeShader, projection, view);

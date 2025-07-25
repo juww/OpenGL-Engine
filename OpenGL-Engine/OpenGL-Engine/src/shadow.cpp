@@ -6,7 +6,7 @@
 
 Shadow::Shadow() {
     lightDirection = glm::vec3(0.0f, 1.0f, 0.0f);
-    lightPosition = glm::vec3(0.0f, 0.0f, 0.0f);
+    lightPoV = glm::vec3(0.0f, 0.0f, 0.0f);
 
     lightProjection = glm::mat4(1.0f);
     lightView = glm::mat4(1.0f);
@@ -34,8 +34,12 @@ void Shadow::setShader(Shader* shader) {
     shadowMappingShader = shader;
 }
 
+void Shadow::setLightPoV(glm::vec3 lightDir, float distance, glm::vec3 LookAtPosition) {
+    lightPoV = (lightDir * distance) + LookAtPosition;
+}
+
 void Shadow::setLightView(glm::vec3 lookAtPosition, const glm::vec3& up) {
-    lightView = glm::lookAt(lightDirection, lookAtPosition, up);
+    lightView = glm::lookAt(lightPoV, lookAtPosition, up);
 }
 
 void Shadow::setProjectionOrtho(const glm::vec4& dimension, const float& near, const float& far) {
@@ -44,6 +48,10 @@ void Shadow::setProjectionOrtho(const glm::vec4& dimension, const float& near, c
 
 void Shadow::setProjectionPerspective(const float& fow, const float& near, const float& far) {
     lightProjection = glm::perspective(fow, aspect, near, far);
+}
+
+void Shadow::update() {
+
 }
 
 void Shadow::framebufferDepthMap() {

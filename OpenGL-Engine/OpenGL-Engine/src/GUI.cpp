@@ -270,6 +270,23 @@ namespace GUI {
         ImGui::End();
     }
 
+    bool lightSunParam(glm::vec3 &lightDirection) {
+        ImGui::Begin("Light Sun Param");
+        float temp[3] = { lightDirection.x, lightDirection.y, lightDirection.z};
+        ImGui::DragFloat3("light Direction", temp, 0.1f);
+        bool isUpdate = false;
+        for (int i = 0; i < 3; i++) {
+            if (temp[i] != lightDirection[i]) {
+                isUpdate = true;
+                //printf("update light Direction\n");
+            }
+            lightDirection[i] = temp[i];
+        }
+        lightDirection = glm::normalize(lightDirection);
+        ImGui::End();
+        return isUpdate;
+    }
+
     void fogDistanceParam(FogDistanceParam& fp) {
         ImGui::Begin("Fog Parameter");
 

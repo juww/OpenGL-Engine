@@ -34,12 +34,12 @@ namespace gltf {
 
     void Model::drawMesh(int meshIndex) {
 
-        AttributeObject& attr = attributes[meshIndex];
+        RenderObject& attr = attributes[meshIndex];
 
         glBindVertexArray(attr.vao);
 
-        if (attr.materialIndx != -1) {
-            Materials& material = materials[attr.materialIndx];
+        if (attr.material != nullptr) {
+            Materials& material = *attr.material.get();
 
             shader->setBool("useAlbedoMapping", material.albedoMap != 0);
             shader->setInt("albedoMap", 0);
@@ -127,9 +127,9 @@ namespace gltf {
             mat = mat * nodes[nodeIndx].transform.matrix;
 
             for (auto& meshIndex : nodes[nodeIndx].meshIndices) {
-                AttributeObject& attr = attributes[meshIndex];
-                RenderObject ro(mat, attr.vao, attr.ebo, attr.count, attr.type);
-                pRenderObject[attr.vao] = ro;
+                RenderObject& attr = attributes[meshIndex];
+                attr.matrix = mat;
+                pRenderObject[attr.vao] = attr;
             }
 
             for (int i = 0; i < node.childNode.size(); i++) {
@@ -274,30 +274,6 @@ namespace gltf {
         }
         glActiveTexture(GL_TEXTURE9);
         glBindTexture(GL_TEXTURE_2D, 0);
-    }
-
-    Model::AttributeObject::AttributeObject() {
-        vao = 0;
-        ebo = 0;
-        materialIndx = -1;
-        drawMode = 0;
-        count = 0;
-        type = 0;
-    }
-
-    Model::AttributeObject::AttributeObject(unsigned int p_vao, unsigned int p_ebo, unsigned int p_material) {
-        vao = p_vao;
-        ebo = p_ebo;
-        materialIndx = p_material;
-        drawMode = 0;
-        count = 0;
-        type = 0;
-    }
-
-    void Model::AttributeObject::setDrawMode(int p_mode, int p_count, int p_type) {
-        drawMode = p_mode;
-        count = p_count;
-        type = p_type;
     }
 
     Model::NodeObject::NodeObject() {

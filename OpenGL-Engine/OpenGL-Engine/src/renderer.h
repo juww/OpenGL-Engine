@@ -70,6 +70,7 @@ private:
     ShaderT* m_PatchPlaneShader;
 
     Shader* m_FramebufferShader;
+    Shader* m_GBufferShader;
     Shader* m_IrradianceShader;
     Shader* m_PreFilterShader;
     Shader* m_LUTShader;

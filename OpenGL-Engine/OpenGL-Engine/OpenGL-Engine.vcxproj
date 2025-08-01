@@ -207,6 +207,8 @@
     <None Include="src\shader\cube.vs" />
     <None Include="src\shader\framebufferShader.fs" />
     <None Include="src\shader\framebufferShader.vs" />
+    <None Include="src\shader\gBufferShader.fs" />
+    <None Include="src\shader\gBufferShader.vs" />
     <None Include="src\shader\grass.fs" />
     <None Include="src\shader\grass.vs" />
     <None Include="src\shader\irradianceShader.fs" />

@@ -95,7 +95,7 @@ void Shadow::renderDepthBuffer() {
 
     for (auto& obj : objects) {
         RenderObject& ro = obj.second;
-        shadowMappingShader->setMat4("model", ro.model);
+        shadowMappingShader->setMat4("model", ro.matrix);
 
         glBindVertexArray(ro.vao);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ro.ebo);

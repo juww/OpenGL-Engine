@@ -57,12 +57,14 @@ void Renderer::configureGlobalState() {
 // temporary global variable light
 glm::vec3 g_LightDirection;
 float g_LightDist;
+float g_Dimension;
 
 void Renderer::setupLights() {
     //class Light is shit,, need to change
     
     g_LightDirection = glm::normalize(glm::vec3(-2.0f, 3.0f, 1.0f));
-    g_LightDist = 32.0f;
+    g_LightDist = 50.0f;
+    g_Dimension = g_LightDist + 2.0f;
 
     glm::vec3 lpos = glm::vec3(0.0f, 3.0f, 0.0f);
     Light lp;
@@ -100,6 +102,7 @@ void Renderer::setupShaders() {
 
     // framebuffer shader
     m_FramebufferShader = new Shader("framebufferShader.vs", "framebufferShader.fs");
+    m_GBufferShader = new Shader("gBufferShader.vs", "gBufferShader.fs");
     m_IrradianceShader = new Shader("irradianceShader.vs", "irradianceShader.fs");
     m_PreFilterShader = new Shader("preFilterShader.vs", "preFilterShader.fs");
     m_LUTShader = new Shader("LUTShader.vs", "LUTShader.fs");
@@ -126,6 +129,7 @@ void Renderer::initModel() {
     m_Sponza->loadModel(sponzaPathFile.c_str());
     m_Sponza->setShader(m_PBRShader);
     m_Sponza->setPosition(glm::vec3(0.0f, 0.0f, -15.0f));
+    m_Sponza->setScale(glm::vec3(2.0f));
     m_Sponza->getRenderObject(m_Shadow->objects);
 
     const std::string& dragonskinPathFile = "res/models/silver_dragonkin/scene.gltf";
@@ -151,7 +155,7 @@ void Renderer::start() {
     m_Shadow->setShader(m_ShadowMappingShader);
     m_Shadow->setLightPoV(g_LightDirection, g_LightDist, m_Sponza->pos);
     m_Shadow->setLightView(m_Sponza->pos, glm::vec3(0.0, 1.0, 0.0));
-    m_Shadow->setProjectionOrtho(glm::vec4(-64.0f, 64.0f, -64.0f, 64.0f), 0.1f, 65.0f);
+    m_Shadow->setProjectionOrtho(glm::vec4(-g_Dimension, g_Dimension, -g_Dimension, g_Dimension), 0.01f, g_Dimension);
     //m_Shadow->setProjectionPerspective(glm::radians(45.0f), 0.1f, 50.0f);
     m_Shadow->framebufferDepthMap();
 
@@ -216,17 +220,17 @@ void Renderer::start() {
         sphere->materials.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader, 
             sphere->materials.Map, sphere->materials.width, sphere->materials.height);
     }
-    for (Materials& material : m_Model->materials) {
-        material.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
-            material.Map, material.width, material.height);
+    for (auto& material : m_Model->materials) {
+        material->metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
+            material->Map, material->width, material->height);
     }
-    for (Materials& material : m_Sponza->materials) {
-        material.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
-            material.Map, material.width, material.height);
+    for (auto& material : m_Sponza->materials) {
+        material->metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
+            material->Map, material->width, material->height);
     }
-    for (Materials& material : m_Dragonskin->materials) {
-        material.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
-            material.Map, material.width, material.height);
+    for (auto& material : m_Dragonskin->materials) {
+        material->metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
+            material->Map, material->width, material->height);
     }
 }
 
@@ -326,10 +330,11 @@ void Renderer::render(float currentTime, float deltaTime) {
     std::vector<glm::vec3> lightpos;
     // for now,, will be deleted or change.
     int shadowType = 1;
-    if (GUI::lightSunParam(g_LightDirection)) {
+    if (GUI::lightSunParam(g_LightDirection, m_Shadow->depthMap)) {
         m_Shadow->setLightPoV(g_LightDirection, g_LightDist, m_Sponza->pos);
         m_Shadow->setLightView(m_Sponza->pos, glm::vec3(0.0, 1.0, 0.0));
-        m_Shadow->setProjectionOrtho(glm::vec4(-64.0f, 64.0f, -64.0f, 64.0f), 0.1f, 65.0f);
+        m_Shadow->setProjectionOrtho(glm::vec4(-g_Dimension, g_Dimension, -g_Dimension, g_Dimension), 0.01f, g_Dimension * 2.0f);
+        m_LightCube[0]->pos = m_Shadow->lightPoV;
     }
     lightpos.push_back(g_LightDirection);
     for (Light light : m_Lights) {

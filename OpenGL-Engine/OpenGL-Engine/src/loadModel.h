@@ -126,7 +126,7 @@ namespace gltf {
         return textureID;
     }
 
-    void getTextureDimension(Materials& pMaterial, int textureIndex) {
+    void getTextureDimension(Materials *pMaterial, int textureIndex) {
         if (textureIndex < 0 || textureIndex >= (int)tinygltf_model->textures.size()) {
             return;
         }
@@ -136,8 +136,8 @@ namespace gltf {
         }
         tinygltf::Image& image = tinygltf_model->images[t.source];
 
-        pMaterial.width = image.width;
-        pMaterial.height = image.height;
+        pMaterial->width = image.width;
+        pMaterial->height = image.height;
     }
 
     void bindMaterial(gltf::Model& model, int materialIndx) {
@@ -146,31 +146,37 @@ namespace gltf {
             std::cout << "textureIndx: " << materialIndx << "\n";
             return;
         }
+        
+        if (model.materials[materialIndx] != nullptr) {
+            return;
+        }
 
-        Materials& currMaterial = model.materials[materialIndx];
-        if (currMaterial.useMaterial == true) {
+        model.materials[materialIndx] = std::make_shared<Materials>();
+        Materials *currMaterial = model.materials[materialIndx].get();
+        if (currMaterial->useMaterial == true) {
             return;
         }
         tinygltf::Material& t_material = tinygltf_model->materials[materialIndx];
 
         std::vector<double>& colorFactor = t_material.pbrMetallicRoughness.baseColorFactor;
         for (int i = 0; i < colorFactor.size(); i++) {
-            currMaterial.baseColor[i] = colorFactor[i];
+            currMaterial->baseColor[i] = colorFactor[i];
         }
-        currMaterial.metallicFactor = t_material.pbrMetallicRoughness.metallicFactor;
-        currMaterial.roughnessFactor = t_material.pbrMetallicRoughness.roughnessFactor;
+        currMaterial->metallicFactor = t_material.pbrMetallicRoughness.metallicFactor;
+        currMaterial->roughnessFactor = t_material.pbrMetallicRoughness.roughnessFactor;
 
         getTextureDimension(currMaterial, t_material.pbrMetallicRoughness.baseColorTexture.index);
-        currMaterial.albedoMap = loadTexture(t_material.pbrMetallicRoughness.baseColorTexture.index);
-        currMaterial.normalMap = loadTexture(t_material.normalTexture.index);
-        currMaterial.roughnessMap = loadTexture(t_material.pbrMetallicRoughness.metallicRoughnessTexture.index);
-        currMaterial.emissiveMap = loadTexture(t_material.emissiveTexture.index);
-        currMaterial.occlusionMap = loadTexture(t_material.occlusionTexture.index);
-        currMaterial.useMaterial = true;
+        currMaterial->albedoMap = loadTexture(t_material.pbrMetallicRoughness.baseColorTexture.index);
+        currMaterial->normalMap = loadTexture(t_material.normalTexture.index);
+        currMaterial->roughnessMap = loadTexture(t_material.pbrMetallicRoughness.metallicRoughnessTexture.index);
+        currMaterial->emissiveMap = loadTexture(t_material.emissiveTexture.index);
+        currMaterial->occlusionMap = loadTexture(t_material.occlusionTexture.index);
+        currMaterial->useMaterial = true;
 
-        currMaterial.Map["roughnessMap"] = currMaterial.roughnessMap;
-        currMaterial.Map["metallicMap"] = currMaterial.metallicMap;
-        currMaterial.Map["occlusionMap"] = currMaterial.occlusionMap;
+        currMaterial->Map["roughnessMap"] = currMaterial->roughnessMap;
+        currMaterial->Map["metallicMap"] = currMaterial->metallicMap;
+        currMaterial->Map["occlusionMap"] = currMaterial->occlusionMap;
+
     }
 
     void bindAttributeIndex(tinygltf::Primitive& prim) {
@@ -267,8 +273,8 @@ namespace gltf {
             bindAttributeIndex(prim);
             bindMaterial(model, prim.material);
 
-            gltf::Model::AttributeObject attr(vao, ebo, prim.material);
-            attr.setDrawMode(prim.mode, accessor.count, accessor.componentType);
+            RenderObject attr(glm::mat4(1.0f), vao, ebo, prim.mode, accessor.count, accessor.componentType);
+            attr.setMaterial(model.materials[prim.material]);
             model.attributes.push_back(attr);
             model.nodes[nodeIndx].meshIndices.push_back(model.attributes.size() - 1);
 
@@ -346,7 +352,7 @@ namespace gltf {
     void loadScene(gltf::Model& model) {
 
         model.nodes.resize(tinygltf_model->nodes.size(), Model::NodeObject());
-        model.materials.resize(tinygltf_model->materials.size(), Materials());
+        model.materials.resize(tinygltf_model->materials.size(), nullptr);
         model.skeletals.resize(tinygltf_model->skins.size(), { -1, std::vector<int>() });
         int defaultScene = tinygltf_model->defaultScene;
         tinygltf::Scene& scene = tinygltf_model->scenes[defaultScene];

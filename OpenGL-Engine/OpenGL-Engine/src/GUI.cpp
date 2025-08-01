@@ -270,7 +270,7 @@ namespace GUI {
         ImGui::End();
     }
 
-    bool lightSunParam(glm::vec3 &lightDirection) {
+    bool lightSunParam(glm::vec3 &lightDirection, unsigned int depthMap) {
         ImGui::Begin("Light Sun Param");
         float temp[3] = { lightDirection.x, lightDirection.y, lightDirection.z};
         ImGui::DragFloat3("light Direction", temp, 0.1f);
@@ -282,6 +282,16 @@ namespace GUI {
             }
             lightDirection[i] = temp[i];
         }
+        const float window_width = ImGui::GetContentRegionAvail().x;
+        const float window_height = ImGui::GetContentRegionAvail().y;
+        ImVec2 pos = ImGui::GetCursorScreenPos();
+        ImGui::GetWindowDrawList()->AddImage(
+            (void*)depthMap,
+            ImVec2(pos.x, pos.y),
+            ImVec2(pos.x + window_width, pos.y + window_height),
+            ImVec2(0, 1),
+            ImVec2(1, 0)
+        );
         lightDirection = glm::normalize(lightDirection);
         ImGui::End();
         return isUpdate;

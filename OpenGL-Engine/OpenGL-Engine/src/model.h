@@ -23,14 +23,6 @@ namespace gltf {
         float angle;
         std::vector<int> rootNode;
 
-        struct AttributeObject {
-            unsigned int vao, ebo;
-            unsigned int materialIndx;
-            int drawMode, count, type;
-            AttributeObject();
-            AttributeObject(unsigned int p_vao, unsigned int p_ebo, unsigned int p_material);
-            void setDrawMode(int p_mode, int p_count, int p_type);
-        };
         struct NodeObject {
         public:
             std::string name;
@@ -39,8 +31,8 @@ namespace gltf {
             std::vector<unsigned int> meshIndices;
             NodeObject();
         };
-        std::vector<AttributeObject> attributes;
-        std::vector<Materials> materials;
+        std::vector<RenderObject> attributes;
+        std::vector<std::shared_ptr<Materials> > materials;
         std::vector<NodeObject> nodes;
         std::vector<std::pair<int, std::vector<int> > > skeletals;
         bool playAnimation;

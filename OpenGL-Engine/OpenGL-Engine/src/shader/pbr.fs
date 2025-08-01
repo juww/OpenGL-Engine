@@ -239,24 +239,25 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightPos) {
     // calculate bias (based on depth map resolution and slope)
     vec3 lightDir = normalize(lightPos);
     float ndotl = DotClamped(normal, lightDir);
-    float bias = max(0.005 * (1.0 - ndotl), 0.0025);
+    float bias = max(0.010 * (ndotl), 0.005);
     // check whether current frag pos is in shadow
     // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
     // PCF
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
-    //for(int x = -1; x <= 1; ++x) {
-    //    for(int y = -1; y <= 1; ++y) {
-    //        float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
-    //        shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;
-    //    }    
-    //}
-    float visibility = 1.0;
-    for(int i = 0; i < 4; i++){
-        float pcfDepth = texture(shadowMap, projCoords.xy + poissonDisk[i]/700.0 ).r;
-        visibility -= currentDepth - bias > pcfDepth ? 0.2 : 0.0;
+    for(int x = -1; x <= 1; ++x) {
+        for(int y = -1; y <= 1; ++y) {
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
+            shadow += currentDepth - bias > pcfDepth  ? 0.9 : 0.0;
+        }
     }
-    shadow = 1.0f - visibility;
+    shadow /= 9.0f;
+    //float visibility = 1.0;
+    //for(int i = 0; i < 4; i++){
+    //    float pcfDepth = texture(shadowMap, projCoords.xy + poissonDisk[i] / 800.0 ).r;
+    //    visibility -= currentDepth - bias > pcfDepth ? 0.3 : 0.0;
+    //}
+    //shadow = 1.0f - visibility;
     return shadow;
 }
 

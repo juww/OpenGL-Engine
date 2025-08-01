@@ -373,5 +373,11 @@
     <None Include="src\shader\perlinNoise.sc">
       <Filter>Resource Files\computeShader</Filter>
     </None>
+    <None Include="src\shader\gBufferShader.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="src\shader\gBufferShader.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
   </ItemGroup>
 </Project>

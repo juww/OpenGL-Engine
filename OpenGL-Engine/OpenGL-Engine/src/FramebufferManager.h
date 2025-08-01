@@ -20,6 +20,10 @@ public:
     int m_ScreenWidth, m_ScreenHeight;
     unsigned int m_Fbo;
 
+    unsigned int gBuffer;
+    unsigned int gPosition, gNormal, gColor;
+    unsigned int gRboDepth;
+
     unsigned int captureFBO;
     unsigned int captureRBO;
     unsigned int irradianceMap;
@@ -33,6 +37,8 @@ public:
     void PreFilterMapping(Shader* preFilterShader, unsigned int envCubemap, int width, int height);
     void BrdfLUT(Shader* LUTShader, int width, int height);
     void shaderConfig(Shader* shader);
+
+    void generateGBuffer();
 
     void bindFramebuffers();
     void setFogDistance(Shader* shader, float& near, float& far, float& density, glm::vec3& fogColor);

@@ -50,7 +50,6 @@ void FramebufferManager::setScreenSpace() {
     glBindVertexArray(0);
 }
 
-
 void FramebufferManager::generateGBuffer() {
 
     glGenFramebuffers(1, &gBuffer);
@@ -87,6 +86,51 @@ void FramebufferManager::generateGBuffer() {
     // finally check if framebuffer is complete
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         std::cout << "Framebuffer not complete!" << std::endl;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void FramebufferManager::setGeometryPassShader(Shader* p_GBufferShader) {
+    GBufferShader = p_GBufferShader;
+}
+
+void FramebufferManager::copyRenderObjects(std::map<unsigned int, RenderObject>& pRenderObject) {
+    objects = pRenderObject;
+}
+
+void FramebufferManager::drawGBuffer(glm::mat4 projection, glm::mat4 view) {
+
+    glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glm::mat4 model = glm::mat4(1.0f);
+    GBufferShader->use();
+    GBufferShader->setMat4("projection", projection);
+    GBufferShader->setMat4("view", view);
+
+    for (auto& obj : objects) {
+        RenderObject& ro = obj.second;
+        GBufferShader->setMat4("model", ro.matrix);
+
+        GBufferShader->setInt("albedoMap", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, ro.material->albedoMap);
+
+        GBufferShader->setInt("MROMap", 1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, ro.material->metallicRoughnessOcclusionTexture);
+
+        glBindVertexArray(ro.vao);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ro.ebo);
+        glDrawElements(GL_TRIANGLES, ro.count, ro.type, (void*)0);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        glBindVertexArray(0);
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -436,6 +480,8 @@ void FramebufferManager::draw(Shader* shader) {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, m_DepthTex);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glBindVertexArray(0);
 }
 //do not forget to delete
 void FramebufferManager::deleteFramebuffer(unsigned int &fbo) {

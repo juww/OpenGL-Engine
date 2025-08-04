@@ -11,6 +11,7 @@
 #include <map>
 
 #include "shader_m.h"
+#include "renderObject.h"
 
 class FramebufferManager {
 public:
@@ -20,6 +21,7 @@ public:
     int m_ScreenWidth, m_ScreenHeight;
     unsigned int m_Fbo;
 
+    Shader* GBufferShader;
     unsigned int gBuffer;
     unsigned int gPosition, gNormal, gColor;
     unsigned int gRboDepth;
@@ -31,6 +33,8 @@ public:
     unsigned int brdfLUTTexture;
     std::map<std::string, unsigned int> mappers;
 
+    std::map<unsigned int, RenderObject> objects;
+
     void setScreenSpace();
     void createDepthStencilFramebuffer();
     void IrradianceMapping(Shader* irradianceShader, unsigned int envCubemap, int width, int height);
@@ -39,6 +43,9 @@ public:
     void shaderConfig(Shader* shader);
 
     void generateGBuffer();
+    void copyRenderObjects(std::map<unsigned int, RenderObject>& pRenderObject);
+    void setGeometryPassShader(Shader* p_GBufferShader);
+    void drawGBuffer(glm::mat4 projection, glm::mat4 view);
 
     void bindFramebuffers();
     void setFogDistance(Shader* shader, float& near, float& far, float& density, glm::vec3& fogColor);

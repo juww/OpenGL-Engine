@@ -155,7 +155,7 @@ void Renderer::start() {
     m_Shadow->setShader(m_ShadowMappingShader);
     m_Shadow->setLightPoV(g_LightDirection, g_LightDist, m_Sponza->pos);
     m_Shadow->setLightView(m_Sponza->pos, glm::vec3(0.0, 1.0, 0.0));
-    m_Shadow->setProjectionOrtho(glm::vec4(-g_Dimension, g_Dimension, -g_Dimension, g_Dimension), 0.01f, g_Dimension);
+    m_Shadow->setProjectionOrtho(glm::vec4(-g_Dimension, g_Dimension, -g_Dimension, g_Dimension), 0.01f, g_Dimension * 2.0f);
     //m_Shadow->setProjectionPerspective(glm::radians(45.0f), 0.1f, 50.0f);
     m_Shadow->framebufferDepthMap();
 
@@ -213,8 +213,9 @@ void Renderer::start() {
     m_FBManager->PreFilterMapping(m_PreFilterShader, m_Skybox->cubemapTexture, m_Skybox->width, m_Skybox->height);
     m_FBManager->BrdfLUT(m_LUTShader, m_Skybox->width, m_Skybox->height);
 
-    //m_FBManager->ShadowMapping();
-    //m_FBManager->CubeShadowMapping();
+    m_FBManager->generateGBuffer();
+    m_FBManager->setGeometryPassShader(m_GBufferShader);
+    m_FBManager->copyRenderObjects(m_Shadow->objects);
 
     for (auto sphere : m_Spheres) {
         sphere->materials.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader, 
@@ -346,13 +347,15 @@ void Renderer::render(float currentTime, float deltaTime) {
     m_Shadow->renderDepthBuffer();
     m_FBManager->mappers["shadowMapping"] = m_Shadow->depthMap;
 
-    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-    glViewport(0, 0, 1280, 720);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     // view/projection transformations
     glm::mat4 projection = m_Camera->GetProjectionMatrix();
     glm::mat4 view = m_Camera->GetViewMatrix();
+
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    glViewport(0, 0, 1280, 720);
+
+    m_FBManager->drawGBuffer(projection, view);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     GUI::modelTransform("model", m_Model->pos, m_Model->rot, m_Model->angle, m_Model->scale);
     GUI::modelTransform("sponza", m_Sponza->pos, m_Sponza->rot, m_Sponza->angle, m_Sponza->scale);

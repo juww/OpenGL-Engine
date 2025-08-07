@@ -10,6 +10,7 @@
 #include <vector>
 #include <map>
 
+#include "interpolate.h"
 #include "shader_m.h"
 #include "renderObject.h"
 
@@ -25,6 +26,14 @@ public:
     unsigned int gBuffer;
     unsigned int gPosition, gNormal, gColor;
     unsigned int gRboDepth;
+
+    Shader* SSAOShader;
+    Shader* SSAOBlurShader;
+    std::vector<glm::vec3> ssaoKernel;
+    std::vector<glm::vec3> ssaoNoise;
+    unsigned int ssaoFBO, ssaoBlurFBO;
+    unsigned int ssaoColorBuffer, ssaoColorBufferBlur;
+    unsigned int noiseTexture;
 
     unsigned int captureFBO;
     unsigned int captureRBO;
@@ -46,6 +55,10 @@ public:
     void copyRenderObjects(std::map<unsigned int, RenderObject>& pRenderObject);
     void setGeometryPassShader(Shader* p_GBufferShader);
     void drawGBuffer(glm::mat4 projection, glm::mat4 view);
+    void genScreenSpaceAmbientOcclusion();
+    void setSSAOShader(Shader* p_SSAOShader, Shader* p_SSAOBlurShader);
+    void drawSSAO(glm::mat4 projection, glm::mat4 view);
+    void SSAOBlur();
 
     void bindFramebuffers();
     void setFogDistance(Shader* shader, float& near, float& far, float& density, glm::vec3& fogColor);
@@ -66,6 +79,11 @@ private:
     unsigned int m_DepthTex;
     unsigned int m_Vao, m_Rbo;
     
+    unsigned int quadVAO = 0;
+    unsigned int quadVBO = 0;
+
+    unsigned int cubeVAO = 0;
+    unsigned int cubeVBO = 0;
 
     const glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
     const glm::mat4 captureViews[6] =

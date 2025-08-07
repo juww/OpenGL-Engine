@@ -103,6 +103,8 @@ void Renderer::setupShaders() {
     // framebuffer shader
     m_FramebufferShader = new Shader("framebufferShader.vs", "framebufferShader.fs");
     m_GBufferShader = new Shader("gBufferShader.vs", "gBufferShader.fs");
+    m_SSAOShader = new Shader("ssaoShader.vs", "ssaoShader.fs");
+    m_SSAOBlurShader = new Shader("ssaoBlurShader.vs", "ssaoBlurShader.fs");
     m_IrradianceShader = new Shader("irradianceShader.vs", "irradianceShader.fs");
     m_PreFilterShader = new Shader("preFilterShader.vs", "preFilterShader.fs");
     m_LUTShader = new Shader("LUTShader.vs", "LUTShader.fs");
@@ -112,9 +114,6 @@ void Renderer::setupShaders() {
 }
 
 void Renderer::initModel() {
-
-    //const std::string& pathfile = "res/models/simpleSkin/scene.gltf";
-    //const std::string& pathfile = "res/models/model_avatar/model_external.gltf";
 
     const std::string& pathfile = "res/models/water-bottle/scene.gltf";
     m_Model = new gltf::Model();
@@ -217,6 +216,9 @@ void Renderer::start() {
     m_FBManager->setGeometryPassShader(m_GBufferShader);
     m_FBManager->copyRenderObjects(m_Shadow->objects);
 
+    m_FBManager->genScreenSpaceAmbientOcclusion();
+    m_FBManager->setSSAOShader(m_SSAOShader, m_SSAOBlurShader);
+
     for (auto sphere : m_Spheres) {
         sphere->materials.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader, 
             sphere->materials.Map, sphere->materials.width, sphere->materials.height);
@@ -233,95 +235,6 @@ void Renderer::start() {
         material->metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
             material->Map, material->width, material->height);
     }
-}
-
-// int shadowType perhaps make enum?
-// make new file shadow.cpp/shadow.h?
-void Renderer::shadowRender(int shadowType) {
-    // vector or not?
-    glm::vec3 lightPos(0.0f);
-    glm::mat4 lightSpaceMatrix;
-    for (Light light : m_Lights) {
-        if (light.m_LightType == light.POSITION_LIGHT && shadowType == 2) {
-            lightPos = light.m_Position;
-        } else if (light.m_LightType == light.DIRECTION_LIGHT && shadowType == 1) {
-            lightPos = light.m_Direction;
-            //lightSpaceMatrix = light.m_LightProjection * light.m_LightView;
-        }
-    }
-    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
-
-    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-    //glBindFramebuffer(GL_FRAMEBUFFER, m_FBManager->depthFBO);
-    glClear(GL_DEPTH_BUFFER_BIT);
-
-
-    if (shadowType == 1) {
-        // render scene from light's point of view
-        m_ShadowMappingShader->use();
-        m_ShadowMappingShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
-
-        //m_Sponza->DrawModel(m_ShadowMappingShader);
-        //m_Sphere->drawInDepthMap(m_ShadowMappingShader);
-
-        unsigned int shadowMap = m_FBManager->mappers["shadowDepthMap"];
-        m_ModelShader->use();
-        m_ModelShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
-        m_ModelShader->setInt("shadowMap", 10);
-        m_ModelShader->setInt("useShadowMapping", 1);
-        glActiveTexture(GL_TEXTURE10);
-        glBindTexture(GL_TEXTURE_2D, shadowMap);
-
-        m_PBRShader->use();
-        m_PBRShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
-        m_PBRShader->setInt("shadowMap", 10);
-        m_PBRShader->setInt("useShadowMapping", 1);
-        glActiveTexture(GL_TEXTURE10);
-        glBindTexture(GL_TEXTURE_2D, shadowMap);
-    }
-
-    if (shadowType == 2) {
-        float near_plane = 0.1f;
-        float far_plane = 25.0f;
-        glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT, near_plane, far_plane);
-        std::vector<glm::mat4> shadowTransforms;
-        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
-        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)));
-        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-
-        m_ShadowCubeMappingShader->use();
-        for (unsigned int i = 0; i < 6; ++i) {
-            m_ShadowCubeMappingShader->setMat4(
-                "shadowMatrices[" + std::to_string(i) + "]", shadowTransforms[i]);
-        }
-        m_ShadowCubeMappingShader->setFloat("far_plane", far_plane);
-        m_ShadowCubeMappingShader->setVec3("lightPos", lightPos);
-
-        //m_Sponza->DrawModel(m_ShadowCubeMappingShader);
-        //m_Sphere->drawInDepthMap(m_ShadowCubeMappingShader);
-
-
-        //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        unsigned int shadowCubeMap = m_FBManager->mappers["shadowCubeDepthMap"];
-        m_ModelShader->use();
-        m_ModelShader->setFloat("far_plane", far_plane);
-        m_ModelShader->setInt("shadowCubeMap", 11);
-        m_ModelShader->setInt("useShadowMapping", 2);
-        glActiveTexture(GL_TEXTURE11);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, shadowCubeMap);
-
-        m_PBRShader->use();
-        m_PBRShader->setFloat("far_plane", far_plane);
-        m_PBRShader->setInt("shadowCubeMap", 11);
-        m_PBRShader->setInt("useShadowMapping", 2);
-        glActiveTexture(GL_TEXTURE11);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, shadowCubeMap);
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Renderer::render(float currentTime, float deltaTime) {
@@ -351,10 +264,13 @@ void Renderer::render(float currentTime, float deltaTime) {
     glm::mat4 projection = m_Camera->GetProjectionMatrix();
     glm::mat4 view = m_Camera->GetViewMatrix();
 
-    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glViewport(0, 0, 1280, 720);
 
     m_FBManager->drawGBuffer(projection, view);
+    m_FBManager->drawSSAO(projection, view);
+    m_FBManager->SSAOBlur();
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     GUI::modelTransform("model", m_Model->pos, m_Model->rot, m_Model->angle, m_Model->scale);

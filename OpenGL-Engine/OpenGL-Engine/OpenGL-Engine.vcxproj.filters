@@ -379,5 +379,17 @@
     <None Include="src\shader\gBufferShader.fs">
       <Filter>Resource Files\FragmentShader</Filter>
     </None>
+    <None Include="src\shader\ssaoShader.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="src\shader\ssaoShader.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="src\shader\ssaoBlurShader.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="src\shader\ssaoBlurShader.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
   </ItemGroup>
 </Project>

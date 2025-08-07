@@ -71,6 +71,8 @@ private:
 
     Shader* m_FramebufferShader;
     Shader* m_GBufferShader;
+    Shader* m_SSAOShader;
+    Shader* m_SSAOBlurShader;
     Shader* m_IrradianceShader;
     Shader* m_PreFilterShader;
     Shader* m_LUTShader;

@@ -172,6 +172,7 @@ namespace GUI {
     bool lightSunParam(glm::vec3 &lightDirection, unsigned int depthMap);
     void grassParam(GrassParam& gp);
     void waterFFTParam(WaterFFTParam& waterFFTParams);
+    void showTextureGBuffer(std::vector<unsigned int>& p_GBuffer ,float &pRadius, float &pBias);
     void color01(float temp[], int n);
     glm::vec3 vecColor3(float temp[]);
 

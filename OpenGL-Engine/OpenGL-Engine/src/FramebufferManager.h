@@ -24,15 +24,16 @@ public:
 
     Shader* GBufferShader;
     unsigned int gBuffer;
-    unsigned int gPosition, gNormal, gColor;
-    unsigned int gRboDepth;
+    unsigned int gPosition, gNormal, gAlbedo, gNormalMap, gORMMap, gDepth;
+    unsigned int gRbo;
 
     Shader* SSAOShader;
     Shader* SSAOBlurShader;
     std::vector<glm::vec3> ssaoKernel;
     std::vector<glm::vec3> ssaoNoise;
+    float ssaoRadius, ssaoBias;
     unsigned int ssaoFBO, ssaoBlurFBO;
-    unsigned int ssaoColorBuffer, ssaoColorBufferBlur;
+    unsigned int ssaoBuffer, ssaoBufferBlur;
     unsigned int noiseTexture;
 
     unsigned int captureFBO;

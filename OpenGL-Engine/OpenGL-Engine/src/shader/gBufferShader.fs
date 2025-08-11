@@ -1,23 +1,27 @@
 #version 430 core
-layout (location = 0) out vec3 gPosition;
-layout (location = 1) out vec3 gNormal;
-layout (location = 2) out vec4 gAlbedoSpec;
+layout (location = 0) out vec4 gPosition;
+layout (location = 1) out vec4 gNormal;
+layout (location = 2) out vec4 gAlbedo;
+layout (location = 3) out vec4 gNormalMap;
+layout (location = 4) out vec4 gORMMap;
 
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
 
 uniform sampler2D albedoMap;
+uniform sampler2D normalMap;
 uniform sampler2D MROMap;
 
-void main()
-{    
+void main() {
     // store the fragment position vector in the first gbuffer texture
-    gPosition = FragPos;
+    gPosition = vec4(FragPos, 1.0f);
     // also store the per-fragment normals into the gbuffer
-    gNormal = normalize(Normal);
+    gNormal = vec4(normalize(Normal), 1.0f);
     // and the diffuse per-fragment color
-    gAlbedoSpec.rgb = texture(albedoMap, TexCoords).rgb;
-    // store specular intensity in gAlbedoSpec's alpha component
-    gAlbedoSpec.a = texture(MROMap, TexCoords).b;
+    gAlbedo = texture(albedoMap, TexCoords);
+
+    gNormalMap = texture(normalMap, TexCoords);
+
+    gORMMap = texture(MROMap, TexCoords);
 }

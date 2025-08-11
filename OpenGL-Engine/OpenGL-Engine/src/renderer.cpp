@@ -58,6 +58,7 @@ void Renderer::configureGlobalState() {
 glm::vec3 g_LightDirection;
 float g_LightDist;
 float g_Dimension;
+std::vector<unsigned int> g_GBuffer;
 
 void Renderer::setupLights() {
     //class Light is shit,, need to change
@@ -219,6 +220,14 @@ void Renderer::start() {
     m_FBManager->genScreenSpaceAmbientOcclusion();
     m_FBManager->setSSAOShader(m_SSAOShader, m_SSAOBlurShader);
 
+    g_GBuffer.push_back(m_FBManager->gPosition);
+    g_GBuffer.push_back(m_FBManager->gNormal);
+    g_GBuffer.push_back(m_FBManager->gAlbedo);
+    g_GBuffer.push_back(m_FBManager->gNormalMap);
+    g_GBuffer.push_back(m_FBManager->gORMMap);
+    g_GBuffer.push_back(m_FBManager->gDepth);
+    g_GBuffer.push_back(m_FBManager->ssaoBufferBlur);
+
     for (auto sphere : m_Spheres) {
         sphere->materials.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader, 
             sphere->materials.Map, sphere->materials.width, sphere->materials.height);
@@ -270,6 +279,7 @@ void Renderer::render(float currentTime, float deltaTime) {
     m_FBManager->drawGBuffer(projection, view);
     m_FBManager->drawSSAO(projection, view);
     m_FBManager->SSAOBlur();
+    GUI::showTextureGBuffer(g_GBuffer, m_FBManager->ssaoRadius, m_FBManager->ssaoBias);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

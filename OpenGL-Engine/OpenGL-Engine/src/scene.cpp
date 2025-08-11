@@ -76,7 +76,7 @@ int Scene::initGlad() {
 void Scene::setGlfwCallbacks() {
     glfwSetFramebufferSizeCallback(m_Window, framebuffer_size_callback);
     glfwSetCursorPosCallback(m_Window, mouse_callback);
-    glfwSetScrollCallback(m_Window, scroll_callback);
+    //glfwSetScrollCallback(m_Window, scroll_callback);
 
     // tell GLFW to capture our mouse
     glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);

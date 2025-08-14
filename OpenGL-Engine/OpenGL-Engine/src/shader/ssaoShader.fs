@@ -6,8 +6,8 @@ in vec2 TexCoords;
 
 const int kernelSize = 64;
 
-uniform sampler2D gPosition;
-uniform sampler2D gNormal;
+uniform sampler2D gViewPosition;
+uniform sampler2D gViewNormal;
 uniform sampler2D texNoise;
 
 uniform vec3 samples[kernelSize];
@@ -24,8 +24,8 @@ uniform mat4 projection;
 
 void main() {
     // get input for SSAO algorithm
-    vec3 fragPos = texture(gPosition, TexCoords).xyz;
-    vec3 normal = normalize(texture(gNormal, TexCoords).rgb);
+    vec3 fragPos = texture(gViewPosition, TexCoords).xyz;
+    vec3 normal = normalize(texture(gViewNormal, TexCoords).rgb);
     vec3 randomVec = normalize(texture(texNoise, TexCoords * noiseScale).xyz);
     // create TBN change-of-basis matrix: from tangent-space to view-space
     vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
@@ -45,7 +45,7 @@ void main() {
         offset.xyz = offset.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0
         
         // get sample depth
-        float sampleDepth = texture(gPosition, offset.xy).z; // get depth value of kernel sample
+        float sampleDepth = texture(gViewPosition, offset.xy).z; // get depth value of kernel sample
         
         // range check & accumulate
         float rangeCheck = smoothstep(0.0, 1.0, radius / abs(fragPos.z - sampleDepth));

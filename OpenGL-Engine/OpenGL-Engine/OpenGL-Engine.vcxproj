@@ -205,6 +205,8 @@
     <None Include="src\shader\combineTextureShader.vs" />
     <None Include="src\shader\cube.fs" />
     <None Include="src\shader\cube.vs" />
+    <None Include="src\shader\deferredShader.fs" />
+    <None Include="src\shader\deferredShader.vs" />
     <None Include="src\shader\framebufferShader.fs" />
     <None Include="src\shader\framebufferShader.vs" />
     <None Include="src\shader\gBufferShader.fs" />

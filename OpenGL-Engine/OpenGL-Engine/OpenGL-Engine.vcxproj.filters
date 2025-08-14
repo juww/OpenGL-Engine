@@ -391,5 +391,11 @@
     <None Include="src\shader\ssaoBlurShader.vs">
       <Filter>Resource Files\VertexShader</Filter>
     </None>
+    <None Include="src\shader\deferredShader.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="src\shader\deferredShader.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
   </ItemGroup>
 </Project>

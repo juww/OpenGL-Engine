@@ -4,8 +4,10 @@ layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoords;
 
 out vec3 FragPos;
+out vec3 ViewPos;
 out vec2 TexCoords;
 out vec3 Normal;
+out vec3 ViewNormal;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -13,12 +15,19 @@ uniform mat4 projection;
 
 void main() {
 
-    vec4 worldPos = view * model * vec4(aPos, 1.0);
+    vec4 worldPos = model * vec4(aPos, 1.0);
     FragPos = worldPos.xyz;
+
     TexCoords = aTexCoords;
-    
-    mat3 normalMatrix = transpose(inverse(mat3(view * model)));
+
+    mat3 normalMatrix = transpose(inverse(mat3(model)));
     Normal = normalMatrix * aNormal;
 
-    gl_Position = projection * worldPos;
+    vec4 V = view * model * vec4(aPos, 1.0);
+    ViewPos = V.xyz;
+
+    normalMatrix = transpose(inverse(mat3(view * model)));
+    ViewNormal = normalMatrix * aNormal;
+
+    gl_Position = projection * view * model * vec4(aPos, 1.0f);
 }

@@ -22,9 +22,13 @@ public:
     int m_ScreenWidth, m_ScreenHeight;
     unsigned int m_Fbo;
 
+    Shader* deferredShader;
+
     Shader* GBufferShader;
     unsigned int gBuffer;
     unsigned int gPosition, gNormal, gAlbedo, gNormalMap, gORMMap, gDepth;
+    unsigned int gViewPosition, gViewNormal, gTexCoords;
+
     unsigned int gRbo;
 
     Shader* SSAOShader;
@@ -87,8 +91,7 @@ private:
     unsigned int cubeVBO = 0;
 
     const glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-    const glm::mat4 captureViews[6] =
-    {
+    const glm::mat4 captureViews[6] = {
         glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
         glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
         glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),

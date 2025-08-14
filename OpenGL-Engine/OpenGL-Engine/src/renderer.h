@@ -29,8 +29,10 @@ public:
 
     Camera* getCamera();
     void start();
-    void shadowRender(int shadowType);
+    
     void render(float currentTime, float deltaTime);
+
+    void DeferredRender(std::map<std::string, unsigned int>& mappers, std::vector<glm::vec3> lightPos);
 
 private:
 
@@ -62,6 +64,8 @@ private:
     Shader* m_PBRShader;
     Shader* m_ShadowMappingShader;
     Shader* m_ShadowCubeMappingShader;
+
+    Shader* m_DeferredShader;
 
     Shader* m_NormalLineShader;
 

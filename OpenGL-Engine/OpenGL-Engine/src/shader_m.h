@@ -14,13 +14,13 @@ const std::string PREFIX_PATH = "src/shader/";
 class Shader
 {
 public:
-    std::string name;
+    std::string shaderName;
     unsigned int ID;
     // constructor generates the shader on the fly
     // ------------------------------------------------------------------------
-    Shader(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath = "")
-    {
+    Shader(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath = "") {
 
+        shaderName = vertexPath;
         // 1. retrieve the vertex/fragment source code from filePath
         std::string vertexCode;
         std::string fragmentCode;
@@ -32,8 +32,7 @@ public:
         vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
         gShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-        try
-        {
+        try {
             // open files
             vShaderFile.open(PREFIX_PATH + vertexPath);
             fShaderFile.open(PREFIX_PATH + fragmentPath);
@@ -49,17 +48,14 @@ public:
             fragmentCode = fShaderStream.str();
             // if geometry shader path is present, also load a geometry shader
 
-            if (geometryPath != "")
-            {
+            if (geometryPath != "") {
                 gShaderFile.open(PREFIX_PATH + geometryPath);
                 std::stringstream gShaderStream;
                 gShaderStream << gShaderFile.rdbuf();
                 gShaderFile.close();
                 geometryCode = gShaderStream.str();
             }
-        }
-        catch (std::ifstream::failure& e)
-        {
+        }  catch (std::ifstream::failure& e) {
             std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
         }
         const char* vShaderCode = vertexCode.c_str();
@@ -78,8 +74,7 @@ public:
         checkCompileErrors(fragment, "FRAGMENT");
         // if geometry shader is given, compile geometry shader
         unsigned int geometry;
-        if (geometryPath != "")
-        {
+        if (geometryPath != "") {
             const char* gShaderCode = geometryCode.c_str();
             geometry = glCreateShader(GL_GEOMETRY_SHADER);
             glShaderSource(geometry, 1, &gShaderCode, NULL);
@@ -235,6 +230,7 @@ private:
             if (!success)
             {
                 glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+                std::cout << "ERROR::COMPILE_ERROR for shader: " << shaderName << "\n";
                 std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
             }
         }
@@ -244,6 +240,7 @@ private:
             if (!success)
             {
                 glGetProgramInfoLog(shader, 1024, NULL, infoLog);
+                std::cout << "ERROR::COMPILE_ERROR for shader: " << shaderName << "\n";
                 std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
             }
         }

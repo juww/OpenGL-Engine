@@ -296,7 +296,7 @@ namespace GUI {
         ImGui::End();
         return isUpdate;
     }
-    void showTextureGBuffer(std::vector<unsigned int> &p_GBuffer, float& pRadius, float& pBias) {
+    void showTextureGBuffer(std::map<unsigned int, std::string> &p_GBuffer, float& pRadius, float& pBias) {
         ImGui::Begin("GBuffers");
 
         const float window_width = ImGui::GetContentRegionAvail().x;
@@ -307,22 +307,17 @@ namespace GUI {
         ImGui::DragFloat("ssao Radius", &pRadius, 0.01f, 0.001f);
         ImGui::DragFloat("ssao Bias", &pBias, 0.0001f, 0.0f);
 
-        ImGui::SeparatorText("gPosition");
-        ImGui::Image((void*)p_GBuffer[0], texSize, ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::SeparatorText("gNormal");
-        ImGui::Image((void*)p_GBuffer[1], texSize, ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::SeparatorText("gAlbedo");
-        ImGui::Image((void*)p_GBuffer[2], texSize, ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::SeparatorText("gNormalMap");
-        ImGui::Image((void*)p_GBuffer[3], texSize, ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::SeparatorText("gORMMap");
-        ImGui::Image((void*)p_GBuffer[4], texSize, ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::SeparatorText("depth");
-        ImGui::Image((void*)p_GBuffer[5], texSize, ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::SeparatorText("ssao");
-        ImGui::Image((void*)p_GBuffer[6], texSize, ImVec2(0, 1), ImVec2(1, 0));
+        for(auto &gbuffer : p_GBuffer){
+            ImGui::SeparatorText(gbuffer.second.c_str());
+            ImGui::Image((void*)gbuffer.first, texSize, ImVec2(0, 1), ImVec2(1, 0));
+        }
 
         ImGui::End();
+    }
+
+    bool useDeferredShading(bool& pCheck) {
+        ImGui::Checkbox("checkbox", &pCheck);
+        return pCheck;
     }
 
     void fogDistanceParam(FogDistanceParam& fp) {

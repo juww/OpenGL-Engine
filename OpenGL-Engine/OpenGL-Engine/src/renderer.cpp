@@ -58,7 +58,8 @@ void Renderer::configureGlobalState() {
 glm::vec3 g_LightDirection;
 float g_LightDist;
 float g_Dimension;
-std::vector<unsigned int> g_GBuffer;
+std::map<unsigned int, std::string> g_GBuffer;
+bool g_useDeferredRender;
 
 void Renderer::setupLights() {
     //class Light is shit,, need to change
@@ -91,6 +92,8 @@ void Renderer::setupShaders() {
     m_WaterShader = new Shader("water.vs", "water.fs");
     m_SphereShader = new Shader("sphere.vs", "sphere.fs");
     m_PBRShader = new Shader("pbr.vs", "pbr.fs"/*, "normalMapping.gs"*/);
+
+    m_DeferredShader = new Shader("deferredShader.vs", "deferredShader.fs");
     
     m_PatchPlaneShader = new ShaderT("patchPlane.vs", "patchPlane.fs", "", 
         "TessellationControlShader.tcs", "TessellationEvaluationShader.tes");
@@ -220,13 +223,17 @@ void Renderer::start() {
     m_FBManager->genScreenSpaceAmbientOcclusion();
     m_FBManager->setSSAOShader(m_SSAOShader, m_SSAOBlurShader);
 
-    g_GBuffer.push_back(m_FBManager->gPosition);
-    g_GBuffer.push_back(m_FBManager->gNormal);
-    g_GBuffer.push_back(m_FBManager->gAlbedo);
-    g_GBuffer.push_back(m_FBManager->gNormalMap);
-    g_GBuffer.push_back(m_FBManager->gORMMap);
-    g_GBuffer.push_back(m_FBManager->gDepth);
-    g_GBuffer.push_back(m_FBManager->ssaoBufferBlur);
+    g_GBuffer[m_FBManager->gPosition] = "gPosition";
+    g_GBuffer[m_FBManager->gNormal] = "gNormal";
+    g_GBuffer[m_FBManager->gAlbedo] = "gAlbedo";
+    g_GBuffer[m_FBManager->gNormalMap] = "gNormalMap";
+    g_GBuffer[m_FBManager->gORMMap] = "gORMMap";
+    g_GBuffer[m_FBManager->gDepth] = "gDepth";
+    g_GBuffer[m_FBManager->gViewPosition] = "gViewPosition";
+    g_GBuffer[m_FBManager->gViewNormal] = "gViewNormal";
+    g_GBuffer[m_FBManager->gTexCoords] = "gTexCoords";
+    g_GBuffer[m_FBManager->ssaoBufferBlur] = "SSAO";
+    g_useDeferredRender = false;
 
     for (auto sphere : m_Spheres) {
         sphere->materials.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader, 
@@ -244,6 +251,70 @@ void Renderer::start() {
         material->metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader,
             material->Map, material->width, material->height);
     }
+}
+
+void Renderer::DeferredRender(std::map<std::string, unsigned int>& mappers, std::vector<glm::vec3> lightPos) {
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    m_DeferredShader->use();
+
+    m_DeferredShader->setInt("gPosition", 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_FBManager->gPosition);
+    m_DeferredShader->setInt("gNormal", 1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_FBManager->gNormal);
+    m_DeferredShader->setInt("gAlbedo", 2);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, m_FBManager->gAlbedo);
+    m_DeferredShader->setInt("gNormalMap", 3);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, m_FBManager->gNormalMap);
+    m_DeferredShader->setInt("gORMMap", 4);
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, m_FBManager->gORMMap);
+    m_DeferredShader->setInt("gTexCoords", 5);
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_2D, m_FBManager->gTexCoords);
+    m_DeferredShader->setInt("ssaoBuffer", 9);
+    glActiveTexture(GL_TEXTURE9);
+    glBindTexture(GL_TEXTURE_2D, m_FBManager->ssaoBufferBlur);
+
+    for (int i = 0; i < lightPos.size(); i++) {
+        m_DeferredShader->setVec3("lightPosition[" + std::to_string(i) + "]", lightPos[i]);
+    }
+    //shader->setVec3("lightPos", lightPos);
+    m_DeferredShader->setVec3("viewPos", m_Camera->Position);
+
+    m_DeferredShader->setVec4("baseColor", pbr.m_BaseColor);
+    m_DeferredShader->setFloat("roughnessFactor", pbr.m_RoughnessFactor);
+    m_DeferredShader->setFloat("subSurface", pbr.m_SubSurface);
+    m_DeferredShader->setFloat("metallicFactor", pbr.m_MetallicFactor);
+
+    m_DeferredShader->setFloat("_Specular", pbr.m_Specular);
+    m_DeferredShader->setFloat("_SpecularTint", pbr.m_SpecularTint);
+    m_DeferredShader->setFloat("_Sheen", pbr.m_Sheen);
+    m_DeferredShader->setFloat("_SheenTint", pbr.m_SheenTint);
+    m_DeferredShader->setFloat("_Anisotropic", pbr.m_Anisotropic);
+    m_DeferredShader->setFloat("_ClearCoatGloss", pbr.m_ClearCoatGloss);
+    m_DeferredShader->setFloat("_ClearCoat", pbr.m_ClearCoat);
+
+    m_DeferredShader->setInt("irradianceMap", 6);
+    glActiveTexture(GL_TEXTURE6);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, mappers["irradianceMap"]);
+
+    m_DeferredShader->setInt("preFilterMap", 7);
+    glActiveTexture(GL_TEXTURE7);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, mappers["preFilterMap"]);
+
+    m_DeferredShader->setInt("brdfLUTTexture", 8);
+    glActiveTexture(GL_TEXTURE8);
+    glBindTexture(GL_TEXTURE_2D, mappers["brdfLUTTexture"]);
+
+    // finally render quad
+    m_FBManager->renderQuad();
+
 }
 
 void Renderer::render(float currentTime, float deltaTime) {
@@ -280,8 +351,12 @@ void Renderer::render(float currentTime, float deltaTime) {
     m_FBManager->drawSSAO(projection, view);
     m_FBManager->SSAOBlur();
     GUI::showTextureGBuffer(g_GBuffer, m_FBManager->ssaoRadius, m_FBManager->ssaoBias);
+    GUI::useDeferredShading(g_useDeferredRender);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    if (g_useDeferredRender) {
+        DeferredRender(m_FBManager->mappers, lightpos);
+    }
 
     GUI::modelTransform("model", m_Model->pos, m_Model->rot, m_Model->angle, m_Model->scale);
     GUI::modelTransform("sponza", m_Sponza->pos, m_Sponza->rot, m_Sponza->angle, m_Sponza->scale);

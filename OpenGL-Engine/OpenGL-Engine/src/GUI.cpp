@@ -296,7 +296,7 @@ namespace GUI {
         ImGui::End();
         return isUpdate;
     }
-    void showTextureGBuffer(std::map<unsigned int, std::string> &p_GBuffer, float& pRadius, float& pBias) {
+    void showTextureGBuffer(std::map<unsigned int, std::string> &p_GBuffer) {
         ImGui::Begin("GBuffers");
 
         const float window_width = ImGui::GetContentRegionAvail().x;
@@ -304,9 +304,6 @@ namespace GUI {
         ImVec2 pos = ImGui::GetCursorScreenPos();
         ImVec2 texSize = { 1280 / 4.0f, 720 / 4.0f };
         
-        ImGui::DragFloat("ssao Radius", &pRadius, 0.01f, 0.001f);
-        ImGui::DragFloat("ssao Bias", &pBias, 0.0001f, 0.0f);
-
         for(auto &gbuffer : p_GBuffer){
             ImGui::SeparatorText(gbuffer.second.c_str());
             ImGui::Image((void*)gbuffer.first, texSize, ImVec2(0, 1), ImVec2(1, 0));
@@ -315,9 +312,15 @@ namespace GUI {
         ImGui::End();
     }
 
-    bool useDeferredShading(bool& pCheck) {
-        ImGui::Checkbox("checkbox", &pCheck);
-        return pCheck;
+    void useDeferredShading(DeferredParam &deferredParam) {
+        ImGui::Begin("deferred Rendering");
+
+        ImGui::Checkbox("use deferred render", &deferredParam.useDeferredRender);
+        ImGui::Checkbox("use ssao", &deferredParam.useSSAO);
+        ImGui::DragFloat("ssao Radius", &deferredParam.ssaoRadius, 0.01f, 0.001f);
+        ImGui::DragFloat("ssao Bias", &deferredParam.ssaoBias, 0.0001f, 0.0f);
+
+        ImGui::End();
     }
 
     void fogDistanceParam(FogDistanceParam& fp) {

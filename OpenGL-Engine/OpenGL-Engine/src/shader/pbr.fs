@@ -191,11 +191,11 @@ vec3 DisneyBRDF(vec3 N, vec3 surfaceColor, vec3 lightPos, float Roughness, float
 
     vec3 Ctint = Cdlum > 0.0 ? surfaceColor / Cdlum : 1.0;
     vec3 Cspec = vec3(_Specular * 0.08 * lerp3(vec3(1.0), Ctint, _SpecularTint));
-    vec3 Cspec0 = lerp3(Cspec, surfaceColor, Metallic);
+    vec3 Cspec0 = lerp3(Cspec, (surfaceColor * (1.0f + _Specular)), Metallic);
     vec3 Csheen = lerp3(vec3(1.0), Ctint, _SheenTint);
 
      // Sheen
-    vec3 FSheen = FH * _Sheen * Csheen;
+    vec3 FSheen = lerp3(Cspec0, vec3(1.0f), SchlickFresnel(ndotv)) * _Sheen * Csheen;
 
     //specular
     float D = NormalDistributionFunction(ndoth, H, Roughness);

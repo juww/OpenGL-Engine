@@ -9,6 +9,7 @@ GUI::GrassParam gp(3.0f, 0.5f, 1.12f, 0.7f);
 GUI::WaterParam wp(1.73f, 0.83f, 2.0f, 0.0f, 4.3f, 32);
 GUI::FogDistanceParam fdp(0.03f, 1.0f, 0.1f, glm::vec3(1.0f));
 GUI::PBRParam pbr;
+GUI::DeferredParam g_DeferredParam;
 
 Renderer::Renderer() {
     m_Camera = new Camera(glm::vec3(0.0f, 10.0f, 5.0f));
@@ -20,12 +21,10 @@ Renderer::Renderer() {
     m_Spheres.clear();
     m_PBRShader = nullptr;
 
+    m_ScreenWidth = 0;
+    m_ScreenHeight = 0;
     m_FBManager = m_FBManager->getInstance();
 
-    for (Cube* cube : m_LightCube) {
-        free(cube);
-        cube = nullptr;
-    }
     m_LightCube.clear();
     m_Shadow = nullptr;
 }
@@ -45,6 +44,10 @@ Camera* Renderer::getCamera() {
     return m_Camera;
 }
 
+void Renderer::setScreenSize(int width, int height) {
+    m_ScreenWidth = width;
+    m_ScreenHeight = height;
+}
 
 void Renderer::configureGlobalState() {
     glEnable(GL_DEPTH_TEST);
@@ -56,10 +59,10 @@ void Renderer::configureGlobalState() {
 
 // temporary global variable light
 glm::vec3 g_LightDirection;
+std::vector<Light> g_lightPosition;
 float g_LightDist;
 float g_Dimension;
 std::map<unsigned int, std::string> g_GBuffer;
-bool g_useDeferredRender;
 
 void Renderer::setupLights() {
     //class Light is shit,, need to change
@@ -68,16 +71,36 @@ void Renderer::setupLights() {
     g_LightDist = 50.0f;
     g_Dimension = g_LightDist + 2.0f;
 
-    glm::vec3 lpos = glm::vec3(0.0f, 3.0f, 0.0f);
-    Light lp;
-    Cube* c = new Cube();
-    lp.setPosLight(lpos, 0.0f, 0.0f, 0.0f);
-    c->initialize();
-    c->scale = glm::vec3(0.2f);
-    c->pos = lpos;
+    const float constant = 1.0f;
+    const float linear = 0.7f;
+    const float quadratic = 1.8f;
 
-    m_Lights.push_back(lp);
+    Cube c;
+    c.initialize();
+    c.scale = glm::vec3(0.2f);
     m_LightCube.push_back(c);
+
+    for (unsigned int i = 0; i < 32; i++) {
+        Light tlight;
+        float xPos = static_cast<float>(((rand() % 100) / 100.0) * 30.0 - 15.0);
+        float yPos = static_cast<float>(((rand() % 100) / 100.0) * 20.0 - 10.0);
+        float zPos = static_cast<float>(((rand() % 100) / 100.0) * 15.0 - 7.5);
+        tlight.setPosLight(glm::vec3(xPos, yPos, zPos), constant, linear, quadratic);
+        tlight.m_Position += glm::vec3(0.0f, 10.0f, -15.0f);
+        // also calculate random color
+        float rColor = static_cast<float>(((rand() % 100) / 100.0f));
+        float gColor = static_cast<float>(((rand() % 100) / 100.0f));
+        float bColor = static_cast<float>(((rand() % 100) / 100.0f));
+        glm::vec3 lightColor(rColor, gColor, bColor);
+        tlight.setColor(lightColor);
+        float maxBrightness = std::fmaxf(std::fmaxf(tlight.m_Color.r, tlight.m_Color.g), tlight.m_Color.b);
+        float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
+        tlight.m_Radius = radius;
+        c.pos = tlight.m_Position;
+        c.color = tlight.m_Color;
+        g_lightPosition.push_back(tlight);
+        m_LightCube.push_back(c);
+    }
 }
 
 void Renderer::setupShaders() {
@@ -119,13 +142,13 @@ void Renderer::setupShaders() {
 
 void Renderer::initModel() {
 
-    const std::string& pathfile = "res/models/water-bottle/scene.gltf";
+    const std::string& pathfile = "res/models/damaged-helmet/scene.gltf";
     m_Model = new gltf::Model();
     m_Model->loadModel(pathfile.c_str());
     m_Model->setShader(m_PBRShader);
     m_Model->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
-    m_Model->setScale(glm::vec3(0.01f));
-    m_Model->startPlayAnimation(0);
+    m_Model->setScale(glm::vec3(1.0f));
+    //m_Model->startPlayAnimation(0);
 
     const std::string& sponzaPathFile = "res/models/Sponza/glTF/Sponza.gltf";
     m_Sponza = new gltf::Model();
@@ -233,7 +256,6 @@ void Renderer::start() {
     g_GBuffer[m_FBManager->gViewNormal] = "gViewNormal";
     g_GBuffer[m_FBManager->gTexCoords] = "gTexCoords";
     g_GBuffer[m_FBManager->ssaoBufferBlur] = "SSAO";
-    g_useDeferredRender = false;
 
     for (auto sphere : m_Spheres) {
         sphere->materials.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader, 
@@ -281,9 +303,16 @@ void Renderer::DeferredRender(std::map<std::string, unsigned int>& mappers, std:
     glActiveTexture(GL_TEXTURE9);
     glBindTexture(GL_TEXTURE_2D, m_FBManager->ssaoBufferBlur);
 
-    for (int i = 0; i < lightPos.size(); i++) {
-        m_DeferredShader->setVec3("lightPosition[" + std::to_string(i) + "]", lightPos[i]);
+    m_DeferredShader->setVec3("lightDirection", g_LightDirection);
+    m_DeferredShader->setFloat("lightLinear", g_lightPosition[0].m_Linear);
+    m_DeferredShader->setFloat("lightQuadratic", g_lightPosition[0].m_Quadratic);
+    for (int i = 0; i < g_lightPosition.size(); i++) {
+        m_DeferredShader->setVec3("lightPosition[" + std::to_string(i) + "]", g_lightPosition[i].m_Position);
+        m_DeferredShader->setVec3("lightColor[" + std::to_string(i) + "]", g_lightPosition[i].m_Color);
+        m_DeferredShader->setFloat("lightRadius[" + std::to_string(i) + "]", g_lightPosition[i].m_Radius);
     }
+
+    m_DeferredShader->setBool("useSSAO", g_DeferredParam.useSSAO);
     //shader->setVec3("lightPos", lightPos);
     m_DeferredShader->setVec3("viewPos", m_Camera->Position);
 
@@ -312,9 +341,7 @@ void Renderer::DeferredRender(std::map<std::string, unsigned int>& mappers, std:
     glActiveTexture(GL_TEXTURE8);
     glBindTexture(GL_TEXTURE_2D, mappers["brdfLUTTexture"]);
 
-    // finally render quad
-    m_FBManager->renderQuad();
-
+    m_FBManager->renderQuad();    
 }
 
 void Renderer::render(float currentTime, float deltaTime) {
@@ -328,11 +355,12 @@ void Renderer::render(float currentTime, float deltaTime) {
         m_Shadow->setLightPoV(g_LightDirection, g_LightDist, m_Sponza->pos);
         m_Shadow->setLightView(m_Sponza->pos, glm::vec3(0.0, 1.0, 0.0));
         m_Shadow->setProjectionOrtho(glm::vec4(-g_Dimension, g_Dimension, -g_Dimension, g_Dimension), 0.01f, g_Dimension * 2.0f);
-        m_LightCube[0]->pos = m_Shadow->lightPoV;
+        m_LightCube[0].pos = m_Shadow->lightPoV;
     }
+
     lightpos.push_back(g_LightDirection);
     for (Light light : m_Lights) {
-        if (light.m_LightType == light.POSITION_LIGHT && shadowType == 2) {
+        if (light.m_LightType == light.POSITION_LIGHT) {
             lightpos.push_back(light.m_Position);
         }
     }
@@ -345,17 +373,31 @@ void Renderer::render(float currentTime, float deltaTime) {
     glm::mat4 view = m_Camera->GetViewMatrix();
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glViewport(0, 0, 1280, 720);
+    glViewport(0, 0, m_ScreenWidth, m_ScreenHeight);
 
-    m_FBManager->drawGBuffer(projection, view);
-    m_FBManager->drawSSAO(projection, view);
-    m_FBManager->SSAOBlur();
-    GUI::showTextureGBuffer(g_GBuffer, m_FBManager->ssaoRadius, m_FBManager->ssaoBias);
-    GUI::useDeferredShading(g_useDeferredRender);
+    GUI::showTextureGBuffer(g_GBuffer);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    if (g_useDeferredRender) {
+
+    GUI::useDeferredShading(g_DeferredParam);
+    if (g_DeferredParam.useDeferredRender) {
+
+        m_FBManager->drawGBuffer(projection, view);
+        m_FBManager->drawSSAO(projection, view);
+        m_FBManager->SSAOBlur();
+
+        m_FBManager->ssaoBias = g_DeferredParam.ssaoBias;
+        m_FBManager->ssaoRadius = g_DeferredParam.ssaoRadius;
         DeferredRender(m_FBManager->mappers, lightpos);
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, m_FBManager->gBuffer);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
+        glBlitFramebuffer(0, 0, m_ScreenWidth, m_ScreenHeight, 0, 0, m_ScreenWidth, m_ScreenHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    for (Cube cube : m_LightCube) {
+        cube.draw(m_LightCubeShader, projection, view);
     }
 
     GUI::modelTransform("model", m_Model->pos, m_Model->rot, m_Model->angle, m_Model->scale);
@@ -372,8 +414,8 @@ void Renderer::render(float currentTime, float deltaTime) {
     m_Plane->draw(m_PlaneShader, projection, view);
     //m_Plane->drawGrass(m_GrassShader, projection, view, currentTime, gp.m_Frequency, gp.m_Amplitude, gp.m_Scale, gp.m_Drop);
 
-    m_Plane->drawNoiseTexture(m_LightCubeShader, m_NoiseShader, projection, view, currentTime);
-    m_Plane->drawNoiseCPU(m_LightCubeShader, projection, view, currentTime);
+    //m_Plane->drawNoiseTexture(m_LightCubeShader, m_NoiseShader, projection, view, currentTime);
+    //m_Plane->drawNoiseCPU(m_LightCubeShader, projection, view, currentTime);
 
     m_Plane->drawPatchPlane(m_PatchPlaneShader, projection, view, 65, 65);
 
@@ -389,12 +431,6 @@ void Renderer::render(float currentTime, float deltaTime) {
     //m_WaterFFT->drawDebugPlane(m_DebugShader, projection, view);
     m_WaterFFT->draw(projection, view, m_Camera->Position, m_Skybox->cubemapTexture);
 
-    //m_LightCube->update(currentTime * 0.1f);
-
-    for (Cube* cube : m_LightCube) {
-        cube->draw(m_LightCubeShader, projection, view);
-    }
-
     GUI::modelAnimation("model", m_Model->animator, m_Model->playAnimation);
     m_Model->setUniforms(m_Camera, currentTime, m_FBManager->mappers, lightpos, pbr, m_Shadow->lightSpaceMatrix);
     m_Model->update(deltaTime);
@@ -403,7 +439,7 @@ void Renderer::render(float currentTime, float deltaTime) {
     m_Sponza->setUniforms(m_Camera, currentTime, m_FBManager->mappers, lightpos, pbr, m_Shadow->lightSpaceMatrix);
     m_Sponza->shader->setInt("useShadowMapping", 1);
     m_Sponza->update(deltaTime);
-    m_Sponza->draw();
+    //m_Sponza->draw();
 
     GUI::modelAnimation("dragonskin", m_Dragonskin->animator, m_Dragonskin->playAnimation);
     m_Dragonskin->setUniforms(m_Camera, currentTime, m_FBManager->mappers, lightpos, pbr, m_Shadow->lightSpaceMatrix);

@@ -118,6 +118,7 @@ int Scene::run() {
     initGlad();
     setGlfwCallbacks();
     getRenderer();
+    m_Renderer->setScreenSize(m_SceneWidth, m_SceneHeight);
     m_Renderer->start();
 
     GUI::initialize(m_Window);

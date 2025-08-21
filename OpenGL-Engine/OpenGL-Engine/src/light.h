@@ -21,6 +21,7 @@ public:
     float m_Constant;
     float m_Linear;
     float m_Quadratic;
+    float m_Radius;
 
     glm::vec3 m_Color;
 

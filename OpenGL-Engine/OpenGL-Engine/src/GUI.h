@@ -163,6 +163,13 @@ namespace GUI {
         }
     };
 
+    class DeferredParam {
+    public:
+        bool useDeferredRender = false;
+        bool useSSAO = true;
+        float ssaoRadius = 0.5f, ssaoBias = 0.005f;
+    };
+
     void initialize(GLFWwindow* w);
     void GUIFrame();
     void modelTransform(std::string name, glm::vec3& pos, glm::vec3& rot, float& angle, glm::vec3& scale);
@@ -172,8 +179,8 @@ namespace GUI {
     bool lightSunParam(glm::vec3 &lightDirection, unsigned int depthMap);
     void grassParam(GrassParam& gp);
     void waterFFTParam(WaterFFTParam& waterFFTParams);
-    void showTextureGBuffer(std::map<unsigned int, std::string>& p_GBuffer ,float &pRadius, float &pBias);
-    bool useDeferredShading(bool& pCheck);
+    void showTextureGBuffer(std::map<unsigned int, std::string>& p_GBuffer);
+    void useDeferredShading(DeferredParam& deferredParam);
     void color01(float temp[], int n);
     glm::vec3 vecColor3(float temp[]);
 

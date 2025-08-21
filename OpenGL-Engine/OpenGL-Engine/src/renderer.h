@@ -26,9 +26,11 @@ public:
     Renderer();
     ~Renderer();
     static Renderer* getInstance();
+    int m_ScreenWidth, m_ScreenHeight;
 
     Camera* getCamera();
     void start();
+    void setScreenSize(int width, int height);
     
     void render(float currentTime, float deltaTime);
 
@@ -47,7 +49,7 @@ private:
     Skybox* m_Skybox;
     Plane* m_Plane;
     T_Terrain* m_Terrain;
-    std::vector<Cube *> m_LightCube;
+    std::vector<Cube> m_LightCube;
     std::vector<Sphere *> m_Spheres;
     Water* m_Water;
     WaterFFT* m_WaterFFT;

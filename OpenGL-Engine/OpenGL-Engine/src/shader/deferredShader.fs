@@ -12,6 +12,8 @@ uniform sampler2D gORMMap;
 uniform sampler2D gTexCoords;
 uniform sampler2D ssaoBuffer;
 
+uniform bool useSSAO;
+
 uniform samplerCube irradianceMap;
 uniform samplerCube preFilterMap;
 uniform sampler2D brdfLUTTexture;
@@ -19,9 +21,14 @@ uniform sampler2D brdfLUTTexture;
 uniform float far_plane;
 
 uniform vec3 lightDirection;
-uniform vec3 lightPosition[4];
+uniform vec3 lightPosition[32];
+uniform float lightRadius[32];
+uniform vec3 lightColor[32];
 uniform vec3 viewPos;
 uniform vec4 baseColor;
+
+uniform float lightLinear;
+uniform float lightQuadratic;
 
 uniform float subSurface;
 uniform float roughnessFactor;
@@ -53,7 +60,6 @@ void getNormalFromMap(vec3 FragPos, vec2 TexCoords, vec3 Normal) {
 
     TanX = T;
     TanY = B;
-
 }
 
 float sqr(float x) { 
@@ -139,10 +145,7 @@ float NormalDistributionFunction(float ndoth, vec3 H, float alpha){
     return G;
 }
 
-vec3 DisneyBRDF(vec3 FragPos, vec3 N, vec3 surfaceColor, vec3 lightPos, float Roughness, float Metallic){
-    //vec3 L = normalize(lightPos - FragPos);
-    vec3 L = normalize(lightPos);
-    vec3 V = normalize(viewPos - FragPos);
+vec3 DisneyBRDF(vec3 V, vec3 N, vec3 surfaceColor, vec3 L, float Roughness, float Metallic){
 
     vec3 H = normalize(L + V); // Microfacet normal of perfect reflection
 
@@ -189,7 +192,7 @@ vec3 DisneyBRDF(vec3 FragPos, vec3 N, vec3 surfaceColor, vec3 lightPos, float Ro
     vec3 FSpecular = (D * G * F);
     vec3 FClearCoat = vec3(0.25f * _ClearCoat * Gr * Fr * Dr);
 
-    vec3 result = (FDiffuse + FSpecular + FClearCoat) * ndotl;
+    vec3 result = (FDiffuse + FSpecular + FClearCoat);
     //result = vec3(FSpecular);
 
     return result;
@@ -215,18 +218,32 @@ void main (){
 
     Roughness = ORM.g;
     Metallic = ORM.b;
-    ao = ORM.r * ssao;
-
+    ao = ORM.r;
+    if(useSSAO){
+        ao = ao * ssao;
+    }
     surfaceColor = Albedo;
+    vec3 L = normalize(lightDirection);
+    vec3 V = normalize(viewPos - FragPos);
 
     vec3 Lo = vec3(0.0);
+    float ndotl = DotClamped(normalMap, L);
+    // light direction
+    //Lo += DisneyBRDF(V, normalMap, surfaceColor, L, Roughness, Metallic);
 
-    for(int i = 0; i < 1; i++) {
-        Lo += DisneyBRDF(FragPos, normalMap, surfaceColor, lightPosition[i], Roughness, Metallic);
+    for(int i = 0; i < 32; i++) {
+        float distance = length(lightPosition[i] - FragPos);
+        if(distance > lightRadius[i]){
+            continue;
+        }
+        L = normalize(lightPosition[i] - FragPos);
+        float attenuation = 1.0 / (distance * distance);
+        vec3 radiance     = lightColor[i] * attenuation;
+        Lo += (DisneyBRDF(V, normalMap, surfaceColor, L, Roughness, Metallic) * radiance);
+        //Lo += radiance;
     }
-
+    
     //ambient IBL
-    vec3 V = normalize(viewPos - FragPos);
     vec3 R = reflect(-V, normalMap); 
     vec3 F0 = vec3(0.04); 
     F0 = mix(F0, surfaceColor, Metallic);
@@ -247,7 +264,7 @@ void main (){
     vec3 IBLspecular = prefilteredColor * (F * brdf.x + brdf.y);
     vec3 metallicness = lerp3(vec3(0.0), IBLspecular, Metallic);
 
-    vec3 ambient = (kD * IBLDiffuse + IBLspecular);
+    vec3 ambient = (kD * IBLDiffuse + (IBLspecular));
 
     // result += ambient * ao;
     vec3 result = (Lo + ambient + emissive) * ao;

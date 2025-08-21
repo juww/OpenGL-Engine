@@ -8,6 +8,7 @@ class Cube {
 public:
 
     glm::vec3 pos, rot, scale;
+    glm::vec3 color;
     glm::mat4 model;
     unsigned int vao = 0, ebo = 0;
 
@@ -16,6 +17,8 @@ public:
 
         pos = glm::vec3(0.0f);
         scale = glm::vec3(1.0f);
+
+        color = glm::vec3(1.0f);
 
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
@@ -67,6 +70,7 @@ public:
         shader->setMat4("projection", projection);
         shader->setMat4("view", view);
         shader->setMat4("model", m);
+        shader->setVec3("lightColor", color);
 
         glBindVertexArray(vao);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);

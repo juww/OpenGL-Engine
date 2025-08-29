@@ -316,7 +316,11 @@ namespace GUI {
         ImGui::Begin("deferred Rendering");
 
         ImGui::Checkbox("use deferred render", &deferredParam.useDeferredRender);
+        ImGui::Checkbox("use ORM", &deferredParam.useORM);
         ImGui::Checkbox("use ssao", &deferredParam.useSSAO);
+        ImGui::Checkbox("use HDR", &deferredParam.useHDR);
+        ImGui::DragFloat("exposure", &deferredParam.exposure, 0.01f, 0.0f);
+        ImGui::DragFloat("ambient strenght", &deferredParam.ambientStrenght, 0.01f, 0.0f);
         ImGui::DragFloat("ssao Radius", &deferredParam.ssaoRadius, 0.01f, 0.001f);
         ImGui::DragFloat("ssao Bias", &deferredParam.ssaoBias, 0.0001f, 0.0f);
 

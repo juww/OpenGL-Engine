@@ -40,7 +40,6 @@ void main() {
     ivec2 id = ivec2(gl_GlobalInvocationID.xy);
     vec2 idf = vec2(gl_GlobalInvocationID.xy);
 
-
     for (int i = 0; i < _ArrayTextureSize; ++i) {
 
         ivec3 idx = ivec3(id, i);

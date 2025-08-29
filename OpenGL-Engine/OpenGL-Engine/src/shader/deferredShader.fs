@@ -13,6 +13,11 @@ uniform sampler2D gTexCoords;
 uniform sampler2D ssaoBuffer;
 
 uniform bool useSSAO;
+uniform bool useHDR;
+uniform bool useORM;
+
+uniform float ambientStrenght;
+uniform float exposure;
 
 uniform samplerCube irradianceMap;
 uniform samplerCube preFilterMap;
@@ -42,6 +47,9 @@ uniform float _ClearCoatGloss;
 uniform float _ClearCoat;
 
 #define PI 3.14159265358979323846
+
+const float GAMMA = 2.2;
+const float INV_GAMMA = 1.0 / GAMMA;
 
 vec3 TanX;
 vec3 TanY;
@@ -198,6 +206,23 @@ vec3 DisneyBRDF(vec3 V, vec3 N, vec3 surfaceColor, vec3 L, float Roughness, floa
     return result;
 }
 
+vec3 LINEARtoSRGB(vec3 color) {
+    return pow(color, vec3(INV_GAMMA));
+}
+
+vec4 SRGBtoLINEAR(vec4 srgbIn) {
+    return vec4(pow(srgbIn.xyz, vec3(GAMMA)), srgbIn.w);
+}
+
+vec3 toneMapACES(vec3 color) {
+    const float A = 2.51;
+    const float B = 0.03;
+    const float C = 2.43;
+    const float D = 0.59;
+    const float E = 0.14;
+    return LINEARtoSRGB(clamp((color * (A * color + B)) / (color * (C * color + D) + E), 0.0, 1.0));
+}
+
 void main (){
 
     vec3 surfaceColor = baseColor.rgb;
@@ -216,9 +241,11 @@ void main (){
 
     getNormalFromMap(FragPos, tex, Normal);
 
-    Roughness = ORM.g;
-    Metallic = ORM.b;
-    ao = ORM.r;
+    if(useORM){
+        Roughness = ORM.g;
+        Metallic = ORM.b;
+        ao = ORM.r;
+    }
     if(useSSAO){
         ao = ao * ssao;
     }
@@ -237,9 +264,10 @@ void main (){
             continue;
         }
         L = normalize(lightPosition[i] - FragPos);
+        ndotl = DotClamped(normalMap, L);
         float attenuation = 1.0 / (distance * distance);
         vec3 radiance     = lightColor[i] * attenuation;
-        Lo += (DisneyBRDF(V, normalMap, surfaceColor, L, Roughness, Metallic) * radiance);
+        Lo += (DisneyBRDF(V, normalMap, surfaceColor, L, Roughness, Metallic) * radiance * ndotl);
         //Lo += radiance;
     }
     
@@ -255,7 +283,7 @@ void main (){
     kD *= 1.0 - Metallic;
 
     vec3 irradiance = texture(irradianceMap, normalMap).rgb;
-    vec3 IBLDiffuse = irradiance * surfaceColor;
+    vec3 IBLDiffuse = irradiance * surfaceColor * ambientStrenght;
 
     // sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
     const float MAX_REFLECTION_LOD = 4.0;
@@ -264,15 +292,20 @@ void main (){
     vec3 IBLspecular = prefilteredColor * (F * brdf.x + brdf.y);
     vec3 metallicness = lerp3(vec3(0.0), IBLspecular, Metallic);
 
-    vec3 ambient = (kD * IBLDiffuse + (IBLspecular));
+    vec3 ambient = (kD * IBLDiffuse + IBLspecular);
+    //ambient *= ambientStrenght;
 
     // result += ambient * ao;
     vec3 result = (Lo + ambient + emissive) * ao;
     //vec3 result = blinnPhong();
 
-    //result = result/ (result + vec3(1.0));
-    // gamma correct
-    //result= pow(result, vec3(1.0/2.2));
+    if(useHDR){
+        vec3 mapped = toneMapACES(result);
+        //result = result / (result + vec3(1.0));
+
+        // gamma correct
+        result = mapped * exposure;
+    }
 
     FragColor = vec4(result, 1.0);
 }

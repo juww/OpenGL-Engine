@@ -93,7 +93,7 @@ void Renderer::setupLights() {
         float bColor = static_cast<float>(((rand() % 100) / 100.0f));
         glm::vec3 lightColor(rColor, gColor, bColor);
         tlight.setColor(lightColor);
-        float maxBrightness = std::fmaxf(std::fmaxf(tlight.m_Color.r, tlight.m_Color.g), tlight.m_Color.b);
+        float maxBrightness = std::fmaxf(std::fmaxf(tlight.m_Color.r, tlight.m_Color.g), tlight.m_Color.b) * 2.0f;
         float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
         tlight.m_Radius = radius;
         c.pos = tlight.m_Position;
@@ -213,7 +213,6 @@ void Renderer::start() {
         if (i == 3) m_Spheres[i]->loadMaterials("res/textures/materials/mud/");
         if (i == 4) m_Spheres[i]->loadMaterials("res/textures/materials/metal_hole/");
     }
-    
 
     m_Water = new Water();
     m_Water->initialize(256, 256, 8.0f);
@@ -313,7 +312,11 @@ void Renderer::DeferredRender(std::map<std::string, unsigned int>& mappers, std:
     }
 
     m_DeferredShader->setBool("useSSAO", g_DeferredParam.useSSAO);
-    //shader->setVec3("lightPos", lightPos);
+    m_DeferredShader->setBool("useHDR", g_DeferredParam.useHDR);
+    m_DeferredShader->setBool("useORM", g_DeferredParam.useORM);
+    m_DeferredShader->setFloat("exposure", g_DeferredParam.exposure);
+    m_DeferredShader->setFloat("ambientStrenght", g_DeferredParam.ambientStrenght);
+    
     m_DeferredShader->setVec3("viewPos", m_Camera->Position);
 
     m_DeferredShader->setVec4("baseColor", pbr.m_BaseColor);
@@ -382,18 +385,22 @@ void Renderer::render(float currentTime, float deltaTime) {
     GUI::useDeferredShading(g_DeferredParam);
     if (g_DeferredParam.useDeferredRender) {
 
+        glEnable(GL_CULL_FACE);
+
+        m_FBManager->ssaoBias = g_DeferredParam.ssaoBias;
+        m_FBManager->ssaoRadius = g_DeferredParam.ssaoRadius;
+
         m_FBManager->drawGBuffer(projection, view);
         m_FBManager->drawSSAO(projection, view);
         m_FBManager->SSAOBlur();
 
-        m_FBManager->ssaoBias = g_DeferredParam.ssaoBias;
-        m_FBManager->ssaoRadius = g_DeferredParam.ssaoRadius;
         DeferredRender(m_FBManager->mappers, lightpos);
 
         glBindFramebuffer(GL_READ_FRAMEBUFFER, m_FBManager->gBuffer);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
         glBlitFramebuffer(0, 0, m_ScreenWidth, m_ScreenHeight, 0, 0, m_ScreenWidth, m_ScreenHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_CULL_FACE);
     }
 
     for (Cube cube : m_LightCube) {

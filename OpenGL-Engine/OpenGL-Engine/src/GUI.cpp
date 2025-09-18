@@ -319,6 +319,7 @@ namespace GUI {
         ImGui::Checkbox("use ORM", &deferredParam.useORM);
         ImGui::Checkbox("use ssao", &deferredParam.useSSAO);
         ImGui::Checkbox("use HDR", &deferredParam.useHDR);
+        ImGui::Checkbox("use Bloom", &deferredParam.bloom);
         ImGui::DragFloat("exposure", &deferredParam.exposure, 0.01f, 0.0f);
         ImGui::DragFloat("ambient strenght", &deferredParam.ambientStrenght, 0.01f, 0.0f);
         ImGui::DragFloat("ssao Radius", &deferredParam.ssaoRadius, 0.01f, 0.001f);

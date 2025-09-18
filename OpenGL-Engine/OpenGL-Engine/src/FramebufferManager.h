@@ -40,6 +40,14 @@ public:
     unsigned int ssaoBuffer, ssaoBufferBlur;
     unsigned int noiseTexture;
 
+    Shader* bloomGaussianBlurShader;
+    Shader* bloomResultShader;
+    unsigned int bloomFBO, bloomRBO;
+    unsigned int brightnessBuffer, colorBuffer;
+    unsigned int pingpongFBO[2];
+    unsigned int pingpongBuffer[2];
+    bool horizontal = true;
+
     unsigned int captureFBO;
     unsigned int captureRBO;
     unsigned int irradianceMap;
@@ -64,6 +72,10 @@ public:
     void setSSAOShader(Shader* p_SSAOShader, Shader* p_SSAOBlurShader);
     void drawSSAO(glm::mat4 projection, glm::mat4 view);
     void SSAOBlur();
+    void genBloomBuffer();
+    void setBloomShader(Shader* p_GaussianBlurShader, Shader* p_BloomResultShader);
+    void twoPassGaussianBlur();
+    void bloomResult(bool& bloom, float& exposure);
 
     void bindFramebuffers();
     void setFogDistance(Shader* shader, float& near, float& far, float& density, glm::vec3& fogColor);

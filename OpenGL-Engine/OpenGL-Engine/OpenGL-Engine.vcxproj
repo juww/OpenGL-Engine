@@ -201,6 +201,10 @@
     <ClInclude Include="src\waterFFT.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="src\shader\bloomGaussianBlur.fs" />
+    <None Include="src\shader\bloomGaussianBlur.vs" />
+    <None Include="src\shader\bloomResult.fs" />
+    <None Include="src\shader\bloomResult.vs" />
     <None Include="src\shader\combineTextureShader.fs" />
     <None Include="src\shader\combineTextureShader.vs" />
     <None Include="src\shader\cube.fs" />

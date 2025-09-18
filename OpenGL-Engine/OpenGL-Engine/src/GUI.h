@@ -169,6 +169,7 @@ namespace GUI {
         bool useSSAO = true;
         bool useHDR = false;
         bool useORM = true;
+        bool bloom = true;
         float exposure = 1.0f;
         float ambientStrenght = 1.0f;
         float ssaoRadius = 0.5f, ssaoBias = 0.005f;

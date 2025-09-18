@@ -82,6 +82,8 @@ private:
     Shader* m_IrradianceShader;
     Shader* m_PreFilterShader;
     Shader* m_LUTShader;
+    Shader* m_BloomGaussianBlurShader;
+    Shader* m_BloomResultShader;
     Shader* m_CombineTextureShader;
 
     void configureGlobalState();

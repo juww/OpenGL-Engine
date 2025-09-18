@@ -397,5 +397,17 @@
     <None Include="src\shader\deferredShader.vs">
       <Filter>Resource Files\VertexShader</Filter>
     </None>
+    <None Include="src\shader\bloomGaussianBlur.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="src\shader\bloomGaussianBlur.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
+    <None Include="src\shader\bloomResult.fs">
+      <Filter>Resource Files\FragmentShader</Filter>
+    </None>
+    <None Include="src\shader\bloomResult.vs">
+      <Filter>Resource Files\VertexShader</Filter>
+    </None>
   </ItemGroup>
 </Project>

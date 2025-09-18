@@ -132,6 +132,8 @@ void Renderer::setupShaders() {
     m_GBufferShader = new Shader("gBufferShader.vs", "gBufferShader.fs");
     m_SSAOShader = new Shader("ssaoShader.vs", "ssaoShader.fs");
     m_SSAOBlurShader = new Shader("ssaoBlurShader.vs", "ssaoBlurShader.fs");
+    m_BloomGaussianBlurShader = new Shader("bloomGaussianBlur.vs", "bloomGaussianBlur.fs");
+    m_BloomResultShader = new Shader("bloomResult.vs", "bloomResult.fs");
     m_IrradianceShader = new Shader("irradianceShader.vs", "irradianceShader.fs");
     m_PreFilterShader = new Shader("preFilterShader.vs", "preFilterShader.fs");
     m_LUTShader = new Shader("LUTShader.vs", "LUTShader.fs");
@@ -245,6 +247,9 @@ void Renderer::start() {
     m_FBManager->genScreenSpaceAmbientOcclusion();
     m_FBManager->setSSAOShader(m_SSAOShader, m_SSAOBlurShader);
 
+    m_FBManager->setBloomShader(m_BloomGaussianBlurShader, m_BloomResultShader);
+    m_FBManager->genBloomBuffer();
+
     g_GBuffer[m_FBManager->gPosition] = "gPosition";
     g_GBuffer[m_FBManager->gNormal] = "gNormal";
     g_GBuffer[m_FBManager->gAlbedo] = "gAlbedo";
@@ -255,6 +260,8 @@ void Renderer::start() {
     g_GBuffer[m_FBManager->gViewNormal] = "gViewNormal";
     g_GBuffer[m_FBManager->gTexCoords] = "gTexCoords";
     g_GBuffer[m_FBManager->ssaoBufferBlur] = "SSAO";
+    g_GBuffer[m_FBManager->colorBuffer] = "colorresult";
+    g_GBuffer[m_FBManager->brightnessBuffer] = "brightness";
 
     for (auto sphere : m_Spheres) {
         sphere->materials.metallicRoughnessOcclusionTexture = m_FBManager->combineTexture(m_CombineTextureShader, 
@@ -344,14 +351,18 @@ void Renderer::DeferredRender(std::map<std::string, unsigned int>& mappers, std:
     glActiveTexture(GL_TEXTURE8);
     glBindTexture(GL_TEXTURE_2D, mappers["brdfLUTTexture"]);
 
-    m_FBManager->renderQuad();    
+    m_FBManager->renderQuad();
+    for (int i = 0; i <= 5; i++) {
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 }
 
 void Renderer::render(float currentTime, float deltaTime) {
 
     //m_FBManager->bindFramebuffers();
 
-    std::vector<glm::vec3> lightpos;
+    static std::vector<glm::vec3> lightpos;
     // for now,, will be deleted or change.
     int shadowType = 1;
     if (GUI::lightSunParam(g_LightDirection, m_Shadow->depthMap)) {
@@ -360,11 +371,12 @@ void Renderer::render(float currentTime, float deltaTime) {
         m_Shadow->setProjectionOrtho(glm::vec4(-g_Dimension, g_Dimension, -g_Dimension, g_Dimension), 0.01f, g_Dimension * 2.0f);
         m_LightCube[0].pos = m_Shadow->lightPoV;
     }
-
-    lightpos.push_back(g_LightDirection);
-    for (Light light : m_Lights) {
-        if (light.m_LightType == light.POSITION_LIGHT) {
-            lightpos.push_back(light.m_Position);
+    if (lightpos.empty()) {
+        lightpos.push_back(g_LightDirection);
+        for (Light light : m_Lights) {
+            if (light.m_LightType == light.POSITION_LIGHT) {
+                lightpos.push_back(light.m_Position);
+            }
         }
     }
 
@@ -394,17 +406,28 @@ void Renderer::render(float currentTime, float deltaTime) {
         m_FBManager->drawSSAO(projection, view);
         m_FBManager->SSAOBlur();
 
+        glBindFramebuffer(GL_FRAMEBUFFER, m_FBManager->bloomFBO);
         DeferredRender(m_FBManager->mappers, lightpos);
 
         glBindFramebuffer(GL_READ_FRAMEBUFFER, m_FBManager->gBuffer);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_FBManager->bloomFBO); // write to bloom buffer
+        glBlitFramebuffer(0, 0, m_ScreenWidth, m_ScreenHeight, 0, 0, m_ScreenWidth, m_ScreenHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_CULL_FACE);
+
+        for (Cube cube : m_LightCube) {
+            cube.draw(m_LightCubeShader, projection, view);
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        m_FBManager->twoPassGaussianBlur();
+        m_FBManager->bloomResult(g_DeferredParam.bloom, g_DeferredParam.exposure);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, m_FBManager->bloomFBO); 
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
+
+        //this second glBlitFramebuffer make the render become slower
         glBlitFramebuffer(0, 0, m_ScreenWidth, m_ScreenHeight, 0, 0, m_ScreenWidth, m_ScreenHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDisable(GL_CULL_FACE);
-    }
-
-    for (Cube cube : m_LightCube) {
-        cube.draw(m_LightCubeShader, projection, view);
     }
 
     GUI::modelTransform("model", m_Model->pos, m_Model->rot, m_Model->angle, m_Model->scale);

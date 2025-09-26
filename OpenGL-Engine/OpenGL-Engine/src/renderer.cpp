@@ -197,7 +197,9 @@ void Renderer::start() {
     m_Plane->generatePlaneWithPatch(64, 64);
 
     m_Terrain = new T_Terrain();
-    m_Terrain->createPlane(64, 64);
+    m_Terrain->setPredefineHeightMap("res/textures/papua_island_height_map.png");
+    //m_Terrain->createPlane(64, 64);
+    m_Terrain->createPlane(m_Terrain->wHeightMap / 16.0f, m_Terrain->hHeightMap / 16.0f);
     m_Terrain->setShader(m_PatchPlaneShader);
     m_Terrain->setComputeShader(m_NoiseShader);
     m_Terrain->generateNoiseTexture(256);

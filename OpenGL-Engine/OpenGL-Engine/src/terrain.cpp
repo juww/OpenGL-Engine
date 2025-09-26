@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <glm/gtx/transform.hpp>
+#include <JoeyDeVries/filesystem.h>
+#include <TinyGLTF/stb_image.h>
 
 T_Terrain::T_Terrain() {
     ebo = 0;
@@ -20,6 +22,7 @@ T_Terrain ::~T_Terrain() {
 
 void T_Terrain::createPlane(int w, int h) {
 
+    printf("scale to plane: %d - %d\n", w, h);
     width = w;
     heigth = h;
     std::vector<glm::vec3> patchPos;
@@ -63,6 +66,27 @@ void T_Terrain::createPlane(int w, int h) {
     glBindVertexArray(0);
 }
 
+void T_Terrain::setPredefineHeightMap(std::string HeightMapPath) {
+
+    glGenTextures(1, &heightMap);
+    glBindTexture(GL_TEXTURE_2D, heightMap);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    int w, h, nrChannels;
+    unsigned char* data = stbi_load(FileSystem::getPath(HeightMapPath).c_str(), &w, &h, &nrChannels, 4);
+    if (data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    }
+    wHeightMap = w;
+    hHeightMap = h;
+    printf("heightMap Texture: %d - %d\n", w, h);
+    stbi_image_free(data);
+}
+
 void T_Terrain::computeNoiseMap() {
     noiseShader->use();
     glActiveTexture(GL_TEXTURE0);
@@ -75,9 +99,9 @@ void T_Terrain::computeNoiseMap() {
 
 void T_Terrain::draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos) {
 
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glm::mat4 m(1.0f);
-    m = glm::translate(m, { -width, 6.0f, 0.0f });
+    m = glm::translate(m, { -width, 10.0f, 0.0f });
 
     shader->use();
     shader->setFloat("width", width);
@@ -92,7 +116,7 @@ void T_Terrain::draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos) {
     shader->setInt("heightMap", 0);
     shader->setVec3("viewPos", viewPos);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, noiseTexture);
+    glBindTexture(GL_TEXTURE_2D, heightMap);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glDrawElements(GL_PATCHES, patchSize, GL_UNSIGNED_INT, (void*)0);
@@ -100,7 +124,7 @@ void T_Terrain::draw(glm::mat4 projection, glm::mat4 view, glm::vec3 viewPos) {
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindImageTexture(0, 0, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void T_Terrain::generateNoiseTexture(int t_size) {

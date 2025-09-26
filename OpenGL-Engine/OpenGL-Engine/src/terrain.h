@@ -10,6 +10,8 @@ public:
     int width, heigth;
     unsigned int vao, ebo;
     unsigned int noiseTexture, textureSize;
+    unsigned int heightMap;
+    int wHeightMap, hHeightMap;
     bool isUpdate;
     int patchSize;
     ShaderT* shader;
@@ -20,6 +22,7 @@ public:
 
     void createPlane(int w, int h);
     void setShader(ShaderT* p_shader);
+    void setPredefineHeightMap(std::string HeightMapPath);
     void setComputeShader(ComputeShader* p_compute);
     void generateNoiseTexture(int t_size);
     void computeNoiseMap();

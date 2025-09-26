@@ -35,7 +35,7 @@ void main()
 
     // lookup texel at patch coordinate for height and scale + shift as desired
     Height = texture(heightMap, tex).x;
-    Height = pow(Height, 4.0) * 10.0f;
+    Height = mix(0.0f, 20.0f, Height);
 
     // ----------------------------------------------------------------------
     // retrieve control point position coordinates

@@ -23,7 +23,11 @@ void main() {
     vec3 norm = normalize(-cross(Tangent, BiNormal));
     norm = normalize(normalMatrix * norm);
 
-    vec3 result = phong(vec3(1.0f, 0.0f, 0.0f), norm);
+    vec3 colT = vec3(1.0f, 0.0f, 0.0f);
+    if(Height <= 0.0){
+        colT = vec3(0.0f, 0.0f, 1.0f);
+    }
+    vec3 result = phong(colT, norm);
     FragColor = vec4(result, 1.0); // set all 4 vector values to 1.0
 }
 
